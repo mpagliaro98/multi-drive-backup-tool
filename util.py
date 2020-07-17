@@ -18,19 +18,21 @@ def get_drive_list():
     return ['%s:' % d for d in string.ascii_uppercase if os.path.exists('%s:' % d)]
 
 
-def display_drive_space(path, precision):
+def drive_space_display_string(path, precision):
     """
-    Display and format the total, used, and free space of a given drive path.
+    Create a string that formats the total, used, and free space of a given drive path.
     :param path: The path to the disk location to get this information for, in this case
                  a drive such as "C:".
     :param precision: The number of values after the decimal when displaying space values.
+    :return: A string containing formatted information about the given drives.
     """
     total, used, free = shutil.disk_usage(path)
     format_str = "{:." + str(precision) + "f} GiB"
-    print("DRIVE: {}\\".format(path))
-    print("\tTotal: " + format_str.format(total / (2 ** 30)), end="")
-    print(", Used: " + format_str.format(used / (2 ** 30)), end="")
-    print(", Free: " + format_str.format(free / (2 ** 30)))
+    return_str = "DRIVE: {}\\\n".format(path)
+    return_str += "\tTotal: " + format_str.format(total / (2 ** 30))
+    return_str += ", Used: " + format_str.format(used / (2 ** 30))
+    return_str += ", Free: " + format_str.format(free / (2 ** 30)) + "\n"
+    return return_str
 
 
 def log(log_str):

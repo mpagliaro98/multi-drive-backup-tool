@@ -33,7 +33,7 @@ def main():
         drive_list = util.get_drive_list()
         print()
         for drive in drive_list:
-            util.display_drive_space(drive, precision=2)
+            print(util.drive_space_display_string(drive, precision=2), end="")
         # Display current configuration information
         print("\n" + configuration.config_display_string(config))
 
