@@ -48,6 +48,23 @@ class Configuration:
         """
         return input_path in self.inputs
 
+    def output_exists_for_entry(self, input_number, output_path):
+        """
+        Checks if a given output path already exists in the list of outputs for an entry.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :param output_path: The path to the folder where this entry should be backed up to.
+        :return: True if it already exists for the given entry number, false otherwise.
+        """
+        return output_path in self.outputs[input_number-1]
+
+    def get_input(self, input_number):
+        """
+        Given an index number, get the corresponding input path.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :return: The path of the corresponding input path.
+        """
+        return self.inputs[input_number-1]
+
     def get_entries(self):
         """
         Get a list of entries, where each entry is a sublist where the first element is an
@@ -120,15 +137,18 @@ def append_input_to_config(config, input_string):
     :return: The configuration object with a new entry, and a boolean that is True when the
              given input path is valid, and false otherwise.
     """
+    # Return false if this input already exists, or it's not a valid directory/file.
     if config.entry_exists(input_string):
         return config, False
     if not os.path.isdir(input_string) and not os.path.isfile(input_string):
         return config, False
+
+    # Add the string as a new entry.
     config.new_entry(input_string)
     return config, True
 
 
-def append_output_to_config(config, input_number, output_name):
+def append_output_to_config(config, input_number, output_string):
     """
     Add a given string that points to a directory location as a destination for one of the
     entries in the given configuration. A number must be provided that corresponds to the
@@ -139,10 +159,27 @@ def append_output_to_config(config, input_number, output_name):
     :param input_number: The index in the configuration of the entry to add the destination to.
                          This starts at 1, not 0. If the number is 0, the destination will be
                          appended to every entry.
-    :param output_name: An absolute directory path where this input should be backed-up to.
+    :param output_string: An absolute directory path where this input should be backed-up to.
     :return: The configuration object with a new destination, and a boolean that is True when the
              given destination path is valid, and false otherwise.
     """
+    if input_number == 0:
+        input_numbers = range(1, config.num_entries()+1)
+    else:
+        input_numbers = [input_number]
+
+    # Return false if the output isn't a valid directory or it's a sub-path of the input.
+    if not os.path.isdir(output_string):
+        return config, False
+    for input_num in input_numbers:
+        output_absolute = os.path.join(os.path.realpath(output_string), '')
+        input_absolute = os.path.join(os.path.realpath(config.get_input(input_num)), '')
+        if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
+            return config, False
+
+    # Add the string as a new output for this entry.
+    for input_num in input_numbers:
+        config.new_destination(input_num, output_string)
     return config, True
 
 

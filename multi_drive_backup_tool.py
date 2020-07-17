@@ -29,6 +29,7 @@ def main():
     """
     config = configuration.Configuration()
     while True:
+        print("\n======================================================================================")
         # Scan for drives, display available space
         drive_list = util.get_drive_list()
         print()
@@ -56,6 +57,10 @@ def main():
 
         # Configure destination locations
         elif user_input == "2":
+            # Return to the menu if there's no entries
+            if config.num_entries() == 0:
+                print("There are no entries to add a destination to.")
+                continue
             # Display a list of entries in the configuration
             config.enumerate_entries()
             # Accept input to select one of those entries (or all at once)
@@ -71,7 +76,7 @@ def main():
                     break
                 config, result = configuration.append_output_to_config(config, int(entry_number), destination_input)
                 if not result:
-                    print("The given path was invalid.")
+                    print("The given path was invalid, is already specified, or is a sub-folder of the input.")
 
         # Save current configuration
         elif user_input == "3":
