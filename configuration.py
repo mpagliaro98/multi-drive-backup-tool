@@ -6,6 +6,7 @@ their destinations.
 """
 
 import os
+import pickle
 
 
 class Configuration:
@@ -95,7 +96,8 @@ def config_exists(config_name):
     :param config_name: The name of the configuration to check for.
     :return: True if it exists, False otherwise.
     """
-    return False
+    file_path = os.getcwd() + "/configs/" + config_name + ".dat"
+    return os.path.exists(file_path)
 
 
 def save_config(config, config_name):
@@ -105,7 +107,15 @@ def save_config(config, config_name):
     :param config: A configuration object.
     :param config_name: The name to give the configuration file.
     """
-    print("stub")
+    file_path = os.getcwd() + "/configs/" + config_name + ".dat"
+    if not os.path.exists(os.getcwd() + "/configs/"):
+        os.mkdir(os.getcwd() + "/configs/")
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    config_file = open(file_path, "wb")
+    pickle.dump(config, config_file)
+    config_file.close()
+    print("{}.dat was successfully saved to the /configs/ directory.".format(config_name))
 
 
 def display_saved_configs():
