@@ -5,6 +5,8 @@ A file to handle saving, loading, and the handling at runtime of configurations 
 their destinations.
 """
 
+import os
+
 
 class Configuration:
     """
@@ -37,6 +39,14 @@ class Configuration:
         :param output_path: The path to the folder where this entry should be backed up to.
         """
         self.outputs[entry_number-1].append(output_path)
+
+    def entry_exists(self, input_path):
+        """
+        Checks if a given input path already exists in the configuration.
+        :param input_path: The path to a folder or file to backup.
+        :return: True if it already exists, false otherwise.
+        """
+        return input_path in self.inputs
 
     def get_entries(self):
         """
@@ -110,6 +120,11 @@ def append_input_to_config(config, input_string):
     :return: The configuration object with a new entry, and a boolean that is True when the
              given input path is valid, and false otherwise.
     """
+    if config.entry_exists(input_string):
+        return config, False
+    if not os.path.isdir(input_string) and not os.path.isfile(input_string):
+        return config, False
+    config.new_entry(input_string)
     return config, True
 
 

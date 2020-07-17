@@ -40,6 +40,7 @@ def main():
         # Display the main menu and prompt for user input
         display_main_menu()
         user_input = input("Enter the number of an option: ")
+        print()
 
         # Select a folder or file to backup
         if user_input == "1":
@@ -51,7 +52,7 @@ def main():
                 config, result = configuration.append_input_to_config(config, input_name)
                 # No changes occur to the config if it's invalid, so show that it's invalid
                 if not result:
-                    print("The given path was invalid.")
+                    print("The given path was invalid, or is already specified.")
 
         # Configure destination locations
         elif user_input == "2":
