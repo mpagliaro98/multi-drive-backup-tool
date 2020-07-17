@@ -8,6 +8,9 @@ their destinations.
 import os
 import pickle
 
+# Static global variable for the name of the directory configs are saved to
+CONFIG_DIRECTORY = "configs"
+
 
 class Configuration:
     """
@@ -96,7 +99,8 @@ def config_exists(config_name):
     :param config_name: The name of the configuration to check for.
     :return: True if it exists, False otherwise.
     """
-    file_path = os.getcwd() + "/configs/" + config_name + ".dat"
+    file_name = config_name + ".dat"
+    file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
     return os.path.exists(file_path)
 
 
@@ -107,24 +111,26 @@ def save_config(config, config_name):
     :param config: A configuration object.
     :param config_name: The name to give the configuration file.
     """
-    file_path = os.getcwd() + "/configs/" + config_name + ".dat"
-    if not os.path.exists(os.getcwd() + "/configs/"):
-        os.mkdir(os.getcwd() + "/configs/")
+    file_name = config_name + ".dat"
+    file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
+    if not os.path.exists(os.path.join(os.getcwd(), CONFIG_DIRECTORY)):
+        os.mkdir(os.path.join(os.getcwd(), CONFIG_DIRECTORY))
     if os.path.exists(file_path):
         os.remove(file_path)
     config_file = open(file_path, "wb")
     pickle.dump(config, config_file)
     config_file.close()
-    print("{}.dat was successfully saved to the /configs/ directory.".format(config_name))
+    print("{} was successfully saved to the {} directory.".format(file_name, CONFIG_DIRECTORY))
 
 
-def display_saved_configs():
+def saved_config_display_string():
     """
     Go through each configuration file in the saved directory and build a string of the names
     of each valid configuration.
     :return: A string containing the names of all saved configurations.
     """
-    return ""
+    if not os.path.exists(os.path.join(os.getcwd(), CONFIG_DIRECTORY)):
+        return ""
 
 
 def load_config(config_name):

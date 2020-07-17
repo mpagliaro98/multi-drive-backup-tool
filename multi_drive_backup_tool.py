@@ -92,7 +92,11 @@ def main():
         # Load a configuration
         elif user_input == "4":
             # Input loop: Enter name of saved configuration, input "end" to stop, stop once a valid name is entered
-            print(configuration.display_saved_configs())
+            config_list = configuration.saved_config_display_string()
+            if config_list == "":
+                print("There are no currently saved configurations.")
+                continue
+            print(configuration.saved_config_display_string())
             while True:
                 config_name = input("Enter a name of a configuration to load (enter \"end\" to stop): ")
                 if configuration.config_exists(config_name):
