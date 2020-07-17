@@ -13,7 +13,7 @@ def display_main_menu():
     """
     Print out the options that make up the main menu.
     """
-    print("1: Select a folder or file to backup")
+    print("\n1: Select a folder or file to backup")
     print("2: Configure destination locations")
     print("3: Save current backup configuration")
     print("4: Load a backup configuration")
@@ -31,6 +31,8 @@ def main():
     while True:
         # Scan for drives, display available space
         drive_list = util.get_drive_list()
+        for drive in drive_list:
+            util.display_drive_space(drive, precision=2)
         # Display current configuration information
         configuration.display_config(config)
 
