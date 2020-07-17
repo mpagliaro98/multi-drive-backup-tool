@@ -96,9 +96,10 @@ def main():
             if config_list == "":
                 print("There are no currently saved configurations.")
                 continue
+            print("List of available saved configurations:")
             print(configuration.saved_config_display_string())
             while True:
-                config_name = input("Enter a name of a configuration to load (enter \"end\" to stop): ")
+                config_name = input("Enter a name of a configuration to load (enter \"end\" to return to the menu): ")
                 if configuration.config_exists(config_name):
                     config = configuration.load_config(config_name)
                     break

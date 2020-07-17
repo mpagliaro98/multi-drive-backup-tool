@@ -131,6 +131,11 @@ def saved_config_display_string():
     """
     if not os.path.exists(os.path.join(os.getcwd(), CONFIG_DIRECTORY)):
         return ""
+    list_str = ""
+    for filename in os.listdir(os.path.join(os.getcwd(), CONFIG_DIRECTORY)):
+        if filename.endswith(".dat"):
+            list_str += os.path.splitext(filename)[0] + "\n"
+    return list_str
 
 
 def load_config(config_name):
@@ -140,7 +145,12 @@ def load_config(config_name):
     :param config_name: The name of the configuration file to load from.
     :return: The configuration object saved in that file.
     """
-    return Configuration()
+    file_name = config_name + ".dat"
+    file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
+    config_file = open(file_path, "rb")
+    config = pickle.load(config_file)
+    config_file.close()
+    return config
 
 
 def append_input_to_config(config, input_string):
