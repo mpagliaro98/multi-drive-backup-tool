@@ -162,7 +162,7 @@ def menu_option_edit(config):
                 input_name = input("Enter the new absolute path of a folder or file to backup: ")
                 config, result = configuration.edit_input_in_config(config, int(entry_number), input_name)
                 if not result:
-                    print("The given path was invalid, or is already specified.")
+                    print("The given path is invalid, already specified, or a destination became a sub-folder.")
         # Edit the destinations
         elif edit_input == "2":
             if config.num_destinations(int(entry_number)) > 0:

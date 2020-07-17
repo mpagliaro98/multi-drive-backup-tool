@@ -44,6 +44,23 @@ class Configuration:
         """
         self.outputs[entry_number-1].append(output_path)
 
+    def edit_entry_name(self, input_number, new_name):
+        """
+        Change the name of one of the inputs.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :param new_name: The name to change it to.
+        """
+        self.inputs[input_number-1] = new_name
+
+    def edit_destination(self, input_number, dest_number, new_name):
+        """
+        Change the name of a specified destination.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :param dest_number: The number of the index of a destination for this entry, starting at 1.
+        :param new_name: The name to change it to.
+        """
+        self.outputs[input_number-1][dest_number-1] = new_name
+
     def entry_exists(self, input_path):
         """
         Checks if a given input path already exists in the configuration.
@@ -68,6 +85,14 @@ class Configuration:
         :return: The path of the corresponding input path.
         """
         return self.inputs[input_number-1]
+
+    def get_destinations(self, input_number):
+        """
+        Given an index number, get the corresponding destination paths.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :return: A list of paths to this entry's destinations.
+        """
+        return self.outputs[input_number-1]
 
     def get_entries(self):
         """
@@ -271,6 +296,21 @@ def edit_input_in_config(config, input_number, new_name):
     :return: The configuration object with an edited entry, and a boolean that is True when the
              given input path is valid, and false otherwise.
     """
+    # Return false if this input already exists, or it's not a valid directory/file.
+    if config.entry_exists(new_name):
+        return config, False
+    if not os.path.isdir(new_name) and not os.path.isfile(new_name):
+        return config, False
+
+    # Ensure the input can't be changed to that one of its outputs becomes a sub-folder.
+    for destination in config.get_destinations(input_number):
+        output_absolute = os.path.join(os.path.realpath(destination), '')
+        input_absolute = os.path.join(os.path.realpath(new_name), '')
+        if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
+            return config, False
+
+    # Overwrite the name of the original entry.
+    config.edit_entry_name(input_number, new_name)
     return config, True
 
 
@@ -285,6 +325,16 @@ def edit_destination_in_config(config, input_number, destination_number, new_nam
     :return: The configuration object with an edited destination, and a boolean that is True when the
              given destination path is valid, and false otherwise.
     """
+    # Return false if the output isn't a valid directory or it's a sub-path of the input.
+    if not os.path.isdir(new_name):
+        return config, False
+    output_absolute = os.path.join(os.path.realpath(new_name), '')
+    input_absolute = os.path.join(os.path.realpath(config.get_input(input_number)), '')
+    if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
+        return config, False
+
+    # Overwrite the original destination.
+    config.edit_destination(input_number, destination_number, new_name)
     return config, True
 
 
