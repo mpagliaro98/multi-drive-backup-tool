@@ -85,12 +85,64 @@ class Configuration:
         for entry_idx in range(len(self.inputs)):
             print("{}: {} --> {}".format(entry_idx+1, self.inputs[entry_idx], self.outputs[entry_idx]))
 
+    def enumerate_destinations(self, input_number):
+        """
+        Iterate through each destination of a given input and display them alongside numbers.
+        :param input_number: The number of the index of the entry, starting at 1.
+        """
+        for dest_idx in range(len(self.outputs[input_number-1])):
+            print("{}: {}".format(dest_idx+1, self.outputs[input_number-1][dest_idx]))
+
+    def entry_to_string(self, input_number):
+        """
+        Create a formatted string for a given entry, containing the input path and all its destination paths.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :return: A string containing all necessary information about an entry.
+        """
+        entry_str = "INPUT: {}\n".format(self.inputs[input_number-1])
+        for destination in self.outputs[input_number-1]:
+            entry_str += "\tDESTINATION: {}\n".format(destination)
+        return entry_str.strip()
+
     def num_entries(self):
         """
         Get the number of input/outputs entries this configuration is holding.
         :return: The number of entries.
         """
         return len(self.inputs)
+
+    def num_destinations(self, input_number):
+        """
+        Get the number of destinations for a given entry in the configuration.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :return: The number of destinations for that entry.
+        """
+        return len(self.outputs[input_number-1])
+
+    def delete_destination(self, input_number, destination_number):
+        """
+        Delete one destination path from a given entry.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :param destination_number: The number of the index of the destination in that entry,
+                                   starting at 1.
+        """
+        del self.outputs[input_number-1][destination_number-1]
+
+    def delete_destinations(self, input_number):
+        """
+        Delete all the destination paths of a given input.
+        :param input_number: The number of the index of the entry, starting at 1.
+        """
+        self.outputs[input_number-1] = []
+
+    def delete_entry(self, input_number):
+        """
+        Delete an entry from the configuration. This removes its input path and all corresponding
+        destination paths.
+        :param input_number: The number of the index of the entry, starting at 1.
+        """
+        del self.inputs[input_number-1]
+        del self.outputs[input_number-1]
 
 
 def config_exists(config_name):
@@ -206,6 +258,33 @@ def append_output_to_config(config, input_number, output_string):
     # Add the string as a new output for this entry.
     for input_num in input_numbers:
         config.new_destination(input_num, output_string)
+    return config, True
+
+
+def edit_input_in_config(config, input_number, new_name):
+    """
+    Edit the name of an input in the configuration. This will be checked to ensure it's a valid
+    directory/file path, and not already in the configuration.
+    :param config: The configuration to edit a path in.
+    :param input_number: The number of the index of the entry, starting at 1.
+    :param new_name: The new input path.
+    :return: The configuration object with an edited entry, and a boolean that is True when the
+             given input path is valid, and false otherwise.
+    """
+    return config, True
+
+
+def edit_destination_in_config(config, input_number, destination_number, new_name):
+    """
+    Edit the name of a destination path within an entry of the configuration. This will be checked
+    to ensure it's a valid directory path and not already in this entry.
+    :param config: The configuration to edit a path in.
+    :param input_number: The number of the index of the entry, starting at 1.
+    :param destination_number: The number of the index of the destination in this entry, starting at 1.
+    :param new_name: The new destination path.
+    :return: The configuration object with an edited destination, and a boolean that is True when the
+             given destination path is valid, and false otherwise.
+    """
     return config, True
 
 
