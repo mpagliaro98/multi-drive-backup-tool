@@ -18,14 +18,33 @@ class Configuration:
         """
         Create the Configuration object.
         """
-        print("stub")
+        self.inputs = []
+        self.outputs = []
+
+    def new_entry(self, input_path):
+        """
+        Create a new entry in the configuration. This will add the given path as a new input and
+        create a corresponding empty list of destinations.
+        :param input_path: The path to a folder or file to backup.
+        """
+        self.inputs.append(input_path)
+        self.outputs.append([])
+
+    def new_destination(self, entry_number, output_path):
+        """
+        Append a new destination path to an entry.
+        :param entry_number: The number of the index of the entry, starting at 1.
+        :param output_path: The path to the folder where this entry should be backed up to.
+        """
+        self.outputs[entry_number-1].append(output_path)
 
     def enumerate_entries(self):
         """
         Iterate through each input/outputs entry in this configuration and display them to the
         screen, prefaced by numbers.
         """
-        print("stub")
+        for entry_idx in range(len(self.inputs)):
+            print("{}: {} --> {}".format(entry_idx+1, self.inputs[entry_idx], self.outputs[entry_idx]))
 
     def num_entries(self):
         """
