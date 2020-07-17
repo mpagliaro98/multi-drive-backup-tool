@@ -31,10 +31,11 @@ def main():
     while True:
         # Scan for drives, display available space
         drive_list = util.get_drive_list()
+        print()
         for drive in drive_list:
             util.display_drive_space(drive, precision=2)
         # Display current configuration information
-        configuration.display_config(config)
+        print("\n" + configuration.config_display_string(config))
 
         # Display the main menu and prompt for user input
         display_main_menu()
@@ -98,7 +99,7 @@ def main():
         # Run the backup
         elif user_input == "5":
             # Print the configuration, showing each folder to backup and its destinations
-            configuration.display_config(config)
+            configuration.config_display_string(config)
             # Ask to confirm if this is ok to backup
             backup_confirmation = input("Would you like to start the backup with this configuration? (y/n): ")
             # If yes, run the backup

@@ -38,6 +38,14 @@ class Configuration:
         """
         self.outputs[entry_number-1].append(output_path)
 
+    def get_entries(self):
+        """
+        Get a list of entries, where each entry is a sublist where the first element is an
+        input and the second element is a list of its corresponding outputs.
+        :return: A zipped list of inputs and outputs.
+        """
+        return zip(self.inputs, self.outputs)
+
     def enumerate_entries(self):
         """
         Iterate through each input/outputs entry in this configuration and display them to the
@@ -123,10 +131,17 @@ def append_output_to_config(config, input_number, output_name):
     return config, True
 
 
-def display_config(config):
+def config_display_string(config):
     """
     Builds a string that contains all relevant information about a given configuration.
     :param config: The configuration object to display information about.
     :return: A string containing formatted information about the configuration.
     """
-    return ""
+    if config.num_entries() == 0:
+        return "NO FOLDERS/FILES SELECTED TO BACKUP"
+    return_str = "CURRENT CONFIGURATION\n"
+    for input_str, outputs_list in config.get_entries():
+        return_str += "\tBACKUP: " + input_str + "\n"
+        for output_str in outputs_list:
+            return_str += "\t\tCOPY TO: " + output_str + "\n"
+    return return_str.strip()
