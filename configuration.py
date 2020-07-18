@@ -79,6 +79,16 @@ class Configuration:
         """
         return output_path in self.outputs[input_number-1]
 
+    def all_entries_have_outputs(self):
+        """
+        Checks if all entries in the configuration have at least one output specified.
+        :return: True if all entries have at least one destination, false otherwise.
+        """
+        for destination_list in self.outputs:
+            if len(destination_list) == 0:
+                return False
+        return True
+
     def get_input(self, input_number):
         """
         Given an index number, get the corresponding input path.

@@ -294,7 +294,11 @@ def main():
         elif user_input == "6":
             # Return to the menu if there's no entries
             if config.num_entries() > 0:
-                menu_option_backup(config)
+                if config.all_entries_have_outputs():
+                    menu_option_backup(config)
+                else:
+                    print("Not all inputs have a destination specified to back them up to.")
+                    continue
             else:
                 print("There is nothing currently selected to backup.")
                 continue
