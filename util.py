@@ -35,6 +35,21 @@ def drive_space_display_string(path, precision):
     return return_str
 
 
+def directory_size(path):
+    """
+    Calculates the amount of space taken up by files within a given directory.
+    :param path: A directory path.
+    :return: The number of bytes of storage files in that directory take up.
+    """
+    total_size = 0
+    start_path = path
+    for path, dirs, files in os.walk(start_path):
+        for file in files:
+            next_file = os.path.join(path, file)
+            total_size += os.path.getsize(next_file)
+    return total_size
+
+
 def log(log_str):
     """
     Logging function, this will take in any given string and write it to a log file in
