@@ -9,6 +9,7 @@ import filecmp
 import shutil
 import time
 import util
+import configuration
 
 
 NUM_FILES_PROCESSED = 0
@@ -22,10 +23,16 @@ def run_backup(config):
     The primary entry function that starts and runs the backup process.
     :param config: A configuration containing paths to folders to backup.
     """
+    util.begin_log()
+    util.log("\n" + configuration.config_display_string(config))
     for input_path, outputs in config.get_entries():
         for output_path in outputs:
             folder_name = os.path.split(input_path)[1]
             backup_folder = os.path.join(output_path, folder_name + " BACKUP")
+            util.log("\n//////////////////////////////////////////////////////")
+            util.log("///// INPUT: " + input_path)
+            util.log("///// OUTPUT: " + backup_folder)
+            util.log("//////////////////////////////////////////////////////\n")
             print("\nBacking up {} to {}...".format(input_path, backup_folder))
             reset_globals()
             start_time = time.time()
@@ -33,6 +40,9 @@ def run_backup(config):
             end_time = time.time()
             print("\nBackup from {} to {} is complete. ({})".format(input_path, backup_folder,
                                                                     util.time_string(end_time-start_time)))
+            util.log("Backup complete: {} files processed, {} new files, {} existing files modified ({:.2f} GiB)"
+                     .format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED, TOTAL_SIZE_PROCESSED / (2 ** 30)))
+    util.end_log()
 
 
 def recursive_backup(input_path, output_path):
@@ -50,11 +60,13 @@ def recursive_backup(input_path, output_path):
             if not filecmp.cmp(input_path, output_path):
                 shutil.copy2(input_path, output_path)
                 mark_file_processed(os.path.getsize(input_path), modified=True, is_new=False)
+                util.log("UPDATED - " + output_path)
             else:
                 mark_file_processed(os.path.getsize(input_path), modified=False, is_new=False)
         else:
             shutil.copy2(input_path, output_path)
             mark_file_processed(os.path.getsize(input_path), modified=False, is_new=True)
+            util.log("NEW - " + output_path)
     else:
         # If this directory doesn't exist in the output, make it
         if not os.path.exists(output_path):
@@ -67,7 +79,9 @@ def recursive_backup(input_path, output_path):
         output_dir_files = os.listdir(output_path)
         for output_file in output_dir_files:
             if output_file not in input_dir_files:
-                os.remove(os.path.join(output_path, output_file))
+                delete_file_path = os.path.join(output_path, output_file)
+                os.remove(delete_file_path)
+                util.log("DELETED - " + delete_file_path)
     print("{} files processed, {} new files, {} existing files modified ({:.2f} GiB)"
           .format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED, TOTAL_SIZE_PROCESSED / (2 ** 30)),
           end="\r", flush=True)

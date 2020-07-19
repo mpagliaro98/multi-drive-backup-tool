@@ -7,6 +7,11 @@ Additional utility functions used by the backup tool.
 import os
 import string
 import shutil
+from datetime import datetime
+
+
+# The log file to be written to whenever log() is called
+LOG_FILE = None
 
 
 def get_drive_list():
@@ -86,10 +91,37 @@ def time_string(time_seconds):
         return "{:.3f} seconds".format(time_seconds)
 
 
-def log(log_str):
+def begin_log():
+    """
+    Open the log file to prepare for it to be written to. This will also write the first line
+    of the log file. This should be called before using log() or end_log().
+    """
+    global LOG_FILE
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    file_name = "log_backup_" + current_time + ".txt"
+    file_path = os.path.join(os.getcwd(), file_name)
+    LOG_FILE = open(file_path, "w")
+    LOG_FILE.write("Beginning backup log: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
+
+
+def end_log():
+    """
+    Close the log file after writing an ending message to the file. This should only be called
+    after begin_log(). To write more log messages after this is called, begin_log() must be
+    called again, which will start a new file.
+    """
+    global LOG_FILE
+    LOG_FILE.write("Ending backup log: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
+    LOG_FILE.close()
+
+
+def log(log_str=""):
     """
     Logging function, this will take in any given string and write it to a log file in
-    the running directory.
+    the running directory. This will automatically print a newline in the log file after
+    every time this function is called. The begin_log() function must be called before this
+    can be used.
     :param log_str: The string to append to the log file.
     """
-    print("stub")
+    global LOG_FILE
+    LOG_FILE.write(log_str + "\n")
