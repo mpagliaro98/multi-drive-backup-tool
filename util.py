@@ -50,6 +50,42 @@ def directory_size(path):
     return total_size
 
 
+def time_string(time_seconds):
+    """
+    Creates a formatted string to express a length of time. Given a value in seconds, the value will
+    be split into hours, minutes, and seconds based on how long that time period is.
+    :param time_seconds: A value of time in seconds.
+    :return: A formatted string expressing the time.
+    """
+    if time_seconds / 60 >= 1:
+        if time_seconds / 3600 >= 1:
+            # At least one hour
+            time_minutes = time_seconds - (3600 * (time_seconds // 3600))
+            num_hours = int(time_seconds // 3600)
+            if num_hours == 1:
+                hours_string = "hour"
+            else:
+                hours_string = "hours"
+            num_minutes = int(time_minutes // 60)
+            if num_minutes == 1:
+                minutes_string = "minute"
+            else:
+                minutes_string = "minutes"
+            return "{} {}, {} {}, {:.3f} seconds".format(num_hours, hours_string, num_minutes,
+                                                         minutes_string, time_minutes % 60)
+        else:
+            # At least one minute
+            num_minutes = int(time_seconds // 60)
+            if num_minutes == 1:
+                minutes_string = "minute"
+            else:
+                minutes_string = "minutes"
+            return "{} {}, {:.3f} seconds".format(num_minutes, minutes_string, time_seconds % 60)
+    else:
+        # Less than one minute
+        return "{:.3f} seconds".format(time_seconds)
+
+
 def log(log_str):
     """
     Logging function, this will take in any given string and write it to a log file in

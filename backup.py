@@ -8,6 +8,7 @@ import os
 import filecmp
 import shutil
 import time
+import util
 
 
 NUM_FILES_PROCESSED = 0
@@ -30,8 +31,8 @@ def run_backup(config):
             start_time = time.time()
             recursive_backup(input_path, backup_folder)
             end_time = time.time()
-            print("\nBackup from {} to {} is complete. ({:.3f} seconds)".format(input_path, backup_folder,
-                                                                                end_time-start_time))
+            print("\nBackup from {} to {} is complete. ({})".format(input_path, backup_folder,
+                                                                    util.time_string(end_time-start_time)))
 
 
 def recursive_backup(input_path, output_path):
