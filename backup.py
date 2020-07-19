@@ -7,6 +7,13 @@ Functionality to copy multiple files from one location to another efficiently.
 import os
 import filecmp
 import shutil
+import time
+
+
+NUM_FILES_PROCESSED = 0
+NUM_FILES_MODIFIED = 0
+NUM_FILES_NEW = 0
+TOTAL_SIZE_PROCESSED = 0
 
 
 def run_backup(config):
@@ -18,7 +25,13 @@ def run_backup(config):
         for output_path in outputs:
             folder_name = os.path.split(input_path)[1]
             backup_folder = os.path.join(output_path, folder_name + " BACKUP")
+            print("\nBacking up {} to {}...".format(input_path, backup_folder))
+            reset_globals()
+            start_time = time.time()
             recursive_backup(input_path, backup_folder)
+            end_time = time.time()
+            print("\nBackup from {} to {} is complete. ({:.3f} seconds)".format(input_path, backup_folder,
+                                                                                end_time-start_time))
 
 
 def recursive_backup(input_path, output_path):
@@ -35,8 +48,12 @@ def recursive_backup(input_path, output_path):
         if os.path.exists(output_path):
             if not filecmp.cmp(input_path, output_path):
                 shutil.copy2(input_path, output_path)
+                mark_file_processed(os.path.getsize(input_path), modified=True, is_new=False)
+            else:
+                mark_file_processed(os.path.getsize(input_path), modified=False, is_new=False)
         else:
             shutil.copy2(input_path, output_path)
+            mark_file_processed(os.path.getsize(input_path), modified=False, is_new=True)
     else:
         # If this directory doesn't exist in the output, make it
         if not os.path.exists(output_path):
@@ -50,3 +67,40 @@ def recursive_backup(input_path, output_path):
         for output_file in output_dir_files:
             if output_file not in input_dir_files:
                 os.remove(os.path.join(output_path, output_file))
+    print("{} files processed, {} new files, {} existing files modified ({:.2f} GiB)"
+          .format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED, TOTAL_SIZE_PROCESSED / (2 ** 30)),
+          end="\r", flush=True)
+
+
+def reset_globals():
+    """
+    Reset the variables that track how many files are being processed.
+    """
+    global NUM_FILES_PROCESSED
+    global NUM_FILES_MODIFIED
+    global NUM_FILES_NEW
+    global TOTAL_SIZE_PROCESSED
+    NUM_FILES_PROCESSED = 0
+    NUM_FILES_MODIFIED = 0
+    NUM_FILES_NEW = 0
+    TOTAL_SIZE_PROCESSED = 0
+
+
+def mark_file_processed(file_size, modified, is_new):
+    """
+    Should be called when a file has been processed and backed up. This will increment the relevant
+    variables that track how many files have been processed.
+    :param file_size: The size of the file that was processed.
+    :param modified: True if the file was already in the backup, and has just been changed.
+    :param is_new: True if the file was not in the backup previously and was just copied over.
+    """
+    global NUM_FILES_PROCESSED
+    global NUM_FILES_MODIFIED
+    global NUM_FILES_NEW
+    global TOTAL_SIZE_PROCESSED
+    NUM_FILES_PROCESSED += 1
+    if modified:
+        NUM_FILES_MODIFIED += 1
+    if is_new:
+        NUM_FILES_NEW += 1
+    TOTAL_SIZE_PROCESSED += file_size
