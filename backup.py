@@ -8,10 +8,12 @@ import os
 import filecmp
 import shutil
 import time
+from datetime import datetime
 import util
 import configuration
 
 
+# Variables to track how many files have been processed during the backup process
 NUM_FILES_PROCESSED = 0
 NUM_FILES_MODIFIED = 0
 NUM_FILES_NEW = 0
@@ -42,6 +44,7 @@ def run_backup(config):
                                                                     util.time_string(end_time-start_time)))
             util.log("Backup complete: {} files processed, {} new files, {} existing files modified ({:.2f} GiB)"
                      .format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED, TOTAL_SIZE_PROCESSED / (2 ** 30)))
+            create_backup_text_file(backup_folder)
     util.end_log()
 
 
@@ -119,3 +122,17 @@ def mark_file_processed(file_size, modified, is_new):
     if is_new:
         NUM_FILES_NEW += 1
     TOTAL_SIZE_PROCESSED += file_size
+
+
+def create_backup_text_file(backup_base_folder):
+    """
+    Creates a file containing the current time into the given folder. This is meant to signify
+    when the most recent backup has been completed.
+    :param backup_base_folder: The folder to write the file to.
+    """
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    file_name = "_BACKUP-CONFIRMATION.txt"
+    file_path = os.path.join(backup_base_folder, file_name)
+    text_file = open(file_path, "w")
+    text_file.write("This backup was completed on " + current_time)
+    text_file.close()
