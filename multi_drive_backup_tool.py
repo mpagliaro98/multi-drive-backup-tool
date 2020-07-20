@@ -231,6 +231,7 @@ def menu_option_backup(config):
     :param config: The current backup configuration.
     """
     # Print the configuration, showing each folder to backup and its destinations
+    print("Calculating file sizes...", end="\r", flush=True)
     print(configuration.config_display_string(config))
     # Ask to confirm if this is ok to backup
     backup_confirmation = input("Would you like to start the backup with this configuration? (y/n): ")
@@ -253,7 +254,8 @@ def main():
         for drive in drive_list:
             print(util.drive_space_display_string(drive, precision=2), end="")
         # Display current configuration information
-        print("\n" + configuration.config_display_string(config))
+        print("\nCalculating file sizes...", end="\r", flush=True)
+        print(configuration.config_display_string(config))
 
         # Display the main menu and prompt for user input
         display_main_menu()

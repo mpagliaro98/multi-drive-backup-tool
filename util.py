@@ -34,8 +34,8 @@ def drive_space_display_string(path, precision):
     """
     total, used, free = shutil.disk_usage(path)
     format_str = "{:." + str(precision) + "f} GiB"
-    return_str = "DRIVE: {}\\\n".format(path)
-    return_str += "\tTotal: " + format_str.format(total / (2 ** 30))
+    return_str = "DRIVE: {}\\ ----- ".format(path)
+    return_str += "Total: " + format_str.format(total / (2 ** 30))
     return_str += ", Used: " + format_str.format(used / (2 ** 30))
     return_str += ", Free: " + format_str.format(free / (2 ** 30)) + "\n"
     return return_str
