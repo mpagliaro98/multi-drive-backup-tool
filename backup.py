@@ -87,7 +87,14 @@ def recursive_backup(input_path, output_path, total_size, total_files):
         for output_file in output_dir_files:
             if output_file not in input_dir_files:
                 delete_file_path = os.path.join(output_path, output_file)
-                os.remove(delete_file_path)
+                # Use the correct delete function based on if it's a file or folder (empty or used)
+                if os.path.isdir(delete_file_path):
+                    if len(os.listdir(delete_file_path)) == 0:
+                        os.rmdir(delete_file_path)
+                    else:
+                        shutil.rmtree(delete_file_path)
+                else:
+                    os.remove(delete_file_path)
                 util.log("DELETED - " + delete_file_path)
     print("{}/{} files processed, {} new files, {} existing files modified ({:.2f}/{:.2f} GiB)"
           .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED,
