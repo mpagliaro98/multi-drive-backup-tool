@@ -12,6 +12,7 @@ from datetime import datetime
 
 # The log file to be written to whenever log() is called
 LOG_FILE = None
+LOGS_DIRECTORY = "logs"
 
 
 def get_drive_list():
@@ -101,9 +102,11 @@ def begin_log():
     of the log file. This should be called before using log() or end_log().
     """
     global LOG_FILE
+    if not os.path.exists(os.path.join(os.getcwd(), LOGS_DIRECTORY)):
+        os.mkdir(os.path.join(os.getcwd(), LOGS_DIRECTORY))
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     file_name = "log_backup_" + current_time + ".txt"
-    file_path = os.path.join(os.getcwd(), file_name)
+    file_path = os.path.join(os.getcwd(), LOGS_DIRECTORY, file_name)
     LOG_FILE = open(file_path, "w")
     LOG_FILE.write("Beginning backup log: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
 
