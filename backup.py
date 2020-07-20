@@ -28,6 +28,7 @@ def run_backup(config):
     util.begin_log()
     util.log("\n" + configuration.config_display_string(config))
     for input_path, outputs in config.get_entries():
+        total_size, total_files = util.directory_size(input_path)
         for output_path in outputs:
             folder_name = os.path.split(input_path)[1]
             backup_folder = os.path.join(output_path, folder_name + " BACKUP")
@@ -38,7 +39,7 @@ def run_backup(config):
             print("\nBacking up {} to {}...".format(input_path, backup_folder))
             reset_globals()
             start_time = time.time()
-            recursive_backup(input_path, backup_folder)
+            recursive_backup(input_path, backup_folder, total_size, total_files)
             end_time = time.time()
             print("\nBackup from {} to {} is complete. ({})".format(input_path, backup_folder,
                                                                     util.time_string(end_time-start_time)))
@@ -48,7 +49,7 @@ def run_backup(config):
     util.end_log()
 
 
-def recursive_backup(input_path, output_path):
+def recursive_backup(input_path, output_path, total_size, total_files):
     """
     The main backup algorithm. This recursively walks through the files specified by the
     input and copies them to their respective spot in the destination. If a backup has already
@@ -56,6 +57,8 @@ def recursive_backup(input_path, output_path):
     causing subsequent backups to run much faster.
     :param input_path: The path to a file or folder to backup.
     :param output_path: The path to the inputs spot in the destination to back it up to.
+    :param total_size: The total size in bytes of the full input backup. This shouldn't decrease during recursion.
+    :param total_files: The total number of files in the full input backup. This shouldn't decrease during recursion.
     """
     if os.path.isfile(input_path):
         # Check if the file exists in output, then check if it's changed and copy it if it has been
@@ -76,7 +79,8 @@ def recursive_backup(input_path, output_path):
             os.mkdir(output_path)
             shutil.copymode(input_path, output_path)
         for filename in os.listdir(input_path):
-            recursive_backup(os.path.join(input_path, filename), os.path.join(output_path, filename))
+            recursive_backup(os.path.join(input_path, filename), os.path.join(output_path, filename),
+                             total_size, total_files)
         # If any files/folders remain in the output that weren't in the input, delete them
         input_dir_files = os.listdir(input_path)
         output_dir_files = os.listdir(output_path)
@@ -85,9 +89,9 @@ def recursive_backup(input_path, output_path):
                 delete_file_path = os.path.join(output_path, output_file)
                 os.remove(delete_file_path)
                 util.log("DELETED - " + delete_file_path)
-    print("{} files processed, {} new files, {} existing files modified ({:.2f} GiB)"
-          .format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED, TOTAL_SIZE_PROCESSED / (2 ** 30)),
-          end="\r", flush=True)
+    print("{}/{} files processed, {} new files, {} existing files modified ({:.2f}/{:.2f} GiB)"
+          .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED,
+                  TOTAL_SIZE_PROCESSED / (2 ** 30), total_size / (2 ** 30)), end="\r", flush=True)
 
 
 def reset_globals():

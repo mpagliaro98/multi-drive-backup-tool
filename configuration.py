@@ -359,8 +359,9 @@ def config_display_string(config):
         return "NO FOLDERS/FILES SELECTED TO BACKUP"
     return_str = "CURRENT CONFIGURATION\n"
     for input_str, outputs_list in config.get_entries():
-        input_size = util.directory_size(input_str) / (2**30)
-        return_str += "\tBACKUP: {} ({:.2f} GiB)\n".format(input_str, input_size)
+        total_size, total_files = util.directory_size(input_str)
+        input_size = total_size / (2**30)
+        return_str += "\tBACKUP: {} ({:.2f} GiB, {} files)\n".format(input_str, input_size, total_files)
         for output_str in outputs_list:
             return_str += "\t\tCOPY TO: " + output_str + "\n"
     return return_str.strip()

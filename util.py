@@ -42,17 +42,21 @@ def drive_space_display_string(path, precision):
 
 def directory_size(path):
     """
-    Calculates the amount of space taken up by files within a given directory.
+    Calculates the amount of space taken up by files within a given directory, as well as how many files
+    are in that directory.
     :param path: A directory path.
-    :return: The number of bytes of storage files in that directory take up.
+    :return: The number of bytes of storage files in that directory take up, followed by the total number
+             of files in that directory.
     """
     total_size = 0
+    total_files = 0
     start_path = path
     for path, dirs, files in os.walk(start_path):
         for file in files:
             next_file = os.path.join(path, file)
             total_size += os.path.getsize(next_file)
-    return total_size
+            total_files += 1
+    return total_size, total_files
 
 
 def time_string(time_seconds):
