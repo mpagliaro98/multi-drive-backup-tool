@@ -230,14 +230,19 @@ def menu_option_backup(config):
     This will ask for confirmation before beginning, and then run the backup process.
     :param config: The current backup configuration.
     """
-    # Print the configuration, showing each folder to backup and its destinations
-    print("Calculating file sizes...", end="\r", flush=True)
-    print(configuration.config_display_string(config))
-    # Ask to confirm if this is ok to backup
-    backup_confirmation = input("Would you like to start the backup with this configuration? (y/n): ")
-    # If yes, run the backup
-    if backup_confirmation.lower() == "y":
-        backup.run_backup(config)
+    # Do not continue if one of the paths in the configuration no longer exists
+    if not config.all_paths_are_valid():
+        print("At least one of the input or output paths in this configuration is no longer valid.")
+        print("Please ensure all relevant drives are plugged in, or edit any invalid paths.")
+    else:
+        # Print the configuration, showing each folder to backup and its destinations
+        print("Calculating file sizes...", end="\r", flush=True)
+        print(configuration.config_display_string(config))
+        # Ask to confirm if this is ok to backup
+        backup_confirmation = input("Would you like to start the backup with this configuration? (y/n): ")
+        # If yes, run the backup
+        if backup_confirmation.lower() == "y":
+            backup.run_backup(config)
 
 
 def main():

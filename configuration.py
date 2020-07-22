@@ -89,6 +89,20 @@ class Configuration:
                 return False
         return True
 
+    def all_paths_are_valid(self):
+        """
+        Checks if any input or output path in this configuration is not valid.
+        :return: True if every path is valid, false otherwise.
+        """
+        for input_path in self.inputs:
+            if not os.path.exists(input_path):
+                return False
+        for output_list in self.outputs:
+            for output_path in output_list:
+                if not os.path.exists(output_path):
+                    return False
+        return True
+
     def get_input(self, input_number):
         """
         Given an index number, get the corresponding input path.
