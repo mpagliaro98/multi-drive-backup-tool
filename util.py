@@ -7,6 +7,7 @@ Additional utility functions used by the backup tool.
 import os
 import string
 import shutil
+import filecmp
 from datetime import datetime
 
 
@@ -94,6 +95,37 @@ def time_string(time_seconds):
     else:
         # Less than one minute
         return "{:.3f} seconds".format(time_seconds)
+
+
+def file_compare(path1, path2, byte_limit=(100 * (2 ** 20)), mtime_delta=2):
+    """
+    A modified version of filecmp.cmp() which will do much simpler checks to see if two files are equal if
+    the files are over a certain size, in order to avoid doing slow byte-by-byte comparisons for files
+    that are gigabytes large. If two files are the exact same size and have the same last modified time (within
+    a given range), they are treated equal as long as they are more than byte_limit bytes large. Otherwise,
+    filecmp.cmp() is run on both files.
+    :param path1: The path of the first file. This is the one checked for the byte_limit.
+    :param path2: The path of the second file.
+    :param byte_limit: The maximum size in bytes for which we should do byte-by-byte comparisons on the two
+                       files. By default, this is set to 100*2^20, or 104,857,600, which is 100MB.
+    :param mtime_delta: How much variation the last modified time can have to still be considered equal.
+                        This is taken into account because rounding differences when copying a file from an
+                        NTFS device to a FAT device sometimes cause the last modified time of a file to change
+                        by 1 or 2 seconds. This is by default set to 2, so as long as the last modified time
+                        of the two files are within 2 seconds of each other, they will be considered equal.
+    :return: True if the two files should be considered equal, false otherwise.
+    """
+    stats1 = os.stat(path1)
+    stats2 = os.stat(path2)
+    # If the first file is larger than the byte limit, only compare file size and modified time
+    if stats1.st_size > byte_limit:
+        if stats1.st_size == stats2.st_size and abs(stats1.st_mtime - stats2.st_mtime) <= mtime_delta:
+            return True
+        else:
+            return False
+    # Otherwise, use the built in file compare
+    else:
+        return filecmp.cmp(path1, path2)
 
 
 def begin_log():

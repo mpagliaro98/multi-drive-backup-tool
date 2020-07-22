@@ -5,7 +5,6 @@ Functionality to copy multiple files from one location to another efficiently.
 """
 
 import os
-import filecmp
 import shutil
 import time
 from datetime import datetime
@@ -63,7 +62,7 @@ def recursive_backup(input_path, output_path, total_size, total_files):
     if os.path.isfile(input_path):
         # Check if the file exists in output, then check if it's changed and copy it if it has been
         if os.path.exists(output_path):
-            if not filecmp.cmp(input_path, output_path):
+            if not util.file_compare(input_path, output_path):
                 shutil.copy2(input_path, output_path)
                 mark_file_processed(os.path.getsize(input_path), modified=True, is_new=False)
                 util.log("UPDATED - " + output_path)
