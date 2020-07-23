@@ -20,6 +20,7 @@ class Configuration:
     """
     inputs = []
     outputs = []
+    exclusions = []
 
     def __init__(self):
         """
@@ -27,6 +28,7 @@ class Configuration:
         """
         self.inputs = []
         self.outputs = []
+        self.exclusions = []
 
     def new_entry(self, input_path):
         """
@@ -36,6 +38,7 @@ class Configuration:
         """
         self.inputs.append(input_path)
         self.outputs.append([])
+        self.exclusions.append([])
 
     def new_destination(self, entry_number, output_path):
         """
@@ -44,6 +47,15 @@ class Configuration:
         :param output_path: The path to the folder where this entry should be backed up to.
         """
         self.outputs[entry_number-1].append(output_path)
+
+    def new_exclusion(self, input_number, exclusion_type, exclusion_text):
+        """
+        Append a new exclusion to an entry.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :param exclusion_type: The type of exclusion, defined in the should_exclude() function.
+        :param exclusion_text: The text to exclude.
+        """
+        self.exclusions[input_number-1].append([exclusion_type, exclusion_text])
 
     def edit_entry_name(self, input_number, new_name):
         """
@@ -193,6 +205,28 @@ class Configuration:
         """
         del self.inputs[input_number-1]
         del self.outputs[input_number-1]
+
+    def should_exclude(self, input_number, path_to_exclude):
+        """
+        Checks if a given file path should be excluded, based on this entry's exclusions.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :param path_to_exclude: A file path to a folder or file to check if it should be excluded.
+        :return: True if this folder/file should be excluded, false otherwise.
+        """
+        for exclusion in self.exclusions[input_number-1]:
+            if exclusion[0] == "startswith":
+                if os.path.split(path_to_exclude)[1].startswith(exclusion[1]):
+                    return True
+            elif exclusion[0] == "endswith":
+                if os.path.split(path_to_exclude)[1].endswith(exclusion[1]):
+                    return True
+            elif exclusion[0] == "ext":
+                if os.path.splitext(path_to_exclude)[1] == exclusion[1]:
+                    return True
+            elif exclusion[0] == "directory":
+                if path_to_exclude == exclusion[1]:
+                    return True
+        return False
 
 
 def config_exists(config_name):

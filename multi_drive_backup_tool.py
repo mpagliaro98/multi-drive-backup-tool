@@ -15,12 +15,13 @@ def display_main_menu():
     """
     print("\n1: Select a folder or file to backup")
     print("2: Configure destination locations")
-    print("3: Edit/delete configuration entries")
-    print("4: Save current backup configuration")
-    print("5: Load a backup configuration")
-    print("6: Backup your files")
-    print("7: Re-scan for available drives")
-    print("8: Exit")
+    print("3: Exclude specific files/folders from your backup")
+    print("4: Edit/delete configuration entries")
+    print("5: Save current backup configuration")
+    print("6: Load a backup configuration")
+    print("7: Backup your files")
+    print("8: Re-scan for available drives")
+    print("9: Exit")
 
 
 def input_entry_number(low_bound, high_bound, input_text="Enter a number to select that entry: ",
@@ -84,6 +85,51 @@ def menu_option_destination(config):
         config, result = configuration.append_output_to_config(config, int(entry_number), destination_input)
         if not result:
             print("The given path was invalid, is already specified, or is a sub-folder of the input.")
+    return config
+
+
+def menu_option_exclude(config):
+    """
+    The code that is run when the menu option for adding an exclusion is selected. This will prompt the
+    user to choose an entry, then allow them to enter an exclusion of one of a variety of types.
+    :param config: The current backup configuration.
+    :return: The updated configuration with the new exclusions.
+    """
+    # Display a list of entries in the configuration
+    config.enumerate_entries()
+    # Accept input to select one of those entries
+    entry_number = input_entry_number(low_bound=1, high_bound=config.num_entries(),
+                                      input_text="Enter a number to add an exclusion to that entry: ")
+    # Once chosen, display options to add different types of exclusions
+    while True:
+        print()
+        print(config.entry_to_string(int(entry_number)))
+        print("1: Starts with some text\n2: Ends with some text\n3: Specific file extension")
+        print("4: Specific directory path\n5: Return to the menu")
+        exclusion_input = input("Choose an option: ")
+
+        # Startswith exclusion
+        if exclusion_input == "1":
+            exclusion = input("Files or folders that start with this text should be excluded: ")
+            config.new_exclusion(int(entry_number), "startswith", exclusion)
+        # Endswith exclusion
+        elif exclusion_input == "2":
+            exclusion = input("Files or folders that end with this text should be excluded: ")
+            config.new_exclusion(int(entry_number), "endswith", exclusion)
+        # File extension exclusion
+        elif exclusion_input == "3":
+            exclusion = input("Files with this extension should be excluded (no . needed): ")
+            config.new_exclusion(int(entry_number), "ext", exclusion)
+        # Directory path exclusion
+        elif exclusion_input == "4":
+            exclusion = input("Folders with this absolute path will be excluded: ")
+            config.new_exclusion(int(entry_number), "directory", exclusion)
+        # Return to the menu
+        elif exclusion_input == "5":
+            break
+        # Invalid input
+        else:
+            print("Invalid input.")
     return config
 
 
@@ -278,8 +324,15 @@ def main():
             else:
                 print("There are no entries to add a destination to.")
                 continue
-        # Edit/delete configuration entries
+        # Exclude files/folders
         elif user_input == "3":
+            if config.num_entries() > 0:
+                config = menu_option_exclude(config)
+            else:
+                print("There are no entries to add exclusions to.")
+                continue
+        # Edit/delete configuration entries
+        elif user_input == "4":
             # Return to the menu if there's no entries
             if config.num_entries() > 0:
                 config = menu_option_edit(config)
@@ -287,10 +340,10 @@ def main():
                 print("There are no entries to edit or delete.")
                 continue
         # Save current configuration
-        elif user_input == "4":
+        elif user_input == "5":
             menu_option_save(config)
         # Load a configuration
-        elif user_input == "5":
+        elif user_input == "6":
             config_list = configuration.saved_config_display_string()
             if config_list == "":
                 print("There are no currently saved configurations.")
@@ -298,7 +351,7 @@ def main():
             else:
                 config = menu_option_load(config, config_list)
         # Run the backup
-        elif user_input == "6":
+        elif user_input == "7":
             # Return to the menu if there's no entries
             if config.num_entries() > 0:
                 if config.all_entries_have_outputs():
@@ -310,11 +363,11 @@ def main():
                 print("There is nothing currently selected to backup.")
                 continue
         # Refresh
-        elif user_input == "7":
+        elif user_input == "8":
             print("Scanning again for available drives...")
             continue
         # Exit
-        elif user_input == "8":
+        elif user_input == "9":
             break
         # Handle any other inputs
         else:
