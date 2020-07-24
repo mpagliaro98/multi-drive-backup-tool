@@ -164,15 +164,20 @@ class Configuration:
         for dest_idx in range(len(self.outputs[input_number-1])):
             print("{}: {}".format(dest_idx+1, self.outputs[input_number-1][dest_idx]))
 
-    def entry_to_string(self, input_number):
+    def entry_to_string(self, input_number, exclusion_mode=False):
         """
         Create a formatted string for a given entry, containing the input path and all its destination paths.
         :param input_number: The number of the index of the entry, starting at 1.
+        :param exclusion_mode: True to display exclusions instead of destinations. False by default.
         :return: A string containing all necessary information about an entry.
         """
         entry_str = "INPUT: {}\n".format(self.inputs[input_number-1])
-        for destination in self.outputs[input_number-1]:
-            entry_str += "\tDESTINATION: {}\n".format(destination)
+        if exclusion_mode:
+            for exclusion in self.exclusions[input_number-1]:
+                entry_str += "\tEXCLUSION: {} \"{}\"\n".format(exclusion[0], exclusion[1])
+        else:
+            for destination in self.outputs[input_number-1]:
+                entry_str += "\tDESTINATION: {}\n".format(destination)
         return entry_str.strip()
 
     def num_entries(self):

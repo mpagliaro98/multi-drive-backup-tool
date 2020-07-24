@@ -103,7 +103,7 @@ def menu_option_exclude(config):
     # Once chosen, display options to add different types of exclusions
     while True:
         print()
-        print(config.entry_to_string(int(entry_number)))
+        print(config.entry_to_string(int(entry_number), exclusion_mode=True))
         print("1: Starts with some text\n2: Ends with some text\n3: Specific file extension")
         print("4: Specific directory path\n5: Return to the menu")
         exclusion_input = input("Choose an option: ")
