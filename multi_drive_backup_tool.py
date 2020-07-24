@@ -118,7 +118,7 @@ def menu_option_exclude(config):
             config.new_exclusion(int(entry_number), "endswith", exclusion)
         # File extension exclusion
         elif exclusion_input == "3":
-            exclusion = input("Files with this extension should be excluded (no . needed): ")
+            exclusion = input("Files with this extension should be excluded (the . before the extension is needed): ")
             config.new_exclusion(int(entry_number), "ext", exclusion)
         # Directory path exclusion
         elif exclusion_input == "4":
