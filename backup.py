@@ -26,7 +26,9 @@ def run_backup(config):
     """
     util.begin_log()
     util.log("\n" + configuration.config_display_string(config))
-    for input_path, outputs in config.get_entries():
+    for input_number in range(1, config.num_entries()+1):
+        input_path = config.get_input(input_number)
+        outputs = config.get_destinations(input_number)
         total_size, total_files = util.directory_size(input_path)
         for output_path in outputs:
             folder_name = os.path.split(input_path)[1]
@@ -38,7 +40,7 @@ def run_backup(config):
             print("\nBacking up {} to {}...".format(input_path, backup_folder))
             reset_globals()
             start_time = time.time()
-            recursive_backup(input_path, backup_folder, total_size, total_files)
+            recursive_backup(input_path, backup_folder, total_size, total_files, config, input_number)
             end_time = time.time()
             print("\nBackup from {} to {} is complete. ({})".format(input_path, backup_folder,
                                                                     util.time_string(end_time-start_time)))
@@ -48,7 +50,7 @@ def run_backup(config):
     util.end_log()
 
 
-def recursive_backup(input_path, output_path, total_size, total_files):
+def recursive_backup(input_path, output_path, total_size, total_files, config, input_number):
     """
     The main backup algorithm. This recursively walks through the files specified by the
     input and copies them to their respective spot in the destination. If a backup has already
@@ -58,7 +60,13 @@ def recursive_backup(input_path, output_path, total_size, total_files):
     :param output_path: The path to the inputs spot in the destination to back it up to.
     :param total_size: The total size in bytes of the full input backup. This shouldn't decrease during recursion.
     :param total_files: The total number of files in the full input backup. This shouldn't decrease during recursion.
+    :param config: The current backup configuration.
+    :param input_number: The number of the index of the entry, starting at 1.
     """
+    # Exclude this file or folder if it should be left out
+    if config.should_exclude(input_number, input_path):
+        return
+    # If this path is to a file
     if os.path.isfile(input_path):
         # Check if the file exists in output, then check if it's changed and copy it if it has been
         if os.path.exists(output_path):
@@ -72,6 +80,7 @@ def recursive_backup(input_path, output_path, total_size, total_files):
             shutil.copy2(input_path, output_path)
             mark_file_processed(os.path.getsize(input_path), modified=False, is_new=True)
             util.log("NEW - " + output_path)
+    # Otherwise, it's a directory
     else:
         # If this directory doesn't exist in the output, make it
         if not os.path.exists(output_path):
@@ -79,7 +88,7 @@ def recursive_backup(input_path, output_path, total_size, total_files):
             shutil.copymode(input_path, output_path)
         for filename in os.listdir(input_path):
             recursive_backup(os.path.join(input_path, filename), os.path.join(output_path, filename),
-                             total_size, total_files)
+                             total_size, total_files, config, input_number)
         # If any files/folders remain in the output that weren't in the input, delete them
         input_dir_files = os.listdir(input_path)
         output_dir_files = os.listdir(output_path)

@@ -139,6 +139,15 @@ class Configuration:
         """
         return zip(self.inputs, self.outputs)
 
+    def get_exclusions(self, input_number):
+        """
+        Get a list of exclusions for a given entry. Each exclusion in the list has its first element
+        as a type of exclusion, then the second is the exclusion data.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :return: A list of exclusions for this entry.
+        """
+        return self.exclusions[input_number-1]
+
     def enumerate_entries(self):
         """
         Iterate through each input/outputs entry in this configuration and display them to the
