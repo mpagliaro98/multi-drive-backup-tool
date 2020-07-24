@@ -25,7 +25,7 @@ def run_backup(config):
     :param config: A configuration containing paths to folders to backup.
     """
     util.begin_log()
-    util.log("\n" + configuration.config_display_string(config))
+    util.log("\n" + configuration.config_display_string(config, show_exclusions=True))
     for input_number in range(1, config.num_entries()+1):
         input_path = config.get_input(input_number)
         outputs = config.get_destinations(input_number)

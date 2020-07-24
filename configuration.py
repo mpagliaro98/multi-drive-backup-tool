@@ -406,19 +406,31 @@ def edit_destination_in_config(config, input_number, destination_number, new_nam
     return config, True
 
 
-def config_display_string(config):
+def config_display_string(config, show_exclusions=False):
     """
     Builds a string that contains all relevant information about a given configuration.
     :param config: The configuration object to display information about.
+    :param show_exclusions: True if detailed exclusion information should be shown. False by default.
     :return: A string containing formatted information about the configuration.
     """
     if config.num_entries() == 0:
         return "NO FOLDERS/FILES SELECTED TO BACKUP"
     return_str = "CURRENT CONFIGURATION         \n"
+    input_number = 1
     for input_str, outputs_list in config.get_entries():
-        total_size, total_files = util.directory_size(input_str)
+        total_size, total_files = util.directory_size_with_exclusions(input_str, config, input_number)
         input_size = total_size / (2**30)
-        return_str += "\tBACKUP: {} ({:.2f} GiB, {} files)\n".format(input_str, input_size, total_files)
+        return_str += "\tBACKUP: {} ({:.2f} GiB, {} files)".format(input_str, input_size, total_files)
+        if len(config.get_exclusions(input_number)) > 0:
+            if show_exclusions:
+                return_str += "\n\t\tEXCLUSIONS:\n"
+                for exclusion in config.get_exclusions(input_number):
+                    return_str += "\t\t\t" + exclusion[0] + " \"" + exclusion[1] + "\"\n"
+            else:
+                return_str += " [Contains exclusions]\n"
+        else:
+            return_str += "\n"
         for output_str in outputs_list:
             return_str += "\t\tCOPY TO: " + output_str + "\n"
+        input_number += 1
     return return_str.strip()
