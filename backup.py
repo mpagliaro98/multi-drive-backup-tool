@@ -62,11 +62,12 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
     :param total_files: The total number of files in the full input backup. This shouldn't decrease during recursion.
     :param config: The current backup configuration.
     :param input_number: The number of the index of the entry, starting at 1.
+    :return: True if the current file/directory was processed, false if it was excluded.
     """
     # Exclude this file or folder if it should be left out
     if config.should_exclude(input_number, input_path):
         util.log("EXCLUDED - " + input_path)
-        return
+        return False
     # If this path is to a file
     if os.path.isfile(input_path):
         # Check if the file exists in output, then check if it's changed and copy it if it has been
@@ -87,14 +88,16 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
         if not os.path.exists(output_path):
             os.mkdir(output_path)
             shutil.copymode(input_path, output_path)
+        files_processed = []
         for filename in os.listdir(input_path):
-            recursive_backup(os.path.join(input_path, filename), os.path.join(output_path, filename),
-                             total_size, total_files, config, input_number)
+            result = recursive_backup(os.path.join(input_path, filename), os.path.join(output_path, filename),
+                                      total_size, total_files, config, input_number)
+            if result:
+                files_processed.append(filename)
+
         # If any files/folders remain in the output that weren't in the input, delete them
-        input_dir_files = os.listdir(input_path)
-        output_dir_files = os.listdir(output_path)
-        for output_file in output_dir_files:
-            if output_file not in input_dir_files:
+        for output_file in os.listdir(output_path):
+            if output_file not in files_processed:
                 delete_file_path = os.path.join(output_path, output_file)
                 # Use the correct delete function based on if it's a file or folder (empty or used)
                 if os.path.isdir(delete_file_path):
@@ -108,6 +111,7 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
     print("{}/{} files processed, {} new files, {} existing files modified ({:.2f}/{:.2f} GiB)"
           .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED,
                   TOTAL_SIZE_PROCESSED / (2 ** 30), total_size / (2 ** 30)), end="\r", flush=True)
+    return True
 
 
 def reset_globals():
