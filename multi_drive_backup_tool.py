@@ -179,6 +179,46 @@ def sub_option_edit_destinations(config, entry_number):
     return config
 
 
+def sub_option_edit_exclusions(config, entry_number):
+    """
+    The code that is run when the sub-option for editing the destinations of an entry is selected.
+    This will display a menu, allowing the user to choose to edit a destination, delete a destination,
+    or return to the previous menu.
+    :param config: The current backup configuration.
+    :param entry_number: The number of the index of the entry, starting at 1.
+    :return: The updated configuration with edited destinations.
+    """
+    while True:
+        print("\n1: Edit an exclusion\n2: Delete an exclusion\n3: Return to the previous menu")
+        exclusion_input = input("Choose an option: ")
+
+        # Edit destination
+        if exclusion_input == "1":
+            print()
+            config.enumerate_exclusions(int(entry_number))
+            excl_number = input_entry_number(low_bound=1, high_bound=config.num_exclusions(int(entry_number)),
+                                             input_text="Enter a number to specify which exclusion to edit: ")
+            input_name = input("Enter the new data for this exclusion (the text between the quotations): ")
+            config.edit_exclusion(int(entry_number), int(excl_number), input_name)
+        # Delete destination
+        elif exclusion_input == "2":
+            print()
+            config.enumerate_exclusions(int(entry_number))
+            excl_number = input_entry_number(low_bound=1, high_bound=config.num_exclusions(int(entry_number)),
+                                             input_text="Enter a number to specify which exclusion to delete: ")
+            config.delete_exclusion(int(entry_number), int(excl_number))
+            # Go to the previous menu if the last exclusion is deleted
+            if config.num_exclusions(int(entry_number)) == 0:
+                break
+        # Return to the previous menu
+        elif exclusion_input == "3":
+            break
+        # Invalid input
+        else:
+            print("Invalid input.")
+    return config
+
+
 def menu_option_edit(config):
     """
     The code that is run when the menu option for editing the configuration is selected. This will allow
@@ -197,8 +237,8 @@ def menu_option_edit(config):
     while True:
         print()
         print(config.entry_to_string(int(entry_number)))
-        print("1: Edit the input path\n2: Edit the destinations\n3: Delete all destinations")
-        print("4: Delete this entire entry\n5: Return to the menu")
+        print("1: Edit the input path\n2: Edit the destinations\n3: Edit the exclusions\n4: Delete all destinations")
+        print("5: Delete all exclusions\n6: Delete this entire entry\n7: Return to the menu")
         edit_input = input("Choose an option: ")
 
         # Edit the input path
@@ -216,15 +256,25 @@ def menu_option_edit(config):
             else:
                 print("There are no destinations to edit or delete.")
                 continue
-        # Delete all destinations
+        # Edit the exclusions
         elif edit_input == "3":
-            config.delete_destinations(int(entry_number))
-        # Delete this entry
+            if config.num_exclusions(int(entry_number)) > 0:
+                config = sub_option_edit_exclusions(config, entry_number)
+            else:
+                print("There are no exclusions to edit or delete.")
+                continue
+        # Delete all destinations
         elif edit_input == "4":
+            config.delete_destinations(int(entry_number))
+        # Delete all exclusions
+        elif edit_input == "5":
+            config.delete_exclusions(int(entry_number))
+        # Delete this entry
+        elif edit_input == "6":
             config.delete_entry(int(entry_number))
             break
         # Return to the previous menu
-        elif edit_input == "5":
+        elif edit_input == "7":
             break
         # Invalid input
         else:

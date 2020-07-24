@@ -74,6 +74,15 @@ class Configuration:
         """
         self.outputs[input_number-1][dest_number-1] = new_name
 
+    def edit_exclusion(self, input_number, excl_number, new_name):
+        """
+        Change the data of a specified exclusion.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :param excl_number: The number of the index of an exclusion for this entry, starting at 1.
+        :param new_name: The data to change it to.
+        """
+        self.exclusions[input_number-1][excl_number-1][1] = new_name
+
     def entry_exists(self, input_path):
         """
         Checks if a given input path already exists in the configuration.
@@ -164,6 +173,15 @@ class Configuration:
         for dest_idx in range(len(self.outputs[input_number-1])):
             print("{}: {}".format(dest_idx+1, self.outputs[input_number-1][dest_idx]))
 
+    def enumerate_exclusions(self, input_number):
+        """
+        Iterate through each exclusion of a given input and display them alongside numbers.
+        :param input_number: The number of the index of the entry, starting at 1.
+        """
+        for excl_idx in range(len(self.exclusions[input_number-1])):
+            print("{}: {} \"{}\"".format(excl_idx+1, self.exclusions[input_number-1][excl_idx][0],
+                                         self.exclusions[input_number-1][excl_idx][1]))
+
     def entry_to_string(self, input_number, exclusion_mode=False):
         """
         Create a formatted string for a given entry, containing the input path and all its destination paths.
@@ -195,6 +213,14 @@ class Configuration:
         """
         return len(self.outputs[input_number-1])
 
+    def num_exclusions(self, input_number):
+        """
+        Get the number of exclusions for a given entry in the configuration.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :return: The number of exclusions for that entry.
+        """
+        return len(self.exclusions[input_number-1])
+
     def delete_destination(self, input_number, destination_number):
         """
         Delete one destination path from a given entry.
@@ -210,6 +236,22 @@ class Configuration:
         :param input_number: The number of the index of the entry, starting at 1.
         """
         self.outputs[input_number-1] = []
+
+    def delete_exclusion(self, input_number, exclusion_number):
+        """
+        Delete one exclusion from a given entry.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :param exclusion_number: The number of the index of the exclusion in that entry,
+                                 starting at 1.
+        """
+        del self.exclusions[input_number-1][exclusion_number-1]
+
+    def delete_exclusions(self, input_number):
+        """
+        Delete all the exclusion entries of a given input.
+        :param input_number: The number of the index of the entry, starting at 1.
+        """
+        self.exclusions[input_number-1] = []
 
     def delete_entry(self, input_number):
         """
@@ -426,7 +468,7 @@ def config_display_string(config, show_exclusions=False):
         total_size, total_files = util.directory_size_with_exclusions(input_str, config, input_number)
         input_size = total_size / (2**30)
         return_str += "\tBACKUP: {} ({:.2f} GiB, {} files)".format(input_str, input_size, total_files)
-        if len(config.get_exclusions(input_number)) > 0:
+        if config.num_exclusions(input_number) > 0:
             if show_exclusions:
                 return_str += "\n\t\tEXCLUSIONS:\n"
                 for exclusion in config.get_exclusions(input_number):
