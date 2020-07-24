@@ -233,7 +233,7 @@ class Configuration:
                 if os.path.splitext(path_to_exclude)[1] == exclusion[1]:
                     return True
             elif exclusion[0] == "directory":
-                if path_to_exclude == exclusion[1]:
+                if os.path.realpath(path_to_exclude) == os.path.realpath(exclusion[1]):
                     return True
         return False
 

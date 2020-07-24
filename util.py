@@ -61,6 +61,33 @@ def directory_size(path):
     return total_size, total_files
 
 
+def directory_size_with_exclusions(path, config, input_number):
+    """
+    Calculates the size of a directory and how many files it contains while taking into account any
+    exclusions specified in the configuration. Files marked to be excluded will not be factored into
+    size and total files calculations.
+    :param path: A directory path.
+    :param config: The current backup configuration.
+    :param input_number: The number of the index of the entry, starting at 1.
+    :return: The number of bytes of storage files in that directory take up, followed by the total number
+             of files in that directory, taking exclusions into account.
+    """
+    # Don't continue down this path if it should be excluded
+    if config.should_exclude(input_number, path):
+        return 0, 0
+    # If this is a file, add 1 to total files and its file size to the total file size
+    if os.path.isfile(path):
+        return os.path.getsize(path), 1
+    # Otherwise, it's a directory, so recurse on each child of the directory
+    else:
+        total_size, total_files = 0, 0
+        for filename in os.listdir(path):
+            size, files = directory_size_with_exclusions(os.path.join(path, filename), config, input_number)
+            total_size += size
+            total_files += files
+        return total_size, total_files
+
+
 def time_string(time_seconds):
     """
     Creates a formatted string to express a length of time. Given a value in seconds, the value will

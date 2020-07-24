@@ -29,7 +29,7 @@ def run_backup(config):
     for input_number in range(1, config.num_entries()+1):
         input_path = config.get_input(input_number)
         outputs = config.get_destinations(input_number)
-        total_size, total_files = util.directory_size(input_path)
+        total_size, total_files = util.directory_size_with_exclusions(input_path, config, input_number)
         for output_path in outputs:
             folder_name = os.path.split(input_path)[1]
             backup_folder = os.path.join(output_path, folder_name + " BACKUP")
@@ -65,6 +65,7 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
     """
     # Exclude this file or folder if it should be left out
     if config.should_exclude(input_number, input_path):
+        util.log("EXCLUDED - " + input_path)
         return
     # If this path is to a file
     if os.path.isfile(input_path):
