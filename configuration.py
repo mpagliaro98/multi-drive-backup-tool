@@ -271,10 +271,10 @@ class Configuration:
         """
         for exclusion in self.exclusions[input_number-1]:
             if exclusion[0] == "startswith":
-                if os.path.split(path_to_exclude)[1].startswith(exclusion[1]):
+                if os.path.splitext(os.path.split(path_to_exclude)[1])[0].startswith(exclusion[1]):
                     return True
             elif exclusion[0] == "endswith":
-                if os.path.split(path_to_exclude)[1].endswith(exclusion[1]):
+                if os.path.splitext(os.path.split(path_to_exclude)[1])[0].endswith(exclusion[1]):
                     return True
             elif exclusion[0] == "ext":
                 if os.path.splitext(path_to_exclude)[1] == exclusion[1]:
