@@ -81,10 +81,20 @@ def directory_size_with_exclusions(path, config, input_number):
     # Otherwise, it's a directory, so recurse on each child of the directory
     else:
         total_size, total_files = 0, 0
-        for filename in os.listdir(path):
-            size, files = directory_size_with_exclusions(os.path.join(path, filename), config, input_number)
-            total_size += size
-            total_files += files
+        try:
+            for filename in os.listdir(path):
+                size, files = directory_size_with_exclusions(os.path.join(path, filename), config, input_number)
+                total_size += size
+                total_files += files
+        except FileNotFoundError as error:
+            # Display a warning if long paths need to be enabled on Windows
+            if len(path) >= 260:
+                print("FileNotFoundError: Unable to access " + path)
+                print("This is likely because the file path is longer than 260 characters.")
+                print("If you are running this on Windows, set LongPathsEnabled to 1 in your registry.")
+            else:
+                print(error)
+            exit(1)
         return total_size, total_files
 
 
