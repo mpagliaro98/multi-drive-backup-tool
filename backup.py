@@ -16,6 +16,7 @@ import configuration
 NUM_FILES_PROCESSED = 0
 NUM_FILES_MODIFIED = 0
 NUM_FILES_NEW = 0
+NUM_FILES_ERROR = 0
 TOTAL_SIZE_PROCESSED = 0
 
 
@@ -31,12 +32,17 @@ def run_backup(config):
         outputs = config.get_destinations(input_number)
         total_size, total_files = util.directory_size_with_exclusions(input_path, config, input_number)
         for output_path in outputs:
+            # Get the name of the folder to make the backup in
             folder_name = os.path.split(input_path)[1]
             backup_folder = os.path.join(output_path, folder_name + " BACKUP")
+
+            # Start the log messages
             util.log("\n//////////////////////////////////////////////////////")
             util.log("///// INPUT: " + input_path)
             util.log("///// OUTPUT: " + backup_folder)
             util.log("//////////////////////////////////////////////////////\n")
+
+            # Run the backup process and time it
             print("\nBacking up {} to {}...".format(input_path, backup_folder))
             reset_globals()
             start_time = time.time()
@@ -44,6 +50,11 @@ def run_backup(config):
             end_time = time.time()
             print("\nBackup from {} to {} is complete. ({})".format(input_path, backup_folder,
                                                                     util.time_string(end_time-start_time)))
+
+            # Report on any errors and finalize the backup
+            if NUM_FILES_ERROR > 0:
+                print("There were {} error(s) reported during this backup. Check the log for more info."
+                      .format(NUM_FILES_ERROR))
             util.log("Backup complete: {} files processed, {} new files, {} existing files modified ({:.2f} GiB)"
                      .format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED, TOTAL_SIZE_PROCESSED / (2 ** 30)))
             create_backup_text_file(backup_folder)
@@ -70,18 +81,23 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
         return False
     # If this path is to a file
     if os.path.isfile(input_path):
-        # Check if the file exists in output, then check if it's changed and copy it if it has been
-        if os.path.exists(output_path):
-            if not util.file_compare(input_path, output_path):
-                shutil.copy2(input_path, output_path)
-                mark_file_processed(os.path.getsize(input_path), modified=True, is_new=False)
-                util.log("UPDATED - " + output_path)
+        try:
+            # Check if the file exists in output, then check if it's changed and copy it if it has been
+            if os.path.exists(output_path):
+                if not util.file_compare(input_path, output_path):
+                    shutil.copy2(input_path, output_path)
+                    mark_file_processed(os.path.getsize(input_path), modified=True, is_new=False)
+                    util.log("UPDATED - " + output_path)
+                else:
+                    mark_file_processed(os.path.getsize(input_path), modified=False, is_new=False)
             else:
-                mark_file_processed(os.path.getsize(input_path), modified=False, is_new=False)
-        else:
-            shutil.copy2(input_path, output_path)
-            mark_file_processed(os.path.getsize(input_path), modified=False, is_new=True)
-            util.log("NEW - " + output_path)
+                shutil.copy2(input_path, output_path)
+                mark_file_processed(os.path.getsize(input_path), modified=False, is_new=True)
+                util.log("NEW - " + output_path)
+        except PermissionError as permission_error:
+            util.log("ERROR CREATING OR UPDATING " + output_path)
+            util.log(str(permission_error))
+            mark_file_processed(os.path.getsize(input_path), error=True)
     # Otherwise, it's a directory
     else:
         # If this directory doesn't exist in the output, make it
@@ -118,30 +134,36 @@ def reset_globals():
     global NUM_FILES_PROCESSED
     global NUM_FILES_MODIFIED
     global NUM_FILES_NEW
+    global NUM_FILES_ERROR
     global TOTAL_SIZE_PROCESSED
     NUM_FILES_PROCESSED = 0
     NUM_FILES_MODIFIED = 0
     NUM_FILES_NEW = 0
+    NUM_FILES_ERROR = 0
     TOTAL_SIZE_PROCESSED = 0
 
 
-def mark_file_processed(file_size, modified, is_new):
+def mark_file_processed(file_size, modified=False, is_new=False, error=False):
     """
     Should be called when a file has been processed and backed up. This will increment the relevant
     variables that track how many files have been processed.
     :param file_size: The size of the file that was processed.
-    :param modified: True if the file was already in the backup, and has just been changed.
-    :param is_new: True if the file was not in the backup previously and was just copied over.
+    :param modified: True if the file was already in the backup, and has just been changed. False by default.
+    :param is_new: True if the file was not in the backup previously and was just copied over. False by default.
+    :param error: True if there was an error processing the file. False by default.
     """
     global NUM_FILES_PROCESSED
     global NUM_FILES_MODIFIED
     global NUM_FILES_NEW
+    global NUM_FILES_ERROR
     global TOTAL_SIZE_PROCESSED
     NUM_FILES_PROCESSED += 1
     if modified:
         NUM_FILES_MODIFIED += 1
     if is_new:
         NUM_FILES_NEW += 1
+    if error:
+        NUM_FILES_ERROR += 1
     TOTAL_SIZE_PROCESSED += file_size
 
 
