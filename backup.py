@@ -52,11 +52,13 @@ def run_backup(config):
                                                                     util.time_string(end_time-start_time)))
 
             # Report on any errors and finalize the backup
+            util.log("Backup complete: {} files processed, {} new files, {} existing files modified ({:.2f} GiB)"
+                     .format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED, TOTAL_SIZE_PROCESSED / (2 ** 30)))
             if NUM_FILES_ERROR > 0:
                 print("There were {} error(s) reported during this backup. Check the log for more info."
                       .format(NUM_FILES_ERROR))
-            util.log("Backup complete: {} files processed, {} new files, {} existing files modified ({:.2f} GiB)"
-                     .format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED, TOTAL_SIZE_PROCESSED / (2 ** 30)))
+                util.log("There were {} error(s) reported during this backup."
+                         .format(NUM_FILES_ERROR))
             create_backup_text_file(backup_folder)
     util.end_log()
 
