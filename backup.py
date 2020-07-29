@@ -99,12 +99,9 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
         for output_file in os.listdir(output_path):
             if output_file not in files_processed:
                 delete_file_path = os.path.join(output_path, output_file)
-                # Use the correct delete function based on if it's a file or folder (empty or used)
+                # Use the correct delete function based on if it's a file or folder
                 if os.path.isdir(delete_file_path):
-                    if len(os.listdir(delete_file_path)) == 0:
-                        os.rmdir(delete_file_path)
-                    else:
-                        shutil.rmtree(delete_file_path)
+                    util.rmtree(delete_file_path)
                 else:
                     os.remove(delete_file_path)
                 util.log("DELETED - " + delete_file_path)

@@ -9,6 +9,7 @@ import string
 import shutil
 import filecmp
 from datetime import datetime
+import stat
 
 
 # The log file to be written to whenever log() is called
@@ -163,6 +164,26 @@ def file_compare(path1, path2, byte_limit=(100 * (2 ** 20)), mtime_delta=2):
     # Otherwise, use the built in file compare
     else:
         return filecmp.cmp(path1, path2)
+
+
+def rmtree(start_path):
+    """
+    A function for removing a directory and all its sub-directories. This deletes all files in a
+    given directory, then recursively walks through all sub-directories. This is meant as a substitute
+    to using shutil.rmtree() as I encountered issues using that to delete certain types of files.
+    :param start_path: The directory to delete.
+    """
+    for path, dirs, files in os.walk(start_path):
+        # Delete all files, give write permissions if necessary
+        for filename in files:
+            full_filename = os.path.join(path, filename)
+            os.chmod(full_filename, stat.S_IWRITE)
+            os.remove(full_filename)
+        # Recursively delete all sub-folders
+        for folder_name in dirs:
+            rmtree(os.path.join(path, folder_name))
+    # Delete this folder now that it's empty
+    os.rmdir(start_path)
 
 
 def begin_log():
