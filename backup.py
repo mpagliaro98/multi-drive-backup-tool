@@ -8,6 +8,8 @@ import os
 import shutil
 import time
 from datetime import datetime
+import sys
+import traceback
 import util
 import configuration
 
@@ -38,10 +40,10 @@ def run_backup(config):
             backup_folder = os.path.join(output_path, folder_name + " BACKUP")
 
             # Start the log messages
-            util.log("\n//////////////////////////////////////////////////////")
+            util.log("\n" + '/'*60)
             util.log("///// INPUT: " + input_path)
             util.log("///// OUTPUT: " + backup_folder)
-            util.log("//////////////////////////////////////////////////////\n")
+            util.log('/'*60 + "\n")
 
             # Run the backup process and time it
             print("\nBacking up {} to {}...".format(input_path, backup_folder))
@@ -98,16 +100,22 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
                 shutil.copy2(input_path, output_path)
                 mark_file_processed(os.path.getsize(input_path), modified=False, is_new=True)
                 util.log("NEW - " + output_path)
-        except PermissionError as permission_error:
-            util.log("ERROR CREATING OR UPDATING " + output_path)
-            util.log(str(permission_error))
+        except PermissionError:
+            # Write the full error to the log file and record that an error occurred
+            log_exception(output_path, "CREATING OR UPDATING")
             mark_file_processed(os.path.getsize(input_path), error=True)
     # Otherwise, it's a directory
     else:
         # If this directory doesn't exist in the output, make it
         if not os.path.exists(output_path):
-            os.mkdir(output_path)
-            shutil.copymode(input_path, output_path)
+            try:
+                os.mkdir(output_path)
+                shutil.copymode(input_path, output_path)
+            except PermissionError:
+                # Log the exception and indicate that an error occurred
+                log_exception(output_path, "CREATING DIRECTORY")
+                global NUM_FILES_ERROR
+                NUM_FILES_ERROR += 1
         files_processed = []
         for filename in os.listdir(input_path):
             result = recursive_backup(os.path.join(input_path, filename), os.path.join(output_path, filename),
@@ -120,15 +128,21 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
             if output_file not in files_processed:
                 delete_file_path = os.path.join(output_path, output_file)
                 # Use the correct delete function based on if it's a file or folder
-                if os.path.isdir(delete_file_path):
-                    deleted_size, deleted_files = util.directory_size(delete_file_path)
-                    for _ in range(deleted_files):
+                try:
+                    if os.path.isdir(delete_file_path):
+                        deleted_size, deleted_file_count = util.directory_size(delete_file_path)
+                        for _ in range(deleted_file_count):
+                            mark_file_processed(deleted=True)
+                        util.rmtree(delete_file_path)
+                    else:
+                        os.remove(delete_file_path)
                         mark_file_processed(deleted=True)
-                    util.rmtree(delete_file_path)
-                else:
-                    os.remove(delete_file_path)
-                    mark_file_processed(deleted=True)
-                util.log("DELETED - " + delete_file_path)
+                    util.log("DELETED - " + delete_file_path)
+                except PermissionError:
+                    # Log the exception and indicate that an error occurred
+                    log_exception(delete_file_path, "DELETING")
+                    global NUM_FILES_ERROR
+                    NUM_FILES_ERROR += 1
     print("{}/{} files processed, {} new files, {} existing files modified, {} files removed ({:.2f}/{:.2f} GiB)"
           .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED, NUM_FILES_DELETED,
                   TOTAL_SIZE_PROCESSED / (2 ** 30), total_size / (2 ** 30)), end="\r", flush=True)
@@ -195,3 +209,13 @@ def create_backup_text_file(backup_base_folder):
     text_file = open(file_path, "w")
     text_file.write("This backup was completed on " + current_time)
     text_file.close()
+
+
+def log_exception(error_file_path, action="ACCESSING"):
+    util.log("\n" + '=' * 60 + "\nERROR {} {}".format(action, error_file_path))
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    exception_list = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    full_error_str = ""
+    for item in exception_list:
+        full_error_str += item
+    util.log(full_error_str + '=' * 60 + "\n")
