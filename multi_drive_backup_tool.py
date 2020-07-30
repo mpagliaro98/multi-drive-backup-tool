@@ -360,7 +360,7 @@ def main():
     config = configuration.Configuration()
     while True:
         config.force_update()
-        print("\n======================================================================================")
+        print("\n" + '='*80)
         # Scan for drives, display available space
         drive_list = util.get_drive_list()
         print()
