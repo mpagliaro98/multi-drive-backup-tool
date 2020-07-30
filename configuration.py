@@ -18,6 +18,7 @@ class Configuration:
     Class for representing configurations. This holds data for which folders to backup and where
     to back them up to.
     """
+    name = ""
     inputs = []
     outputs = []
     exclusions = []
@@ -26,9 +27,25 @@ class Configuration:
         """
         Create the Configuration object.
         """
+        self.name = ""
         self.inputs = []
         self.outputs = []
         self.exclusions = []
+
+    def force_update(self):
+        """
+        If any of the fields in the configuration doesn't exist, set it to a default value. This is useful
+        when making configurations in one version of this script, but then it updates and a few field gets
+        added. This will prevent any crashes by making sure any unused fields always have a default value.
+        """
+        if self.name is None:
+            self.name = ""
+        if self.inputs is None:
+            self.inputs = []
+        if self.outputs is None:
+            self.outputs = []
+        if self.exclusions is None:
+            self.exclusions = []
 
     def new_entry(self, input_path):
         """
@@ -157,6 +174,20 @@ class Configuration:
         """
         return self.exclusions[input_number-1]
 
+    def get_name(self):
+        """
+        Get the name of this configuration.
+        :return: This configuration's name as a string.
+        """
+        return self.name
+
+    def set_name(self, new_name):
+        """
+        Set the name for this configuration.
+        :param new_name: This configuration's new name as a string.
+        """
+        self.name = new_name
+
     def enumerate_entries(self):
         """
         Iterate through each input/outputs entry in this configuration and display them to the
@@ -283,6 +314,41 @@ class Configuration:
                 if os.path.realpath(path_to_exclude) == os.path.realpath(exclusion[1]):
                     return True
         return False
+
+    def equals(self, other_config):
+        """
+        Check if this configuration is equal to another. For them to be equal, every field needs to be
+        identical.
+        :param other_config: A configuration to check if it's equal to this one.
+        :return: True if they are equal, false otherwise.
+        """
+        if not isinstance(other_config, Configuration):
+            return False
+        # The names must be equal
+        if not self.name == other_config.name:
+            return False
+        # They must have the same number of entries
+        if not len(self.inputs) == len(other_config.inputs):
+            return False
+        for entry_idx in range(len(self.inputs)):
+            # For this entry, the number of outputs and exclusions must be the same
+            if not len(self.outputs[entry_idx]) == len(other_config.outputs[entry_idx]) or \
+                    not len(self.exclusions[entry_idx]) == len(other_config.exclusions[entry_idx]):
+                return False
+            # For this entry, every output must be the same
+            for output_idx in range(len(self.outputs[entry_idx])):
+                if not self.outputs[entry_idx][output_idx] == other_config.outputs[entry_idx][output_idx]:
+                    return False
+            for excl_idx in range(len(self.exclusions[entry_idx])):
+                # For this exclusion, the lengths of them must be equal
+                if not len(self.exclusions[entry_idx][excl_idx]) == len(other_config.exclusions[entry_idx][excl_idx]):
+                    return False
+                # Each bit of data in the exclusions must be identical
+                for data_idx in range(len(self.exclusions[entry_idx][excl_idx])):
+                    if not self.exclusions[entry_idx][excl_idx][data_idx] == \
+                           other_config.exclusions[entry_idx][excl_idx][data_idx]:
+                        return False
+        return True
 
 
 def config_exists(config_name):

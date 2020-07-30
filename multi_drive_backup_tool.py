@@ -348,6 +348,7 @@ def main():
     """
     config = configuration.Configuration()
     while True:
+        config.force_update()
         print("\n======================================================================================")
         # Scan for drives, display available space
         drive_list = util.get_drive_list()
