@@ -334,10 +334,6 @@ def menu_option_backup(config):
         print("At least one of the input or output paths in this configuration is no longer valid.")
         print("Please ensure all relevant drives are plugged in, or edit any invalid paths.")
     else:
-        # Print the configuration, showing each folder to backup and its destinations
-        print("Calculating file sizes...", end="\r", flush=True)
-        print(configuration.config_display_string(config))
-
         # If this configuration is new or was modified, ask to save it
         if config.get_name() == "":
             save_input = input("Your configuration has not been saved yet. Would you like to save it? (y/n): ")

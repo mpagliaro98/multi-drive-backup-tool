@@ -545,7 +545,10 @@ def config_display_string(config, show_exclusions=False):
     """
     if config.num_entries() == 0:
         return "NO FOLDERS/FILES SELECTED TO BACKUP"
-    return_str = "CURRENT CONFIGURATION         \n"
+    if config.get_name() == "":
+        return_str = "CURRENT CONFIGURATION         \n"
+    else:
+        return_str = "CURRENT CONFIGURATION ({})    \n".format(config.get_name())
     input_number = 1
     for input_str, outputs_list in config.get_entries():
         total_size, total_files = util.directory_size_with_exclusions(input_str, config, input_number)
