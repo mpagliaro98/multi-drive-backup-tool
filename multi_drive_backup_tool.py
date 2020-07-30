@@ -287,6 +287,7 @@ def menu_option_save(config):
     The code that is run when the menu option for saving the current configuration is selected.
     This will prompt the user for a name, then save the configuration to a file.
     :param config: The current backup configuration.
+    :return: The configuration, which may have been modified by giving it a name.
     """
     # Input: Give a name to this configuration
     config_name = input("Enter a name for this configuration: ")
@@ -295,7 +296,9 @@ def menu_option_save(config):
     if configuration.config_exists(config_name):
         overwrite = input("Would you like to overwrite this existing configuration? (y/n): ")
     if overwrite.lower() == "y":
+        config.set_name(config_name)
         configuration.save_config(config, config_name)
+    return config
 
 
 def menu_option_load(config, config_list):
@@ -334,6 +337,18 @@ def menu_option_backup(config):
         # Print the configuration, showing each folder to backup and its destinations
         print("Calculating file sizes...", end="\r", flush=True)
         print(configuration.config_display_string(config))
+
+        # If this configuration is new or was modified, ask to save it
+        if config.get_name() == "":
+            save_input = input("Your configuration has not been saved yet. Would you like to save it? (y/n): ")
+            if save_input.lower() == "y":
+                config = menu_option_save(config)
+        elif configuration.config_was_modified(config):
+            save_input = input("This configuration has changed since it was last saved. " +
+                               "Would you like to update it? (y/n): ")
+            if save_input.lower() == "y":
+                configuration.save_config(config, config.get_name())
+
         # Ask to confirm if this is ok to backup
         backup_confirmation = input("Would you like to start the backup with this configuration? (y/n): ")
         # If yes, run the backup
@@ -392,7 +407,7 @@ def main():
                 continue
         # Save current configuration
         elif user_input == "5":
-            menu_option_save(config)
+            config = menu_option_save(config)
         # Load a configuration
         elif user_input == "6":
             config_list = configuration.saved_config_display_string()

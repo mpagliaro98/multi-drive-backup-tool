@@ -362,6 +362,23 @@ def config_exists(config_name):
     return os.path.exists(file_path)
 
 
+def config_was_modified(config):
+    """
+    Checks if the given configuration is different from the version of it that is saved. If this configuration
+    has yet to be saved, this will return false.
+    :param config: The configuration to check.
+    :return: True if the given configuration and the one in the file are different, false otherwise.
+    """
+    if config_exists(config.get_name()):
+        saved_config = load_config(config.get_name())
+        if config.equals(saved_config):
+            return False
+        else:
+            return True
+    else:
+        return False
+
+
 def save_config(config, config_name):
     """
     Write a given configuration object to a file. This will overwrite a configuration file
