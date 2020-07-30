@@ -81,6 +81,7 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
     :param input_number: The number of the index of the entry, starting at 1.
     :return: True if the current file/directory was processed, false if it was excluded.
     """
+    global NUM_FILES_ERROR
     # Exclude this file or folder if it should be left out
     if config.should_exclude(input_number, input_path):
         util.log("EXCLUDED - " + input_path)
@@ -114,7 +115,6 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
             except PermissionError:
                 # Log the exception and indicate that an error occurred
                 log_exception(output_path, "CREATING DIRECTORY")
-                global NUM_FILES_ERROR
                 NUM_FILES_ERROR += 1
         files_processed = []
         for filename in os.listdir(input_path):
@@ -141,7 +141,6 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
                 except PermissionError:
                     # Log the exception and indicate that an error occurred
                     log_exception(delete_file_path, "DELETING")
-                    global NUM_FILES_ERROR
                     NUM_FILES_ERROR += 1
     print("{}/{} files processed, {} new files, {} existing files modified, {} files removed ({:.2f}/{:.2f} GiB)"
           .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED, NUM_FILES_DELETED,
