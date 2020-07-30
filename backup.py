@@ -17,6 +17,7 @@ NUM_FILES_PROCESSED = 0
 NUM_FILES_MODIFIED = 0
 NUM_FILES_NEW = 0
 NUM_FILES_ERROR = 0
+NUM_FILES_DELETED = 0
 TOTAL_SIZE_PROCESSED = 0
 
 
@@ -52,13 +53,14 @@ def run_backup(config):
                                                                     util.time_string(end_time-start_time)))
 
             # Report on any errors and finalize the backup
-            util.log("Backup complete: {} files processed, {} new files, {} existing files modified ({:.2f} GiB)"
-                     .format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED, TOTAL_SIZE_PROCESSED / (2 ** 30)))
+            final_report_str = "Backup complete: {} files processed, {} new files, {} existing files modified, " + \
+                               "{} files removed ({:.2f} GiB)"
+            util.log(final_report_str.format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED,
+                                             NUM_FILES_DELETED, TOTAL_SIZE_PROCESSED / (2 ** 30)))
             if NUM_FILES_ERROR > 0:
                 print("There were {} error(s) reported during this backup. Check the log for more info."
                       .format(NUM_FILES_ERROR))
-                util.log("There were {} error(s) reported during this backup."
-                         .format(NUM_FILES_ERROR))
+                util.log("There were {} error(s) reported during this backup.".format(NUM_FILES_ERROR))
             create_backup_text_file(backup_folder)
     util.end_log()
 
@@ -119,12 +121,16 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
                 delete_file_path = os.path.join(output_path, output_file)
                 # Use the correct delete function based on if it's a file or folder
                 if os.path.isdir(delete_file_path):
+                    deleted_size, deleted_files = util.directory_size(delete_file_path)
+                    for _ in range(deleted_files):
+                        mark_file_processed(deleted=True)
                     util.rmtree(delete_file_path)
                 else:
                     os.remove(delete_file_path)
+                    mark_file_processed(deleted=True)
                 util.log("DELETED - " + delete_file_path)
-    print("{}/{} files processed, {} new files, {} existing files modified ({:.2f}/{:.2f} GiB)"
-          .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED,
+    print("{}/{} files processed, {} new files, {} existing files modified, {} files removed ({:.2f}/{:.2f} GiB)"
+          .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED, NUM_FILES_DELETED,
                   TOTAL_SIZE_PROCESSED / (2 ** 30), total_size / (2 ** 30)), end="\r", flush=True)
     return True
 
@@ -137,36 +143,44 @@ def reset_globals():
     global NUM_FILES_MODIFIED
     global NUM_FILES_NEW
     global NUM_FILES_ERROR
+    global NUM_FILES_DELETED
     global TOTAL_SIZE_PROCESSED
     NUM_FILES_PROCESSED = 0
     NUM_FILES_MODIFIED = 0
     NUM_FILES_NEW = 0
     NUM_FILES_ERROR = 0
+    NUM_FILES_DELETED = 0
     TOTAL_SIZE_PROCESSED = 0
 
 
-def mark_file_processed(file_size, modified=False, is_new=False, error=False):
+def mark_file_processed(file_size=0, modified=False, is_new=False, error=False, deleted=False):
     """
     Should be called when a file has been processed and backed up. This will increment the relevant
-    variables that track how many files have been processed.
-    :param file_size: The size of the file that was processed.
+    variables that track how many files have been processed. If deleted is set to true, the size and number
+    of files processed will not be incremented.
+    :param file_size: The size of the file that was processed. 0 by default.
     :param modified: True if the file was already in the backup, and has just been changed. False by default.
     :param is_new: True if the file was not in the backup previously and was just copied over. False by default.
     :param error: True if there was an error processing the file. False by default.
+    :param deleted: True to process a deleted file. False by default. This will not touch other fields.
     """
     global NUM_FILES_PROCESSED
     global NUM_FILES_MODIFIED
     global NUM_FILES_NEW
     global NUM_FILES_ERROR
+    global NUM_FILES_DELETED
     global TOTAL_SIZE_PROCESSED
-    NUM_FILES_PROCESSED += 1
+    if not deleted:
+        NUM_FILES_PROCESSED += 1
+        TOTAL_SIZE_PROCESSED += file_size
     if modified:
         NUM_FILES_MODIFIED += 1
     if is_new:
         NUM_FILES_NEW += 1
     if error:
         NUM_FILES_ERROR += 1
-    TOTAL_SIZE_PROCESSED += file_size
+    if deleted:
+        NUM_FILES_DELETED += 1
 
 
 def create_backup_text_file(backup_base_folder):
