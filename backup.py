@@ -211,6 +211,11 @@ def create_backup_text_file(backup_base_folder):
 
 
 def log_exception(error_file_path, action="ACCESSING"):
+    """
+    Writes the most recent exception to the log file. This includes the full traceback.
+    :param error_file_path: The file or folder that caused the error.
+    :param action: What was happening to that file to cause the error, such as "creating" or "deleting".
+    """
     util.log("\n" + '=' * 60 + "\nERROR {} {}".format(action, error_file_path))
     exc_type, exc_value, exc_traceback = sys.exc_info()
     exception_list = traceback.format_exception(exc_type, exc_value, exc_traceback)
