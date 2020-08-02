@@ -28,11 +28,13 @@ def run_backup(config):
     The primary entry function that starts and runs the backup process.
     :param config: A configuration containing paths to folders to backup.
     """
+    print("Initializing...", end="\r", flush=True)
     util.begin_log()
     util.log("\n" + configuration.config_display_string(config, show_exclusions=True))
     for input_number in range(1, config.num_entries()+1):
         input_path = config.get_input(input_number)
         outputs = config.get_destinations(input_number)
+        print("Initializing...", end="\r", flush=True)
         total_size, total_files = util.directory_size_with_exclusions(input_path, config, input_number)
         for output_path in outputs:
             # Get the name of the folder to make the backup in
