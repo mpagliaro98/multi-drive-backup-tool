@@ -111,25 +111,33 @@ def menu_option_exclude(config):
         # Startswith exclusion
         if exclusion_input == "1":
             exclusion = input("Files or folders that start with this text should be excluded: ")
-            config.new_exclusion(int(entry_number), "startswith", exclusion)
+            exclusion_number = config.new_exclusion(int(entry_number), "startswith", exclusion)
         # Endswith exclusion
         elif exclusion_input == "2":
             exclusion = input("Files or folders that end with this text should be excluded: ")
-            config.new_exclusion(int(entry_number), "endswith", exclusion)
+            exclusion_number = config.new_exclusion(int(entry_number), "endswith", exclusion)
         # File extension exclusion
         elif exclusion_input == "3":
             exclusion = input("Files with this extension should be excluded (the . before the extension is needed): ")
-            config.new_exclusion(int(entry_number), "ext", exclusion)
+            exclusion_number = config.new_exclusion(int(entry_number), "ext", exclusion)
         # Directory path exclusion
         elif exclusion_input == "4":
             exclusion = input("Folders with this absolute path will be excluded: ")
-            config.new_exclusion(int(entry_number), "directory", exclusion)
+            exclusion_number = config.new_exclusion(int(entry_number), "directory", exclusion)
         # Return to the menu
         elif exclusion_input == "5":
             break
         # Invalid input
         else:
             print("Invalid input.")
+            continue
+
+        # For startswith, endswith, or ext exclusions, offer the option to limit it to a single directory
+        if exclusion_input != "4":
+            directory_input = input("Would you like to limit this exclusion to a single directory? (y/n): ")
+            if directory_input.lower() == "y":
+                limit_directory = input("Enter the absolute path of a folder to limit this exclusion to: ")
+                config.new_exclusion_limitation(int(entry_number), exclusion_number, limit_directory)
     return config
 
 

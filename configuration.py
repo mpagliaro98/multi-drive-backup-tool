@@ -71,8 +71,13 @@ class Configuration:
         :param input_number: The number of the index of the entry, starting at 1.
         :param exclusion_type: The type of exclusion, defined in the should_exclude() function.
         :param exclusion_text: The text to exclude.
+        :return: The number of the index of this added exclusion, starting at 1.
         """
         self.exclusions[input_number-1].append([exclusion_type, exclusion_text])
+        return len(self.exclusions[input_number-1])
+
+    def new_exclusion_limitation(self, input_number, exclusion_number, limit_directory):
+        self.exclusions[input_number-1][exclusion_number-1].append(limit_directory)
 
     def edit_entry_name(self, input_number, new_name):
         """
