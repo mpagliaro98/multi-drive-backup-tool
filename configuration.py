@@ -77,6 +77,13 @@ class Configuration:
         return len(self.exclusions[input_number-1])
 
     def new_exclusion_limitation(self, input_number, exclusion_number, limit_directory):
+        """
+        Add a limitation to an existing exclusion. This will cause that exclusion to only apply within
+        the directory that is specified by this limitation, and in no sub-directories of that directory.
+        :param input_number: The number of the index of the entry, starting at 1.
+        :param exclusion_number: The number of the index of the exclusion, starting at 1.
+        :param limit_directory: The directory to limit the exclusion to.
+        """
         self.exclusions[input_number-1][exclusion_number-1].append(limit_directory)
 
     def edit_entry_name(self, input_number, new_name):
@@ -215,8 +222,11 @@ class Configuration:
         :param input_number: The number of the index of the entry, starting at 1.
         """
         for excl_idx in range(len(self.exclusions[input_number-1])):
-            print("{}: {} \"{}\"".format(excl_idx+1, self.exclusions[input_number-1][excl_idx][0],
-                                         self.exclusions[input_number-1][excl_idx][1]))
+            print_str = "{}: {} \"{}\"".format(excl_idx+1, self.exclusions[input_number-1][excl_idx][0],
+                                               self.exclusions[input_number-1][excl_idx][1])
+            if len(self.exclusions[input_number-1][excl_idx]) == 3:
+                print_str += " limit to \"{}\"".format(self.exclusions[input_number-1][excl_idx][2])
+            print(print_str)
 
     def entry_to_string(self, input_number, exclusion_mode=False):
         """
@@ -228,7 +238,11 @@ class Configuration:
         entry_str = "INPUT: {}\n".format(self.inputs[input_number-1])
         if exclusion_mode:
             for exclusion in self.exclusions[input_number-1]:
-                entry_str += "\tEXCLUSION: {} \"{}\"\n".format(exclusion[0], exclusion[1])
+                entry_str += "\tEXCLUSION: {} \"{}\"".format(exclusion[0], exclusion[1])
+                if len(exclusion) == 3:
+                    entry_str += " limited to \"{}\"\n".format(exclusion[2])
+                else:
+                    entry_str += "\n"
         else:
             for destination in self.outputs[input_number-1]:
                 entry_str += "\tDESTINATION: {}\n".format(destination)
@@ -575,7 +589,11 @@ def config_display_string(config, show_exclusions=False):
             if show_exclusions:
                 return_str += "\n\t\tEXCLUSIONS:\n"
                 for exclusion in config.get_exclusions(input_number):
-                    return_str += "\t\t\t" + exclusion[0] + " \"" + exclusion[1] + "\"\n"
+                    return_str += "\t\t\t" + exclusion[0] + " \"" + exclusion[1] + "\""
+                    if len(exclusion) == 3:
+                        return_str += " limited to \"" + exclusion[2] + "\"\n"
+                    else:
+                        return_str += "\n"
             else:
                 return_str += " [Contains exclusions]\n"
         else:
