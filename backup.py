@@ -14,6 +14,9 @@ import util
 import configuration
 
 
+# Constant for the backup confirmation filename
+CONFIRMATION_FILENAME = "_BACKUP-CONFIRMATION.txt"
+
 # Variables to track how many files have been processed during the backup process
 NUM_FILES_PROCESSED = 0
 NUM_FILES_MODIFIED = 0
@@ -48,7 +51,7 @@ def run_backup(config):
             util.log('/'*60 + "\n")
 
             # Run the backup process and time it
-            print("\nBacking up {} to {}...".format(input_path, backup_folder))
+            print(' '*20 + "\nBacking up {} to {}...".format(input_path, backup_folder))
             reset_globals()
             start_time = time.time()
             recursive_backup(input_path, backup_folder, total_size, total_files, config, input_number)
@@ -138,7 +141,10 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
                         util.rmtree(delete_file_path)
                     else:
                         os.remove(delete_file_path)
-                        mark_file_processed(deleted=True)
+                        # Don't increment the deleted count if this is the old confirmation file
+                        if not output_file == CONFIRMATION_FILENAME and \
+                                not output_path == config.get_input(input_number):
+                            mark_file_processed(deleted=True)
                     util.log("DELETED - " + delete_file_path)
                 except PermissionError:
                     # Log the exception and indicate that an error occurred
@@ -205,8 +211,7 @@ def create_backup_text_file(backup_base_folder):
     :param backup_base_folder: The folder to write the file to.
     """
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    file_name = "_BACKUP-CONFIRMATION.txt"
-    file_path = os.path.join(backup_base_folder, file_name)
+    file_path = os.path.join(backup_base_folder, CONFIRMATION_FILENAME)
     text_file = open(file_path, "w")
     text_file.write("This backup was completed on " + current_time)
     text_file.close()
