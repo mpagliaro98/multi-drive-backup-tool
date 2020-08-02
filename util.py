@@ -186,6 +186,17 @@ def rmtree(start_path):
     os.rmdir(start_path)
 
 
+def path_is_in_directory(path_to_check, directory_path):
+    """
+    Checks if a given path to a directory or file is directly in a given directory and not
+    within any of its sub-directories.
+    :param path_to_check: The file or directory to check if it's in the directory.
+    :param directory_path: The directory to see if the other path is in it.
+    :return: True if the file or directory is immediately in the directory, false otherwise.
+    """
+    return os.path.split(path_to_check)[0] == directory_path
+
+
 def begin_log():
     """
     Open the log file to prepare for it to be written to. This will also write the first line
