@@ -9,19 +9,27 @@ import util
 import backup
 
 
-def display_main_menu():
+def input_menu(options):
     """
-    Print out the options that make up the main menu.
+    Input loop for selecting an option in a menu. Given a list of strings that represent the options on this
+    menu, this will prompt for input, and loop back around if a non-integer value is entered or a value that
+    doesn't correspond to a menu option. Once a valid value is entered, it is returned as an integer.
+    :param options: A list of strings that will be enumerated and displayed as options.
+    :return: The valid number that was entered as an integer.
     """
-    print("\n1: Select a folder or file to backup")
-    print("2: Configure destination locations")
-    print("3: Exclude specific files/folders from your backup")
-    print("4: Edit/delete configuration entries")
-    print("5: Save current backup configuration")
-    print("6: Load a backup configuration")
-    print("7: Backup your files")
-    print("8: Re-scan for available drives")
-    print("9: Exit")
+    while True:
+        print()
+        for option_idx in range(1, len(options)+1):
+            print("{}: {}".format(option_idx, options[option_idx-1]))
+        user_input = input("Choose an option: ")
+        try:
+            user_int = int(user_input)
+            if user_int < 1 or user_int > len(options):
+                print("Invalid input.")
+            else:
+                return user_int
+        except ValueError:
+            print("Invalid input.")
 
 
 def input_entry_number(low_bound, high_bound, input_text="Enter a number to select that entry: ",
@@ -37,10 +45,14 @@ def input_entry_number(low_bound, high_bound, input_text="Enter a number to sele
     """
     while True:
         entry_number = input(input_text)
-        if int(entry_number) < low_bound or int(entry_number) > high_bound:
-            print(error_text)
-        else:
-            return entry_number
+        try:
+            entry_int = int(entry_number)
+            if entry_int < low_bound or entry_int > high_bound:
+                print(error_text)
+            else:
+                return entry_int
+        except ValueError:
+            print("Invalid input.")
 
 
 def menu_option_input(config):
@@ -82,7 +94,7 @@ def menu_option_destination(config):
         destination_input = input()
         if destination_input == "end":
             break
-        config, result = configuration.append_output_to_config(config, int(entry_number), destination_input)
+        config, result = configuration.append_output_to_config(config, entry_number, destination_input)
         if not result:
             print("The given path was invalid, is already specified, or is a sub-folder of the input.")
     return config
@@ -102,128 +114,41 @@ def menu_option_exclude(config):
                                       input_text="Enter a number to add an exclusion to that entry: ")
     # Once chosen, display options to add different types of exclusions
     while True:
+        exclusion_number = 1
         print()
-        print(config.entry_to_string(int(entry_number), exclusion_mode=True))
-        print("1: Starts with some text\n2: Ends with some text\n3: Specific file extension")
-        print("4: Specific directory path\n5: Return to the menu")
-        exclusion_input = input("Choose an option: ")
+        print(config.entry_to_string(entry_number, exclusion_mode=True))
+        exclusion_input = input_menu(["Starts with some text",
+                                      "Ends with some text",
+                                      "Specific file extension",
+                                      "Specific directory path",
+                                      "Return to the menu"])
 
         # Startswith exclusion
-        if exclusion_input == "1":
+        if exclusion_input == 1:
             exclusion = input("Files or folders that start with this text should be excluded: ")
-            exclusion_number = config.new_exclusion(int(entry_number), "startswith", exclusion)
+            exclusion_number = config.new_exclusion(entry_number, "startswith", exclusion)
         # Endswith exclusion
-        elif exclusion_input == "2":
+        elif exclusion_input == 2:
             exclusion = input("Files or folders that end with this text should be excluded: ")
-            exclusion_number = config.new_exclusion(int(entry_number), "endswith", exclusion)
+            exclusion_number = config.new_exclusion(entry_number, "endswith", exclusion)
         # File extension exclusion
-        elif exclusion_input == "3":
+        elif exclusion_input == 3:
             exclusion = input("Files with this extension should be excluded (the . before the extension is needed): ")
-            exclusion_number = config.new_exclusion(int(entry_number), "ext", exclusion)
+            exclusion_number = config.new_exclusion(entry_number, "ext", exclusion)
         # Directory path exclusion
-        elif exclusion_input == "4":
+        elif exclusion_input == 4:
             exclusion = input("Folders with this absolute path will be excluded: ")
-            exclusion_number = config.new_exclusion(int(entry_number), "directory", exclusion)
+            exclusion_number = config.new_exclusion(entry_number, "directory", exclusion)
         # Return to the menu
-        elif exclusion_input == "5":
+        elif exclusion_input == 5:
             break
-        # Invalid input
-        else:
-            print("Invalid input.")
-            continue
 
         # For startswith, endswith, or ext exclusions, offer the option to limit it to a single directory
-        if exclusion_input != "4":
+        if exclusion_input != 4:
             directory_input = input("Would you like to limit this exclusion to a single directory? (y/n): ")
             if directory_input.lower() == "y":
                 limit_directory = input("Enter the absolute path of a folder to limit this exclusion to: ")
-                config.new_exclusion_limitation(int(entry_number), exclusion_number, limit_directory)
-    return config
-
-
-def sub_option_edit_destinations(config, entry_number):
-    """
-    The code that is run when the sub-option for editing the destinations of an entry is selected.
-    This will display a menu, allowing the user to choose to edit a destination, delete a destination,
-    or return to the previous menu.
-    :param config: The current backup configuration.
-    :param entry_number: The number of the index of the entry, starting at 1.
-    :return: The updated configuration with edited destinations.
-    """
-    while True:
-        print("\n1: Edit a destination\n2: Delete a destination\n3: Return to the previous menu")
-        destination_input = input("Choose an option: ")
-
-        # Edit destination
-        if destination_input == "1":
-            print()
-            config.enumerate_destinations(int(entry_number))
-            dest_number = input_entry_number(low_bound=1, high_bound=config.num_destinations(int(entry_number)),
-                                             input_text="Enter a number to specify which destination to edit: ")
-            result = False
-            while not result:
-                input_name = input("Enter the new absolute path of a folder to make a destination: ")
-                config, result = configuration.edit_destination_in_config(config, int(entry_number),
-                                                                          int(dest_number), input_name)
-                if not result:
-                    print("The given path was invalid, is already specified, or is a sub-folder " +
-                          "of the input.")
-        # Delete destination
-        elif destination_input == "2":
-            print()
-            config.enumerate_destinations(int(entry_number))
-            dest_number = input_entry_number(low_bound=1, high_bound=config.num_destinations(int(entry_number)),
-                                             input_text="Enter a number to specify which destination to delete: ")
-            config.delete_destination(int(entry_number), int(dest_number))
-            # Go to the previous menu if the last destination is deleted
-            if config.num_destinations(int(entry_number)) == 0:
-                break
-        # Return to the previous menu
-        elif destination_input == "3":
-            break
-        # Invalid input
-        else:
-            print("Invalid input.")
-    return config
-
-
-def sub_option_edit_exclusions(config, entry_number):
-    """
-    The code that is run when the sub-option for editing the destinations of an entry is selected.
-    This will display a menu, allowing the user to choose to edit a destination, delete a destination,
-    or return to the previous menu.
-    :param config: The current backup configuration.
-    :param entry_number: The number of the index of the entry, starting at 1.
-    :return: The updated configuration with edited destinations.
-    """
-    while True:
-        print("\n1: Edit an exclusion\n2: Delete an exclusion\n3: Return to the previous menu")
-        exclusion_input = input("Choose an option: ")
-
-        # Edit destination
-        if exclusion_input == "1":
-            print()
-            config.enumerate_exclusions(int(entry_number))
-            excl_number = input_entry_number(low_bound=1, high_bound=config.num_exclusions(int(entry_number)),
-                                             input_text="Enter a number to specify which exclusion to edit: ")
-            input_name = input("Enter the new data for this exclusion (the text between the quotations): ")
-            config.edit_exclusion(int(entry_number), int(excl_number), input_name)
-        # Delete destination
-        elif exclusion_input == "2":
-            print()
-            config.enumerate_exclusions(int(entry_number))
-            excl_number = input_entry_number(low_bound=1, high_bound=config.num_exclusions(int(entry_number)),
-                                             input_text="Enter a number to specify which exclusion to delete: ")
-            config.delete_exclusion(int(entry_number), int(excl_number))
-            # Go to the previous menu if the last exclusion is deleted
-            if config.num_exclusions(int(entry_number)) == 0:
-                break
-        # Return to the previous menu
-        elif exclusion_input == "3":
-            break
-        # Invalid input
-        else:
-            print("Invalid input.")
+                config.new_exclusion_limitation(entry_number, exclusion_number, limit_directory)
     return config
 
 
@@ -244,49 +169,132 @@ def menu_option_edit(config):
     # Once chosen, display options to edit or delete this entry
     while True:
         print()
-        print(config.entry_to_string(int(entry_number)))
-        print("1: Edit the input path\n2: Edit the destinations\n3: Edit the exclusions\n4: Delete all destinations")
-        print("5: Delete all exclusions\n6: Delete this entire entry\n7: Return to the menu")
-        edit_input = input("Choose an option: ")
+        print(config.entry_to_string(entry_number))
+        edit_input = input_menu(["Edit the input path",
+                                 "Edit the destinations",
+                                 "Edit the exclusions",
+                                 "Delete all destinations",
+                                 "Delete all exclusions",
+                                 "Delete this entire entry",
+                                 "Return to the menu"])
 
         # Edit the input path
-        if edit_input == "1":
+        if edit_input == 1:
             result = False
             while not result:
                 input_name = input("Enter the new absolute path of a folder or file to backup: ")
-                config, result = configuration.edit_input_in_config(config, int(entry_number), input_name)
+                config, result = configuration.edit_input_in_config(config, entry_number, input_name)
                 if not result:
                     print("The given path is invalid, already specified, or a destination became a sub-folder.")
         # Edit the destinations
-        elif edit_input == "2":
-            if config.num_destinations(int(entry_number)) > 0:
+        elif edit_input == 2:
+            if config.num_destinations(entry_number) > 0:
                 config = sub_option_edit_destinations(config, entry_number)
             else:
                 print("There are no destinations to edit or delete.")
                 continue
         # Edit the exclusions
-        elif edit_input == "3":
-            if config.num_exclusions(int(entry_number)) > 0:
+        elif edit_input == 3:
+            if config.num_exclusions(entry_number) > 0:
                 config = sub_option_edit_exclusions(config, entry_number)
             else:
                 print("There are no exclusions to edit or delete.")
                 continue
         # Delete all destinations
-        elif edit_input == "4":
-            config.delete_destinations(int(entry_number))
+        elif edit_input == 4:
+            config.delete_destinations(entry_number)
         # Delete all exclusions
-        elif edit_input == "5":
-            config.delete_exclusions(int(entry_number))
+        elif edit_input == 5:
+            config.delete_exclusions(entry_number)
         # Delete this entry
-        elif edit_input == "6":
-            config.delete_entry(int(entry_number))
+        elif edit_input == 6:
+            config.delete_entry(entry_number)
             break
         # Return to the previous menu
-        elif edit_input == "7":
+        elif edit_input == 7:
             break
-        # Invalid input
-        else:
-            print("Invalid input.")
+    return config
+
+
+def sub_option_edit_destinations(config, entry_number):
+    """
+    The code that is run when the sub-option for editing the destinations of an entry is selected.
+    This will display a menu, allowing the user to choose to edit a destination, delete a destination,
+    or return to the previous menu.
+    :param config: The current backup configuration.
+    :param entry_number: The number of the index of the entry, starting at 1.
+    :return: The updated configuration with edited destinations.
+    """
+    while True:
+        destination_input = input_menu(["Edit a destination",
+                                        "Delete a destination",
+                                        "Return to the previous menu"])
+
+        # Edit destination
+        if destination_input == 1:
+            print()
+            config.enumerate_destinations(entry_number)
+            dest_number = input_entry_number(low_bound=1, high_bound=config.num_destinations(entry_number),
+                                             input_text="Enter a number to specify which destination to edit: ")
+            result = False
+            while not result:
+                input_name = input("Enter the new absolute path of a folder to make a destination: ")
+                config, result = configuration.edit_destination_in_config(config, entry_number,
+                                                                          dest_number, input_name)
+                if not result:
+                    print("The given path was invalid, is already specified, or is a sub-folder " +
+                          "of the input.")
+        # Delete destination
+        elif destination_input == 2:
+            print()
+            config.enumerate_destinations(entry_number)
+            dest_number = input_entry_number(low_bound=1, high_bound=config.num_destinations(entry_number),
+                                             input_text="Enter a number to specify which destination to delete: ")
+            config.delete_destination(entry_number, dest_number)
+            # Go to the previous menu if the last destination is deleted
+            if config.num_destinations(entry_number) == 0:
+                break
+        # Return to the previous menu
+        elif destination_input == 3:
+            break
+    return config
+
+
+def sub_option_edit_exclusions(config, entry_number):
+    """
+    The code that is run when the sub-option for editing the destinations of an entry is selected.
+    This will display a menu, allowing the user to choose to edit a destination, delete a destination,
+    or return to the previous menu.
+    :param config: The current backup configuration.
+    :param entry_number: The number of the index of the entry, starting at 1.
+    :return: The updated configuration with edited destinations.
+    """
+    while True:
+        exclusion_input = input_menu(["Edit an exclusion",
+                                      "Delete an exclusion",
+                                      "Return to the previous menu"])
+
+        # Edit destination
+        if exclusion_input == 1:
+            print()
+            config.enumerate_exclusions(entry_number)
+            excl_number = input_entry_number(low_bound=1, high_bound=config.num_exclusions(entry_number),
+                                             input_text="Enter a number to specify which exclusion to edit: ")
+            input_name = input("Enter the new data for this exclusion (the text between the quotations): ")
+            config.edit_exclusion(entry_number, excl_number, input_name)
+        # Delete destination
+        elif exclusion_input == 2:
+            print()
+            config.enumerate_exclusions(entry_number)
+            excl_number = input_entry_number(low_bound=1, high_bound=config.num_exclusions(entry_number),
+                                             input_text="Enter a number to specify which exclusion to delete: ")
+            config.delete_exclusion(entry_number, excl_number)
+            # Go to the previous menu if the last exclusion is deleted
+            if config.num_exclusions(entry_number) == 0:
+                break
+        # Return to the previous menu
+        elif exclusion_input == 3:
+            break
     return config
 
 
@@ -336,6 +344,7 @@ def menu_option_backup(config):
     The code that is run when the menu option for backing up the selected files is selected.
     This will ask for confirmation before beginning, and then run the backup process.
     :param config: The current backup configuration.
+    :return: The current application configuration, possibly with a new name.
     """
     # Do not continue if one of the paths in the configuration no longer exists
     if not config.all_paths_are_valid():
@@ -358,6 +367,7 @@ def menu_option_backup(config):
         # If yes, run the backup
         if backup_confirmation.lower() == "y":
             backup.run_backup(config)
+    return config
 
 
 def main():
@@ -379,15 +389,22 @@ def main():
         print(configuration.config_display_string(config))
 
         # Display the main menu and prompt for user input
-        display_main_menu()
-        user_input = input("Enter the number of an option: ")
+        user_input = input_menu(["Select a folder or file to backup",
+                                 "Configure destination locations",
+                                 "Exclude specific files/folders from your backup",
+                                 "Edit/delete configuration entries",
+                                 "Save current backup configuration",
+                                 "Load a backup configuration",
+                                 "Backup your files",
+                                 "Re-scan for available drives",
+                                 "Exit"])
         print()
 
         # Select a folder or file to backup
-        if user_input == "1":
+        if user_input == 1:
             config = menu_option_input(config)
         # Configure destination locations
-        elif user_input == "2":
+        elif user_input == 2:
             # Return to the menu if there's no entries
             if config.num_entries() > 0:
                 config = menu_option_destination(config)
@@ -395,14 +412,14 @@ def main():
                 print("There are no entries to add a destination to.")
                 continue
         # Exclude files/folders
-        elif user_input == "3":
+        elif user_input == 3:
             if config.num_entries() > 0:
                 config = menu_option_exclude(config)
             else:
                 print("There are no entries to add exclusions to.")
                 continue
         # Edit/delete configuration entries
-        elif user_input == "4":
+        elif user_input == 4:
             # Return to the menu if there's no entries
             if config.num_entries() > 0:
                 config = menu_option_edit(config)
@@ -410,10 +427,10 @@ def main():
                 print("There are no entries to edit or delete.")
                 continue
         # Save current configuration
-        elif user_input == "5":
+        elif user_input == 5:
             config = menu_option_save(config)
         # Load a configuration
-        elif user_input == "6":
+        elif user_input == 6:
             config_list = configuration.saved_config_display_string()
             if config_list == "":
                 print("There are no currently saved configurations.")
@@ -421,11 +438,11 @@ def main():
             else:
                 config = menu_option_load(config, config_list)
         # Run the backup
-        elif user_input == "7":
+        elif user_input == 7:
             # Return to the menu if there's no entries
             if config.num_entries() > 0:
                 if config.all_entries_have_outputs():
-                    menu_option_backup(config)
+                    config = menu_option_backup(config)
                 else:
                     print("Not all inputs have a destination specified to back them up to.")
                     continue
@@ -433,15 +450,12 @@ def main():
                 print("There is nothing currently selected to backup.")
                 continue
         # Refresh
-        elif user_input == "8":
+        elif user_input == 8:
             print("Scanning again for available drives...")
             continue
         # Exit
-        elif user_input == "9":
+        elif user_input == 9:
             break
-        # Handle any other inputs
-        else:
-            print("Invalid input.")
 
 
 if __name__ == "__main__":
