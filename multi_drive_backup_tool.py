@@ -65,7 +65,9 @@ def menu_option_input(config):
     result = False
     while not result:
         # Accept user input for path to directory or file
-        input_name = input("Enter the absolute path of a folder or file to backup: ")
+        input_name = input("Enter the absolute path of a folder or file to backup (enter \"end\" to stop): ")
+        if input_name == "end":
+            break
         # Check if the input is valid, and if so add it to the config
         config, result = configuration.append_input_to_config(config, input_name)
         # No changes occur to the config if it's invalid, so show that it's invalid
@@ -330,12 +332,13 @@ def menu_option_load(config, config_list):
     while True:
         # Once a valid name is entered, load that configuration
         config_name = input("Enter a name of a configuration to load (enter \"end\" to return to the menu): ")
-        if configuration.config_exists(config_name):
+        if config_name == "end":
+            break
+        elif configuration.config_exists(config_name):
             config = configuration.load_config(config_name)
             break
-        elif config_name == "end":
-            break
-        print("{} is an invalid configuration name.".format(config_name))
+        else:
+            print("{} is an invalid configuration name.".format(config_name))
     return config
 
 
