@@ -469,9 +469,7 @@ def append_input_to_config(config, input_string):
     :return: The configuration object with a new entry, and a boolean that is True when the
              given input path is valid, and false otherwise.
     """
-    # Return false if this input already exists, or it's not a valid directory/file.
-    if config.entry_exists(input_string):
-        return config, False
+    # Return false if this input is not a valid directory/file.
     if not os.path.isdir(input_string) and not os.path.isfile(input_string):
         return config, False
 

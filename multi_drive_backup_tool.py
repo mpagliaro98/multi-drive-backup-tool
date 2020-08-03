@@ -72,7 +72,7 @@ def menu_option_input(config):
         config, result = configuration.append_input_to_config(config, input_name)
         # No changes occur to the config if it's invalid, so show that it's invalid
         if not result:
-            print("The given path was invalid, or is already specified.")
+            print("The given path was invalid.")
     return config
 
 
