@@ -288,6 +288,7 @@ def sub_option_edit_exclusions(config, entry_number):
     :param entry_number: The number of the index of the entry, starting at 1.
     :return: The updated configuration with edited destinations.
     """
+    print("\n" + config.entry_to_string(entry_number, exclusion_mode=True))
     while True:
         exclusion_input = input_menu(["Edit an exclusion",
                                       "Delete an exclusion",
