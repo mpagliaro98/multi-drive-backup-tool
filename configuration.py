@@ -322,23 +322,35 @@ class Configuration:
         for exclusion in self.exclusions[input_number-1]:
             if exclusion[0] == "startswith":
                 if os.path.splitext(os.path.split(path_to_exclude)[1])[0].startswith(exclusion[1]):
-                    if len(exclusion) == 3:
-                        if util.path_is_in_directory(path_to_exclude, exclusion[2]):
-                            return True
+                    if len(exclusion) >= 4:
+                        if exclusion[2] == "dir":
+                            if util.path_is_in_directory(path_to_exclude, exclusion[3]):
+                                return True
+                        elif exclusion[2] == "sub":
+                            if path_to_exclude.startswith(os.path.realpath(exclusion[3]) + os.sep):
+                                return True
                     else:
                         return True
             elif exclusion[0] == "endswith":
                 if os.path.splitext(os.path.split(path_to_exclude)[1])[0].endswith(exclusion[1]):
-                    if len(exclusion) == 3:
-                        if util.path_is_in_directory(path_to_exclude, exclusion[2]):
-                            return True
+                    if len(exclusion) >= 4:
+                        if exclusion[2] == "dir":
+                            if util.path_is_in_directory(path_to_exclude, exclusion[3]):
+                                return True
+                        elif exclusion[2] == "sub":
+                            if path_to_exclude.startswith(os.path.realpath(exclusion[3]) + os.sep):
+                                return True
                     else:
                         return True
             elif exclusion[0] == "ext":
                 if os.path.splitext(path_to_exclude)[1] == exclusion[1]:
-                    if len(exclusion) == 3:
-                        if util.path_is_in_directory(path_to_exclude, exclusion[2]):
-                            return True
+                    if len(exclusion) >= 4:
+                        if exclusion[2] == "dir":
+                            if util.path_is_in_directory(path_to_exclude, exclusion[3]):
+                                return True
+                        elif exclusion[2] == "sub":
+                            if path_to_exclude.startswith(os.path.realpath(exclusion[3]) + os.sep):
+                                return True
                     else:
                         return True
             elif exclusion[0] == "directory":
