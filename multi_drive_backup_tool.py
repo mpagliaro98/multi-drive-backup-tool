@@ -146,11 +146,28 @@ def menu_option_exclude(config):
             break
 
         # For startswith, endswith, or ext exclusions, offer the option to limit it to a single directory
-        if exclusion_input != 4:
-            directory_input = input("Would you like to limit this exclusion to a single directory? (y/n): ")
+        if exclusion_input == 1 or exclusion_input == 2 or exclusion_input == 3:
+            directory_input = input("Would you like to limit this exclusion to a directory? (y/n): ")
             if directory_input.lower() == "y":
+                # Get the directory to limit this exclusion to
                 limit_directory = input("Enter the absolute path of a folder to limit this exclusion to: ")
-                config.new_exclusion_limitation(entry_number, exclusion_number, limit_directory)
+
+                # Ask if it should be limited to all sub-directories or just that directory
+                print("\nYou can limit this exclusion to every sub-directory of the directory you entered.")
+                print("You can also limit it to only the directory you entered, and no sub-directories.")
+                while True:
+                    limit_input = input("Enter 1 for all sub-directories or 2 for only that directory: ")
+                    if limit_input == "1":
+                        limit_input = "sub"
+                        break
+                    elif limit_input == "2":
+                        limit_input = "dir"
+                        break
+                    else:
+                        print("Invalid input.")
+
+                # Add this limitation to the configuration
+                config.new_exclusion_limitation(entry_number, exclusion_number, limit_input, limit_directory)
     return config
 
 

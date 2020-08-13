@@ -76,14 +76,18 @@ class Configuration:
         self.exclusions[input_number-1].append([exclusion_type, exclusion_text])
         return len(self.exclusions[input_number-1])
 
-    def new_exclusion_limitation(self, input_number, exclusion_number, limit_directory):
+    def new_exclusion_limitation(self, input_number, exclusion_number, limit_mode, limit_directory):
         """
         Add a limitation to an existing exclusion. This will cause that exclusion to only apply within
         the directory that is specified by this limitation, and in no sub-directories of that directory.
         :param input_number: The number of the index of the entry, starting at 1.
         :param exclusion_number: The number of the index of the exclusion, starting at 1.
+        :param limit_mode: How to limit files within the given directory. This should be "sub" if this exclusion
+                           applies to every sub-directory of the given limit directory, or "dir" if this
+                           exclusion only applies to the given directory and no sub-directories.
         :param limit_directory: The directory to limit the exclusion to.
         """
+        self.exclusions[input_number-1][exclusion_number-1].append(limit_mode)
         self.exclusions[input_number-1][exclusion_number-1].append(limit_directory)
 
     def edit_entry_name(self, input_number, new_name):
@@ -224,8 +228,13 @@ class Configuration:
         for excl_idx in range(len(self.exclusions[input_number-1])):
             print_str = "{}: {} \"{}\"".format(excl_idx+1, self.exclusions[input_number-1][excl_idx][0],
                                                self.exclusions[input_number-1][excl_idx][1])
-            if len(self.exclusions[input_number-1][excl_idx]) == 3:
-                print_str += " limit to \"{}\"".format(self.exclusions[input_number-1][excl_idx][2])
+            if len(self.exclusions[input_number-1][excl_idx]) >= 4:
+                limit_mode = ""
+                if self.exclusions[input_number-1][excl_idx][2] == "sub":
+                    limit_mode = "and all sub-directories"
+                elif self.exclusions[input_number-1][excl_idx][2] == "dir":
+                    limit_mode = "only"
+                print_str += " limit to \"{}\" {}".format(self.exclusions[input_number-1][excl_idx][3], limit_mode)
             print(print_str)
 
     def entry_to_string(self, input_number, exclusion_mode=False):
@@ -239,8 +248,14 @@ class Configuration:
         if exclusion_mode:
             for exclusion in self.exclusions[input_number-1]:
                 entry_str += "\tEXCLUSION: {} \"{}\"".format(exclusion[0], exclusion[1])
-                if len(exclusion) == 3:
-                    entry_str += " limited to \"{}\"\n".format(exclusion[2])
+                if len(exclusion) >= 4:
+                    entry_str += " limited to \"{}\" ".format(exclusion[3])
+                    if exclusion[2] == "sub":
+                        entry_str += "and all sub-directories\n"
+                    elif exclusion[2] == "dir":
+                        entry_str += "only\n"
+                    else:
+                        entry_str += "\n"
                 else:
                     entry_str += "\n"
         else:
@@ -600,8 +615,14 @@ def config_display_string(config, show_exclusions=False):
                 return_str += "\n\t\tEXCLUSIONS:\n"
                 for exclusion in config.get_exclusions(input_number):
                     return_str += "\t\t\t" + exclusion[0] + " \"" + exclusion[1] + "\""
-                    if len(exclusion) == 3:
-                        return_str += " limited to \"" + exclusion[2] + "\"\n"
+                    if len(exclusion) >= 4:
+                        return_str += " limited to \"" + exclusion[3] + "\" "
+                        if exclusion[2] == "sub":
+                            return_str += "and all sub-directories\n"
+                        elif exclusion[2] == "dir":
+                            return_str += "only\n"
+                        else:
+                            return_str += "\n"
                     else:
                         return_str += "\n"
             else:
