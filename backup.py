@@ -35,8 +35,8 @@ def run_backup(config):
     util.begin_log()
     util.log("\n" + configuration.config_display_string(config, show_exclusions=True))
     for input_number in range(1, config.num_entries()+1):
-        input_path = config.get_input(input_number)
-        outputs = config.get_destinations(input_number)
+        input_path = config.get_entry(input_number).input
+        outputs = config.get_entry(input_number).outputs
         print("Initializing...", end="\r", flush=True)
         total_size, total_files = util.directory_size_with_exclusions(input_path, config, input_number)
         for output_path in outputs:
@@ -88,7 +88,7 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
     """
     global NUM_FILES_ERROR
     # Exclude this file or folder if it should be left out
-    if config.should_exclude(input_number, input_path):
+    if config.get_entry(input_number).should_exclude(input_path):
         util.log("EXCLUDED - " + input_path)
         return False
     # If this path is to a file
@@ -143,7 +143,7 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
                         os.remove(delete_file_path)
                         # Don't increment the deleted count if this is the old confirmation file
                         if not output_file == CONFIRMATION_FILENAME and \
-                                not output_path == config.get_input(input_number):
+                                not output_path == config.get_entry(input_number).input:
                             mark_file_processed(deleted=True)
                     util.log("DELETED - " + delete_file_path)
                 except PermissionError:

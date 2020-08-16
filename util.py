@@ -74,7 +74,7 @@ def directory_size_with_exclusions(path, config, input_number):
              of files in that directory, taking exclusions into account.
     """
     # Don't continue down this path if it should be excluded
-    if config.should_exclude(input_number, path):
+    if config.get_entry(input_number).should_exclude(path):
         return 0, 0
     # If this is a file, add 1 to total files and its file size to the total file size
     if os.path.isfile(path):
