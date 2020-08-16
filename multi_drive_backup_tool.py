@@ -12,19 +12,20 @@ import util
 import backup
 
 
-def input_menu(options):
+def input_menu(options, input_text="Choose an option: "):
     """
     Input loop for selecting an option in a menu. Given a list of strings that represent the options on this
     menu, this will prompt for input, and loop back around if a non-integer value is entered or a value that
     doesn't correspond to a menu option. Once a valid value is entered, it is returned as an integer.
     :param options: A list of strings that will be enumerated and displayed as options.
+    :param input_text: The text the appears as the prompt for user input. This defaults to "Choose an option: ".
     :return: The valid number that was entered as an integer.
     """
     while True:
         print()
         for option_idx in range(1, len(options)+1):
             print("{}: {}".format(option_idx, options[option_idx-1]))
-        user_input = input("Choose an option: ")
+        user_input = input(input_text)
         try:
             user_int = int(user_input)
             if user_int < 1 or user_int > len(options):
@@ -275,8 +276,8 @@ def sub_option_edit_exclusions(config, entry_number):
     :return: The updated configuration with edited exclusions.
     """
     entry = config.get_entry(entry_number)
-    print("\n" + entry.to_string(exclusion_mode=True))
     while True:
+        print("\n" + entry.to_string(exclusion_mode=True))
         exclusion_input = input_menu(["Edit an exclusion",
                                       "Delete an exclusion",
                                       "Return to the previous menu"])
@@ -287,8 +288,35 @@ def sub_option_edit_exclusions(config, entry_number):
             entry.enumerate_exclusions()
             excl_number = input_entry_number(low_bound=1, high_bound=entry.num_exclusions(),
                                              input_text="Enter a number to specify which exclusion to edit: ")
-            input_name = input("Enter the new data for this exclusion (the text between the quotations): ")
-            entry.get_exclusion(excl_number).edit_data(input_name)
+            exclusion = entry.get_exclusion(excl_number)
+
+            while True:
+                # Create the edit exclusion menu, change the add limitation option to edit if a limitation exists
+                excl_edit_menu = ["Change the exclusion type",
+                                  "Change the exclusion data",
+                                  "Add a limitation",
+                                  "Return to the previous menu"]
+                if exclusion.has_limitation():
+                    excl_edit_menu[excl_edit_menu.index("Add a limitation")] = "Edit the limitation"
+                excl_edit_input = input_menu(excl_edit_menu)
+
+                # Change exclusion type
+                if excl_edit_input == 1:
+                    exclusion_codes = [item.code for item in exclusions.EXCLUSION_TYPES]
+                    exclusion_menu_options = [item.menu_text for item in exclusions.EXCLUSION_TYPES]
+                    new_exclusion_input = input_menu(exclusion_menu_options,
+                                                     input_text="Choose one of these options to change the type to: ")
+                    exclusion.edit_code(exclusion_codes[new_exclusion_input-1])
+                # Change exclusion data
+                elif excl_edit_input == 2:
+                    new_data = input("Enter new data for this exclusion: ")
+                    exclusion.edit_data(new_data)
+                # Add or edit limitation
+                elif excl_edit_input == 3:
+                    config = sub_option_edit_limitations(config, exclusion)
+                # Return to the previous menu
+                elif excl_edit_input == 4:
+                    break
         # Delete exclusion
         elif exclusion_input == 2:
             print()
@@ -302,6 +330,56 @@ def sub_option_edit_exclusions(config, entry_number):
         # Return to the previous menu
         elif exclusion_input == 3:
             break
+    return config
+
+
+def sub_option_edit_limitations(config, exclusion):
+    """
+    The code that is run when the sub-option for editing the limitation of an exclusion is selected.
+    If the limitation exists, this will display a menu allowing the user to edit the type or data of it or
+    delete it. If no limitation exists, it will allow the user to create one.
+    :param config: The current backup configuration.
+    :param exclusion: The current exclusion whose limitation is being edited.
+    :return: The updated configuration with edited limitations.
+    """
+    # Don't allow adding or editing if this exclusion type doesn't allow limitations
+    for exclusion_type in exclusions.EXCLUSION_TYPES:
+        if exclusion.code == exclusion_type.code:
+            if not exclusion_type.accepts_limitations:
+                print("This exclusion type does not allow limitations.")
+                return config
+    # Adding a limitation
+    if not exclusion.has_limitation():
+        limit_directory = input("Enter the absolute path of a folder to limit this exclusion to: ")
+        limitation_input = input_menu([item.menu_text for item in limitations.LIMITATION_TYPES])
+        limitation_code = limitations.LIMITATION_TYPES[limitation_input-1].code
+        exclusion.add_limitation(limitation_code, limit_directory)
+    # Editing a limitation
+    else:
+        while True:
+            limit_edit_input = input_menu(["Change the limitation type",
+                                           "Change the limitation data",
+                                           "Delete this limitation",
+                                           "Return to the previous menu"])
+
+            # Change limitation type
+            if limit_edit_input == 1:
+                limitation_codes = [item.code for item in limitations.LIMITATION_TYPES]
+                limitation_menu_options = [item.menu_text for item in limitations.LIMITATION_TYPES]
+                new_limitation_input = input_menu(limitation_menu_options,
+                                                  input_text="Choose one of these options to change the type to: ")
+                exclusion.limitation.edit_code(limitation_codes[new_limitation_input-1])
+            # Change limitation data
+            elif limit_edit_input == 2:
+                new_data = input("Enter new data for this limitation: ")
+                exclusion.limitation.edit_data(new_data)
+            # Delete the limitation
+            elif limit_edit_input == 3:
+                exclusion.delete_limitation()
+                break
+            # Return to the previous menu
+            elif limit_edit_input == 4:
+                break
     return config
 
 

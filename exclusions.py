@@ -76,12 +76,31 @@ class Exclusion:
         else:
             return True
 
+    def edit_code(self, new_code):
+        """
+        Change the code of this exclusion so it corresponds to a different type. If the code is changed to a
+        type that does not accept limitations, and this exclusion had a limitation already, that limitation
+        will be deleted.
+        :param new_code: The code to change it to.
+        """
+        self.code = new_code
+        for exclusion_type in EXCLUSION_TYPES:
+            if self.code == exclusion_type.code:
+                if not exclusion_type.accepts_limitations:
+                    self.delete_limitation()
+
     def edit_data(self, new_data):
         """
         Change the data of this exclusion.
         :param new_data: The data to change it to.
         """
         self.data = new_data
+
+    def delete_limitation(self):
+        """
+        Remove the limitation from this exclusion.
+        """
+        self.limitation = None
 
     def equals(self, other_exclusion):
         """

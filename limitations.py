@@ -55,6 +55,21 @@ class Limitation:
                 limit_mode = limitation_type.suffix_string + default_suffix
         return limit_mode
 
+    def edit_code(self, new_code):
+        """
+        Change the code of this limitation. This should correspond with one of the limitation types defined
+        in LIMITATION_TYPES.
+        :param new_code: The new code for this limitation.
+        """
+        self.code = new_code
+
+    def edit_data(self, new_data):
+        """
+        Change the data of this limitation.
+        :param new_data: The new data for this limitation.
+        """
+        self.data = new_data
+
     def equals(self, other_limitation):
         """
         Check if this limitation is equal to another. Two limitations are equal if their codes and data
