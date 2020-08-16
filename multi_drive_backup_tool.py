@@ -6,8 +6,8 @@ user interface and most of the front-end of the application.
 """
 
 import configuration
-import exclusions
-import limitations
+from exclusions import EXCLUSION_TYPES
+from limitations import LIMITATION_TYPES
 import util
 import backup
 
@@ -125,9 +125,9 @@ def menu_option_exclude(config):
         exclusion_number = 1
         print()
         print(entry.to_string(exclusion_mode=True))
-        exclusion_codes = [item.code for item in exclusions.EXCLUSION_TYPES]
-        exclusion_menu_options = [item.menu_text for item in exclusions.EXCLUSION_TYPES]
-        exclusion_input_messages = [item.input_text for item in exclusions.EXCLUSION_TYPES]
+        exclusion_codes = [item.code for item in EXCLUSION_TYPES]
+        exclusion_menu_options = [item.menu_text for item in EXCLUSION_TYPES]
+        exclusion_input_messages = [item.input_text for item in EXCLUSION_TYPES]
         exclusion_menu_options.append("Return to the menu")
         exclusion_input = input_menu(exclusion_menu_options)
 
@@ -140,15 +140,15 @@ def menu_option_exclude(config):
             break
 
         # If this exclusion type takes limitations, prompt if the user would like to add one
-        if exclusions.EXCLUSION_TYPES[exclusion_input-1].accepts_limitations:
+        if EXCLUSION_TYPES[exclusion_input-1].accepts_limitations:
             directory_input = input("Would you like to limit this exclusion to a directory? (y/n): ")
             if directory_input.lower() == "y":
                 # Get the directory to limit this exclusion to
                 limit_directory = input("Enter the absolute path of a folder to limit this exclusion to: ")
 
                 # Allow the user to select which limitation mode to use
-                limitation_input = input_menu([item.menu_text for item in limitations.LIMITATION_TYPES])
-                limitation_code = limitations.LIMITATION_TYPES[limitation_input-1].code
+                limitation_input = input_menu([item.menu_text for item in LIMITATION_TYPES])
+                limitation_code = LIMITATION_TYPES[limitation_input-1].code
 
                 # Add this limitation to the entry
                 entry.get_exclusion(exclusion_number).add_limitation(limitation_code, limit_directory)
@@ -302,8 +302,8 @@ def sub_option_edit_exclusions(config, entry_number):
 
                 # Change exclusion type
                 if excl_edit_input == 1:
-                    exclusion_codes = [item.code for item in exclusions.EXCLUSION_TYPES]
-                    exclusion_menu_options = [item.menu_text for item in exclusions.EXCLUSION_TYPES]
+                    exclusion_codes = [item.code for item in EXCLUSION_TYPES]
+                    exclusion_menu_options = [item.menu_text for item in EXCLUSION_TYPES]
                     new_exclusion_input = input_menu(exclusion_menu_options,
                                                      input_text="Choose one of these options to change the type to: ")
                     exclusion.edit_code(exclusion_codes[new_exclusion_input-1])
@@ -343,7 +343,7 @@ def sub_option_edit_limitations(config, exclusion):
     :return: The updated configuration with edited limitations.
     """
     # Don't allow adding or editing if this exclusion type doesn't allow limitations
-    for exclusion_type in exclusions.EXCLUSION_TYPES:
+    for exclusion_type in EXCLUSION_TYPES:
         if exclusion.code == exclusion_type.code:
             if not exclusion_type.accepts_limitations:
                 print("This exclusion type does not allow limitations.")
@@ -351,8 +351,8 @@ def sub_option_edit_limitations(config, exclusion):
     # Adding a limitation
     if not exclusion.has_limitation():
         limit_directory = input("Enter the absolute path of a folder to limit this exclusion to: ")
-        limitation_input = input_menu([item.menu_text for item in limitations.LIMITATION_TYPES])
-        limitation_code = limitations.LIMITATION_TYPES[limitation_input-1].code
+        limitation_input = input_menu([item.menu_text for item in LIMITATION_TYPES])
+        limitation_code = LIMITATION_TYPES[limitation_input-1].code
         exclusion.add_limitation(limitation_code, limit_directory)
     # Editing a limitation
     else:
@@ -364,8 +364,8 @@ def sub_option_edit_limitations(config, exclusion):
 
             # Change limitation type
             if limit_edit_input == 1:
-                limitation_codes = [item.code for item in limitations.LIMITATION_TYPES]
-                limitation_menu_options = [item.menu_text for item in limitations.LIMITATION_TYPES]
+                limitation_codes = [item.code for item in LIMITATION_TYPES]
+                limitation_menu_options = [item.menu_text for item in LIMITATION_TYPES]
                 new_limitation_input = input_menu(limitation_menu_options,
                                                   input_text="Choose one of these options to change the type to: ")
                 exclusion.limitation.edit_code(limitation_codes[new_limitation_input-1])
