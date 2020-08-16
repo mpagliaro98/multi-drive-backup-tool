@@ -26,13 +26,13 @@ NUM_FILES_DELETED = 0
 TOTAL_SIZE_PROCESSED = 0
 
 
+@util.logger
 def run_backup(config):
     """
     The primary entry function that starts and runs the backup process.
     :param config: A configuration containing paths to folders to backup.
     """
     print("Initializing...", end="\r", flush=True)
-    util.begin_log()
     util.log("\n" + configuration.config_display_string(config, show_exclusions=True))
     for input_number in range(1, config.num_entries()+1):
         input_path = config.get_entry(input_number).input
@@ -69,7 +69,6 @@ def run_backup(config):
                       .format(NUM_FILES_ERROR))
                 util.log("There were {} error(s) reported during this backup.".format(NUM_FILES_ERROR))
             create_backup_text_file(backup_folder)
-    util.end_log()
 
 
 def recursive_backup(input_path, output_path, total_size, total_files, config, input_number):

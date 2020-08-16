@@ -197,6 +197,21 @@ def path_is_in_directory(path_to_check, directory_path):
     return os.path.split(path_to_check)[0] == directory_path
 
 
+def logger(func):
+    """
+    Creates a decorator function that when applied to a function, enables logging during the runtime
+    of that function. When the function ends, the logfile is closed.
+    :param func: The function to decorate.
+    :return: A decorator function that wraps another function, controlling logging before and after it runs.
+    """
+    def wrapper_logger(*args, **kwargs):
+        begin_log()
+        return_value = func(*args, **kwargs)
+        end_log()
+        return return_value
+    return wrapper_logger()
+
+
 def begin_log():
     """
     Open the log file to prepare for it to be written to. This will also write the first line
