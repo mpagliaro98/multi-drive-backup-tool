@@ -46,7 +46,7 @@ class Exclusion:
         for exclusion_type in EXCLUSION_TYPES:
             if self._code == exclusion_type.code:
                 if not exclusion_type.accepts_limitations:
-                    self.delete_limitation()
+                    del self.limitation
 
     @property
     def data(self):
@@ -71,6 +71,13 @@ class Exclusion:
         :return: The limitation as a Limitation object.
         """
         return self._limitation
+
+    @limitation.deleter
+    def limitation(self):
+        """
+        Remove the limitation from this exclusion.
+        """
+        self._limitation = None
 
     def add_limitation(self, limitation_code, limitation_data):
         """
@@ -118,12 +125,6 @@ class Exclusion:
                 return False
         else:
             return True
-
-    def delete_limitation(self):
-        """
-        Remove the limitation from this exclusion.
-        """
-        self._limitation = None
 
     def equals(self, other_exclusion):
         """

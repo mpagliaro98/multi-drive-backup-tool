@@ -207,10 +207,10 @@ def menu_option_edit(config):
                 continue
         # Delete all destinations
         elif edit_input == 4:
-            entry.delete_destinations()
+            del entry.outputs
         # Delete all exclusions
         elif edit_input == 5:
-            entry.delete_exclusions()
+            del entry.exclusions
         # Delete this entry
         elif edit_input == 6:
             config.delete_entry(entry_number)
@@ -375,7 +375,7 @@ def sub_option_edit_limitations(config, exclusion):
                 exclusion.limitation.data = new_data
             # Delete the limitation
             elif limit_edit_input == 3:
-                exclusion.delete_limitation()
+                del exclusion.limitation
                 break
             # Return to the previous menu
             elif limit_edit_input == 4:

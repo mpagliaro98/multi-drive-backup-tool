@@ -47,6 +47,13 @@ class Entry:
         """
         return self._outputs
 
+    @outputs.deleter
+    def outputs(self):
+        """
+        Delete all the destination paths in this entry.
+        """
+        self._outputs = []
+
     @property
     def exclusions(self):
         """
@@ -54,6 +61,13 @@ class Entry:
         :return: A list of Exclusion objects.
         """
         return self._exclusions
+
+    @exclusions.deleter
+    def exclusions(self):
+        """
+        Delete all the exclusions in this entry.
+        """
+        self._exclusions = []
 
     def new_destination(self, output_path):
         """
@@ -147,12 +161,6 @@ class Entry:
         """
         del self._outputs[destination_number-1]
 
-    def delete_destinations(self):
-        """
-        Delete all the destination paths in this entry.
-        """
-        self._outputs = []
-
     def delete_exclusion(self, exclusion_number):
         """
         Delete one exclusion from this entry.
@@ -160,12 +168,6 @@ class Entry:
                                  starting at 1.
         """
         del self._exclusions[exclusion_number-1]
-
-    def delete_exclusions(self):
-        """
-        Delete all the exclusions in this entry.
-        """
-        self._exclusions = []
 
     def should_exclude(self, path_to_exclude):
         """
