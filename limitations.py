@@ -14,8 +14,6 @@ class Limitation:
     A class representing a limitation that is held within an exclusion. Each limitation only has a unique
     identifier called a code, and some data that is interpreted differently based on the code.
     """
-    code = ""
-    data = ""
 
     def __init__(self, code, data):
         """
@@ -23,8 +21,41 @@ class Limitation:
         :param code: A unique identifier corresponding to one of the limitation types.
         :param data: Some data for the limitation.
         """
-        self.code = code
-        self.data = data
+        self._code = code
+        self._data = data
+
+    @property
+    def code(self):
+        """
+        The code that identifies this limitation's type.
+        :return: The limitation type code as a string.
+        """
+        return self._code
+
+    @code.setter
+    def code(self, new_code):
+        """
+        Change the code of this limitation. This should correspond with one of the limitation types defined
+        in LIMITATION_TYPES.
+        :param new_code: The new code for this limitation.
+        """
+        self._code = new_code
+
+    @property
+    def data(self):
+        """
+        The data relevant to this limitation and its type.
+        :return: The limitation data.
+        """
+        return self._data
+
+    @data.setter
+    def data(self, new_data):
+        """
+        Change the data of this limitation.
+        :param new_data: The new data for this limitation.
+        """
+        self._data = new_data
 
     def satisfied(self, path_to_exclude):
         """
@@ -35,7 +66,7 @@ class Limitation:
         :return: True if the limitation is satisfied, false otherwise.
         """
         for limitation_type in LIMITATION_TYPES:
-            if self.code == limitation_type.code:
+            if self._code == limitation_type.code:
                 if limitation_type.function(self, path_to_exclude):
                     return True
         return False
@@ -51,24 +82,9 @@ class Limitation:
         """
         limit_mode = default_suffix
         for limitation_type in LIMITATION_TYPES:
-            if self.code == limitation_type.code:
+            if self._code == limitation_type.code:
                 limit_mode = limitation_type.suffix_string + default_suffix
         return limit_mode
-
-    def edit_code(self, new_code):
-        """
-        Change the code of this limitation. This should correspond with one of the limitation types defined
-        in LIMITATION_TYPES.
-        :param new_code: The new code for this limitation.
-        """
-        self.code = new_code
-
-    def edit_data(self, new_data):
-        """
-        Change the data of this limitation.
-        :param new_data: The new data for this limitation.
-        """
-        self.data = new_data
 
     def equals(self, other_limitation):
         """
@@ -80,7 +96,7 @@ class Limitation:
         if not isinstance(other_limitation, Limitation):
             return False
         # The codes and data must be equal
-        if self.code == other_limitation.code and self.data == other_limitation.data:
+        if self._code == other_limitation._code and self._data == other_limitation._data:
             return True
         return False
 
@@ -92,10 +108,6 @@ class LimitationType:
     for when each is selectable in menus, and a function that takes a limitation and a path and returns true
     or false if that path satisfies that limitation.
     """
-    code = ""
-    suffix_string = ""
-    menu_text = ""
-    function = None
 
     def __init__(self, code, suffix_string, menu_text, function):
         """
@@ -107,10 +119,43 @@ class LimitationType:
                          if the file path satisfies the limitation based on the given limitation's data, and
                          false otherwise.
         """
-        self.code = code
-        self.suffix_string = suffix_string
-        self.menu_text = menu_text
-        self.function = function
+        self._code = code
+        self._suffix_string = suffix_string
+        self._menu_text = menu_text
+        self._function = function
+
+    @property
+    def code(self):
+        """
+        The unique string identifier for this limitation type.
+        :return: The type code as a string.
+        """
+        return self._code
+
+    @property
+    def suffix_string(self):
+        """
+        Text that can be used to display how this limitation modifies an exclusion.
+        :return: The suffix string as a string.
+        """
+        return self._suffix_string
+
+    @property
+    def menu_text(self):
+        """
+        Text that should display in menus when selecting which limitation type to use.
+        :return: The menu text as a string.
+        """
+        return self._menu_text
+
+    @property
+    def function(self):
+        """
+        A function that takes a limitation object and a string file path. This will return true if the
+        file path satisfies the limitation based on the given limitation's data, and false otherwise.
+        :return: The limitation function.
+        """
+        return self._function
 
 
 """

@@ -12,9 +12,6 @@ class Entry:
     The class representing a configuration entry. Each entry contains an input path, a list of output
     paths, and a list of exclusions that is allowed to be empty.
     """
-    input = ""
-    outputs = []
-    exclusions = []
 
     def __init__(self, new_input):
         """
@@ -22,16 +19,48 @@ class Entry:
         exclusions lists will be initialized to empty.
         :param new_input: The input path for this new entry.
         """
-        self.input = new_input
-        self.outputs = []
-        self.exclusions = []
+        self._input = new_input
+        self._outputs = []
+        self._exclusions = []
+
+    @property
+    def input(self):
+        """
+        Get this entry's input field.
+        :return: The input as a string.
+        """
+        return self._input
+
+    @input.setter
+    def input(self, new_input):
+        """
+        Change the input path of this entry.
+        :param new_input: The path to change it to.
+        """
+        self._input = new_input
+
+    @property
+    def outputs(self):
+        """
+        The list of destination paths for this entry.
+        :return: A list of destination paths as strings.
+        """
+        return self._outputs
+
+    @property
+    def exclusions(self):
+        """
+        The list of optional exclusions for this entry.
+        :return: A list of Exclusion objects.
+        """
+        return self._exclusions
 
     def new_destination(self, output_path):
         """
         Append a new destination path to the entry.
         :param output_path: The path to the folder where this entry should be backed up to.
         """
-        self.outputs.append(output_path)
+        self._outputs.append(output_path)
 
     def new_exclusion(self, exclusion_code, exclusion_data):
         """
@@ -40,8 +69,8 @@ class Entry:
         :param exclusion_data: The data to exclude based on the type.
         :return: The number of the index of this added exclusion, starting at 1.
         """
-        self.exclusions.append(exclusions.Exclusion(exclusion_code, exclusion_data))
-        return len(self.exclusions)
+        self._exclusions.append(exclusions.Exclusion(exclusion_code, exclusion_data))
+        return len(self._exclusions)
 
     def get_destination(self, destination_number):
         """
@@ -50,7 +79,7 @@ class Entry:
                                    (so destination_number = 2 would get the destination at index 1)
         :return: The destination path as a string at the given position.
         """
-        return self.outputs[destination_number-1]
+        return self._outputs[destination_number-1]
 
     def get_exclusion(self, exclusion_number):
         """
@@ -59,14 +88,7 @@ class Entry:
                                  (so exclusion_number = 2 would get the exclusion at index 1)
         :return: The Exclusion object at the given position.
         """
-        return self.exclusions[exclusion_number-1]
-
-    def edit_input(self, new_input):
-        """
-        Change the input path of this entry.
-        :param new_input: The path to change it to.
-        """
-        self.input = new_input
+        return self._exclusions[exclusion_number-1]
 
     def edit_destination(self, dest_number, new_output):
         """
@@ -74,7 +96,7 @@ class Entry:
         :param dest_number: The number of the index of a destination for this entry, starting at 1.
         :param new_output: The path to change it to.
         """
-        self.outputs[dest_number-1] = new_output
+        self._outputs[dest_number-1] = new_output
 
     def output_exists(self, output_path):
         """
@@ -82,21 +104,21 @@ class Entry:
         :param output_path: A path to a folder as a string.
         :return: True if output_path already exists for this entry, false otherwise.
         """
-        return output_path in self.outputs
+        return output_path in self._outputs
 
     def enumerate_destinations(self):
         """
         Iterate through each destination of this entry and display them alongside numbers.
         """
-        for dest_idx in range(len(self.outputs)):
-            print("{}: {}".format(dest_idx+1, self.outputs[dest_idx]))
+        for dest_idx in range(len(self._outputs)):
+            print("{}: {}".format(dest_idx+1, self._outputs[dest_idx]))
 
     def enumerate_exclusions(self):
         """
         Iterate through each exclusion of this entry and display them alongside numbers.
         """
-        for excl_idx in range(len(self.exclusions)):
-            exclusion = self.exclusions[excl_idx]
+        for excl_idx in range(len(self._exclusions)):
+            exclusion = self._exclusions[excl_idx]
             print_str = "{}: {} \"{}\"".format(excl_idx+1, exclusion.code, exclusion.data)
             if exclusion.has_limitation():
                 print_str += " limit to \"{}\" {}".format(exclusion.limitation.data,
@@ -108,14 +130,14 @@ class Entry:
         Get the number of destinations for this entry.
         :return: The number of destinations this entry has.
         """
-        return len(self.outputs)
+        return len(self._outputs)
 
     def num_exclusions(self):
         """
         Get the number of exclusions for this entry.
         :return: The number of exclusions this entry has.
         """
-        return len(self.exclusions)
+        return len(self._exclusions)
 
     def delete_destination(self, destination_number):
         """
@@ -123,13 +145,13 @@ class Entry:
         :param destination_number: The number of the index of the destination in this entry,
                                    starting at 1.
         """
-        del self.outputs[destination_number-1]
+        del self._outputs[destination_number-1]
 
     def delete_destinations(self):
         """
         Delete all the destination paths in this entry.
         """
-        self.outputs = []
+        self._outputs = []
 
     def delete_exclusion(self, exclusion_number):
         """
@@ -137,13 +159,13 @@ class Entry:
         :param exclusion_number: The number of the index of the exclusion in this entry,
                                  starting at 1.
         """
-        del self.exclusions[exclusion_number-1]
+        del self._exclusions[exclusion_number-1]
 
     def delete_exclusions(self):
         """
         Delete all the exclusions in this entry.
         """
-        self.exclusions = []
+        self._exclusions = []
 
     def should_exclude(self, path_to_exclude):
         """
@@ -151,7 +173,7 @@ class Entry:
         :param path_to_exclude: A file path to a folder or file to check if it should be excluded.
         :return: True if this folder/file should be excluded, false otherwise.
         """
-        for exclusion in self.exclusions:
+        for exclusion in self._exclusions:
             for exclusion_type in exclusions.EXCLUSION_TYPES:
                 if exclusion.code == exclusion_type.code:
                     if exclusion_type.exclude_path(exclusion, path_to_exclude):
@@ -165,10 +187,10 @@ class Entry:
         :param exclusion_mode: True to display exclusions instead of destinations. False by default.
         :return: A string containing all necessary information about this entry.
         """
-        entry_str = "INPUT: {}\n".format(self.input)
+        entry_str = "INPUT: {}\n".format(self._input)
         if exclusion_mode:
             # Display each exclusion and if it contains a limitation
-            for exclusion in self.exclusions:
+            for exclusion in self._exclusions:
                 entry_str += "\tEXCLUSION: {} \"{}\"".format(exclusion.code, exclusion.data)
                 if exclusion.has_limitation():
                     entry_str += " limited to \"{}\" {}".format(exclusion.limitation.data,
@@ -177,7 +199,7 @@ class Entry:
                     entry_str += "\n"
         else:
             # Display each destination path
-            for destination in self.outputs:
+            for destination in self._outputs:
                 entry_str += "\tDESTINATION: {}\n".format(destination)
         return entry_str.strip()
 
@@ -192,17 +214,18 @@ class Entry:
         if not isinstance(other_entry, Entry):
             return False
         # Both input paths must be the same
-        if not self.input == other_entry.input:
+        if not self._input == other_entry._input:
             return False
         # The number of outputs and exclusions must be the same
-        if not len(self.outputs) == len(other_entry.outputs) or not len(self.exclusions) == len(other_entry.exclusions):
+        if not len(self._outputs) == len(other_entry._outputs) or \
+                not len(self._exclusions) == len(other_entry._exclusions):
             return False
         # Every output must be the same
-        for output_idx in range(len(self.outputs)):
-            if not self.outputs[output_idx] == other_entry.outputs[output_idx]:
+        for output_idx in range(len(self._outputs)):
+            if not self._outputs[output_idx] == other_entry._outputs[output_idx]:
                 return False
         # Every exclusion must be the same
-        for excl_idx in range(len(self.exclusions)):
-            if not self.exclusions[excl_idx].equals(other_entry.exclusions[excl_idx]):
+        for excl_idx in range(len(self._exclusions)):
+            if not self._exclusions[excl_idx].equals(other_entry._exclusions[excl_idx]):
                 return False
         return True

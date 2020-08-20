@@ -209,7 +209,7 @@ def logger(func):
         return_value = func(*args, **kwargs)
         end_log()
         return return_value
-    return wrapper_logger()
+    return wrapper_logger
 
 
 def begin_log():

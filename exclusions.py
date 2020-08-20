@@ -14,9 +14,6 @@ class Exclusion:
     A class representing an exclusion that is held within an entry. Every exclusion has a code and some
     data (the meaning of the data is different depending on each code), and an optional limitation.
     """
-    code = ""
-    data = ""
-    limitation = None
 
     def __init__(self, code, data):
         """
@@ -25,9 +22,55 @@ class Exclusion:
         :param code: The code of the exclusion type this exclusion uses.
         :param data: The exclusion data.
         """
-        self.code = code
-        self.data = data
-        self.limitation = None
+        self._code = code
+        self._data = data
+        self._limitation = None
+
+    @property
+    def code(self):
+        """
+        The code that identifies this exclusion's type.
+        :return: The exclusion type code as a string.
+        """
+        return self._code
+
+    @code.setter
+    def code(self, new_code):
+        """
+        Change the code of this exclusion so it corresponds to a different type. If the code is changed to a
+        type that does not accept limitations, and this exclusion had a limitation already, that limitation
+        will be deleted.
+        :param new_code: The code to change it to.
+        """
+        self._code = new_code
+        for exclusion_type in EXCLUSION_TYPES:
+            if self._code == exclusion_type.code:
+                if not exclusion_type.accepts_limitations:
+                    self.delete_limitation()
+
+    @property
+    def data(self):
+        """
+        The data relevant to this exclusion and its type.
+        :return: The exclusion data.
+        """
+        return self._data
+
+    @data.setter
+    def data(self, new_data):
+        """
+        Change the data of this exclusion.
+        :param new_data: The data to change it to.
+        """
+        self._data = new_data
+
+    @property
+    def limitation(self):
+        """
+        The optional limitation attached to this exclusion.
+        :return: The limitation as a Limitation object.
+        """
+        return self._limitation
 
     def add_limitation(self, limitation_code, limitation_data):
         """
@@ -36,7 +79,7 @@ class Exclusion:
         :param limitation_code: The code of the limitation type this limitation uses.
         :param limitation_data: The limitation data.
         """
-        self.limitation = limitations.Limitation(limitation_code, limitation_data)
+        self._limitation = limitations.Limitation(limitation_code, limitation_data)
 
     def accepts_limitations(self):
         """
@@ -46,7 +89,7 @@ class Exclusion:
         :return: True if this exclusion accepts limitations, false otherwise.
         """
         for exclusion_type in EXCLUSION_TYPES:
-            if self.code == exclusion_type.code:
+            if self._code == exclusion_type.code:
                 if exclusion_type.accepts_limitations:
                     return True
         return False
@@ -56,7 +99,7 @@ class Exclusion:
         Checks if this exclusion has a limitation applied to it.
         :return: True if a limitation exists on this exclusion, false otherwise.
         """
-        return self.limitation is not None
+        return self._limitation is not None
 
     def limitation_check(self, path_to_exclude):
         """
@@ -69,38 +112,18 @@ class Exclusion:
                  there is no limitation. Will return false if it checks the limitation and it's not satisfied.
         """
         if self.accepts_limitations() and self.has_limitation():
-            if self.limitation.satisfied(path_to_exclude):
+            if self._limitation.satisfied(path_to_exclude):
                 return True
             else:
                 return False
         else:
             return True
 
-    def edit_code(self, new_code):
-        """
-        Change the code of this exclusion so it corresponds to a different type. If the code is changed to a
-        type that does not accept limitations, and this exclusion had a limitation already, that limitation
-        will be deleted.
-        :param new_code: The code to change it to.
-        """
-        self.code = new_code
-        for exclusion_type in EXCLUSION_TYPES:
-            if self.code == exclusion_type.code:
-                if not exclusion_type.accepts_limitations:
-                    self.delete_limitation()
-
-    def edit_data(self, new_data):
-        """
-        Change the data of this exclusion.
-        :param new_data: The data to change it to.
-        """
-        self.data = new_data
-
     def delete_limitation(self):
         """
         Remove the limitation from this exclusion.
         """
-        self.limitation = None
+        self._limitation = None
 
     def equals(self, other_exclusion):
         """
@@ -112,11 +135,11 @@ class Exclusion:
         if not isinstance(other_exclusion, Exclusion):
             return False
         # Both codes and data must be the same
-        if not self.code == other_exclusion.code or not self.data == other_exclusion.data:
+        if not self._code == other_exclusion._code or not self._data == other_exclusion._data:
             return False
         # If both do have limitations, both those limitations must be the same
         if self.has_limitation() and other_exclusion.has_limitation():
-            if not self.limitation.equals(other_exclusion.limitation):
+            if not self._limitation.equals(other_exclusion._limitation):
                 return False
         # If one doesn't have a limitation, then both must not have a limitation
         elif self.has_limitation() != other_exclusion.has_limitation():
@@ -131,13 +154,8 @@ class ExclusionType:
     user, a boolean to say if they accept limitations or not, and a boolean function that shows if a given
     path should be excluded based on a given exclusion.
     """
-    code = ""
-    menu_text = ""
-    input_text = ""
-    accepts_limitations = False
-    function = None
 
-    def __init__(self, code, menu_text, input_text, accepts_limitations, function):
+    def __init__(self, code, menu_text, input_text, function, accepts_limitations=True):
         """
         Create a new exclusion type object. This initializes all the values at once.
         :param code: The unique identifier for each exclusion.
@@ -149,11 +167,55 @@ class ExclusionType:
                          second should be a file path as a string. It should do a check using the exclusion's
                          data to see if the file path should be excluded.
         """
-        self.code = code
-        self.menu_text = menu_text
-        self.input_text = input_text
-        self.accepts_limitations = accepts_limitations
-        self.function = function
+        self._code = code
+        self._menu_text = menu_text
+        self._input_text = input_text
+        self._accepts_limitations = accepts_limitations
+        self._function = function
+
+    @property
+    def code(self):
+        """
+        The unique identifier of this exclusion type.
+        :return: The type code as a string.
+        """
+        return self._code
+
+    @property
+    def menu_text(self):
+        """
+        Text that appears on menus, primarily when selecting an exclusion type.
+        :return: The menu text as a string.
+        """
+        return self._menu_text
+
+    @property
+    def input_text(self):
+        """
+        Text that appears as input prompts when entering data for this exclusion type.
+        :return: The input text as a string.
+        """
+        return self._input_text
+
+    @property
+    def accepts_limitations(self):
+        """
+        Whether or not this exclusion accepts limitations. If true, the exclusion type's function and the
+        individual exclusion's limitation must both return true for a file to be excluded. Will be true if
+        it is not set manually.
+        :return: The boolean for whether or not it accepts limitations.
+        """
+        return self._accepts_limitations
+
+    @property
+    def function(self):
+        """
+        A function that returns true or false if a given path should be excluded when given an exclusion.
+        This function's first argument should be an exclusion object, and the second should be a file path
+        as a string. It should do a check using the exclusion's data to see if the file path should be excluded.
+        :return: This exclusion type's function.
+        """
+        return self._function
 
     def exclude_path(self, exclusion, path_to_exclude):
         """
@@ -165,7 +227,7 @@ class ExclusionType:
         :param path_to_exclude: A path to a file to check.
         :return: True if the path should be excluded, false otherwise.
         """
-        if self.function(exclusion, path_to_exclude):
+        if self._function(exclusion, path_to_exclude):
             if exclusion.limitation_check(path_to_exclude):
                 return True
         return False
@@ -176,15 +238,15 @@ The global list of exclusion types. This list should be referenced whenever crea
 of exclusion or create a new exclusion. To add a new type of exclusion, only a new element should be added
 to this list.
 """
-EXCLUSION_TYPES = [ExclusionType(code="startswith", accepts_limitations=True, menu_text="Starts with some text",
+EXCLUSION_TYPES = [ExclusionType(code="startswith", menu_text="Starts with some text",
                                  input_text="Files or folders that start with this text should be excluded: ",
                                  function=lambda excl, path: os.path.splitext(
                                      os.path.split(path)[1])[0].startswith(excl.data)),
-                   ExclusionType(code="endswith", accepts_limitations=True, menu_text="Ends with some text",
+                   ExclusionType(code="endswith", menu_text="Ends with some text",
                                  input_text="Files or folders that end with this text should be excluded: ",
                                  function=lambda excl, path: os.path.splitext(
                                      os.path.split(path)[1])[0].endswith(excl.data)),
-                   ExclusionType(code="ext", accepts_limitations=True, menu_text="Specific file extension",
+                   ExclusionType(code="ext", menu_text="Specific file extension",
                                  input_text="Files with this extension should be excluded (the . before the " +
                                             "extension is needed): ",
                                  function=lambda excl, path: os.path.splitext(path)[1] == excl.data),

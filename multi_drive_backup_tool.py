@@ -306,11 +306,11 @@ def sub_option_edit_exclusions(config, entry_number):
                     exclusion_menu_options = [item.menu_text for item in EXCLUSION_TYPES]
                     new_exclusion_input = input_menu(exclusion_menu_options,
                                                      input_text="Choose one of these options to change the type to: ")
-                    exclusion.edit_code(exclusion_codes[new_exclusion_input-1])
+                    exclusion.code = exclusion_codes[new_exclusion_input-1]
                 # Change exclusion data
                 elif excl_edit_input == 2:
                     new_data = input("Enter new data for this exclusion: ")
-                    exclusion.edit_data(new_data)
+                    exclusion.data = new_data
                 # Add or edit limitation
                 elif excl_edit_input == 3:
                     config = sub_option_edit_limitations(config, exclusion)
@@ -368,11 +368,11 @@ def sub_option_edit_limitations(config, exclusion):
                 limitation_menu_options = [item.menu_text for item in LIMITATION_TYPES]
                 new_limitation_input = input_menu(limitation_menu_options,
                                                   input_text="Choose one of these options to change the type to: ")
-                exclusion.limitation.edit_code(limitation_codes[new_limitation_input-1])
+                exclusion.limitation.code = limitation_codes[new_limitation_input-1]
             # Change limitation data
             elif limit_edit_input == 2:
                 new_data = input("Enter new data for this limitation: ")
-                exclusion.limitation.edit_data(new_data)
+                exclusion.limitation.data = new_data
             # Delete the limitation
             elif limit_edit_input == 3:
                 exclusion.delete_limitation()
@@ -438,7 +438,7 @@ def menu_option_backup(config):
         print("Please ensure all relevant drives are plugged in, or edit any invalid paths.")
     else:
         # If this configuration is new or was modified, ask to save it
-        if config.name == "":
+        if config.name is None:
             save_input = input("Your configuration has not been saved yet. Would you like to save it? (y/n): ")
             if save_input.lower() == "y":
                 config = menu_option_save(config)

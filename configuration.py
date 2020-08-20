@@ -19,15 +19,37 @@ class Configuration:
     Class for representing configurations. This holds the name of the current configuration (if it
     has one) as well as a list of Entry objects.
     """
-    name = ""
-    entries = []
 
     def __init__(self):
         """
         Create the Configuration object.
         """
-        self.name = ""
-        self.entries = []
+        self._name = None
+        self._entries = []
+
+    @property
+    def name(self):
+        """
+        Get the name of this configuration.
+        :return: The name as a string. Returns None if no name was set.
+        """
+        return self._name
+
+    @name.setter
+    def name(self, new_name):
+        """
+        Set the name of this configuration to a new value.
+        :param new_name: The new name to set.
+        """
+        self._name = new_name
+
+    @property
+    def entries(self):
+        """
+        The list of entries contained within this configuration.
+        :return: A list of Entry objects.
+        """
+        return self._entries
 
     def new_entry(self, input_path):
         """
@@ -35,21 +57,21 @@ class Configuration:
         creates a new Entry object and adds it to the list.
         :param input_path: The path to a folder or file to backup.
         """
-        self.entries.append(entry.Entry(input_path))
+        self._entries.append(entry.Entry(input_path))
 
     def get_all_entry_inputs(self):
         """
         Returns a list of all the "input" fields from each Entry in the list.
         :return: A list containing every input string.
         """
-        return [item.input for item in self.entries]
+        return [item.input for item in self._entries]
 
     def get_all_entry_outputs(self):
         """
         Returns a list of all the "outputs" fields from each Entry in the list.
         :return: A list containing every outputs list, so each element is a list of strings.
         """
-        return [item.outputs for item in self.entries]
+        return [item.outputs for item in self._entries]
 
     def entry_exists(self, input_path):
         """
@@ -92,7 +114,7 @@ class Configuration:
                              would get the entry at index 1)
         :return: The Entry object at the given position.
         """
-        return self.entries[entry_number-1]
+        return self._entries[entry_number-1]
 
     def get_zipped_entries(self):
         """
@@ -117,14 +139,14 @@ class Configuration:
         Get the number of entries this configuration is holding.
         :return: The number of entries.
         """
-        return len(self.entries)
+        return len(self._entries)
 
     def delete_entry(self, entry_number):
         """
         Delete an entry from the configuration.
         :param entry_number: The number of the index of the entry, starting at 1.
         """
-        del self.entries[entry_number-1]
+        del self._entries[entry_number-1]
 
     def equals(self, other_config):
         """
@@ -139,10 +161,10 @@ class Configuration:
         if not self.name == other_config.name:
             return False
         # They must have the same number of entries
-        if not len(self.entries) == len(other_config.entries):
+        if not len(self._entries) == len(other_config._entries):
             return False
         # Every entry must be equal
-        for entry_idx in range(1, len(self.entries)+1):
+        for entry_idx in range(1, len(self._entries)+1):
             if not self.get_entry(entry_idx).equals(other_config.get_entry(entry_idx)):
                 return False
         return True
@@ -154,6 +176,8 @@ def config_exists(config_name):
     :param config_name: The name of the configuration to check for.
     :return: True if it exists, False otherwise.
     """
+    if config_name is None:
+        return False
     file_name = config_name + ".dat"
     file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
     return os.path.exists(file_path)
@@ -217,6 +241,8 @@ def load_config(config_name):
     :param config_name: The name of the configuration file to load from.
     :return: The configuration object saved in that file.
     """
+    if config_name is None:
+        return None
     file_name = config_name + ".dat"
     file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
     config_file = open(file_path, "rb")
@@ -303,7 +329,7 @@ def edit_input_in_config(config, entry_number, new_input):
             return config, False
 
     # Overwrite the name of the original entry.
-    config.get_entry(entry_number).edit_input(new_input)
+    config.get_entry(entry_number).input = new_input
     return config, True
 
 
@@ -343,7 +369,7 @@ def config_display_string(config, show_exclusions=False):
         return "NO FOLDERS/FILES SELECTED TO BACKUP"
 
     # Header: show the configuration name if it exists
-    if config.name == "":
+    if config.name is None:
         return_str = "CURRENT CONFIGURATION         \n"
     else:
         return_str = "CURRENT CONFIGURATION ({})    \n".format(config.name)
