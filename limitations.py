@@ -166,7 +166,8 @@ to this list.
 LIMITATION_TYPES = [LimitationType(code="dir", suffix_string="only",
                                    menu_text="This limitation should only affect the directory specified and no " +
                                    "sub-directories",
-                                   function=lambda limit, path: util.path_is_in_directory(path, limit.data)),
+                                   function=lambda limit, path: util.path_is_in_directory(
+                                       path, os.path.realpath(limit.data))),
                     LimitationType(code="sub", suffix_string="and all sub-directories",
                                    menu_text="This limitation should affect the specified directory and all of " +
                                    "its sub-directories",

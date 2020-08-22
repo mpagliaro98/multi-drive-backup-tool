@@ -266,7 +266,7 @@ def append_input_to_config(config, input_string):
         return config, False
 
     # Add the string as a new entry.
-    config.new_entry(input_string)
+    config.new_entry(os.path.realpath(input_string))
     return config, True
 
 
@@ -301,7 +301,7 @@ def append_output_to_config(config, entry_number, output_string):
 
     # Add the string as a new output for this entry.
     for current_entry_number in entry_numbers:
-        config.get_entry(current_entry_number).new_destination(output_string)
+        config.get_entry(current_entry_number).new_destination(os.path.realpath(output_string))
     return config, True
 
 
@@ -329,7 +329,7 @@ def edit_input_in_config(config, entry_number, new_input):
             return config, False
 
     # Overwrite the name of the original entry.
-    config.get_entry(entry_number).input = new_input
+    config.get_entry(entry_number).input = os.path.realpath(new_input)
     return config, True
 
 
@@ -353,7 +353,7 @@ def edit_destination_in_config(config, entry_number, destination_number, new_out
         return config, False
 
     # Overwrite the original destination.
-    config.get_entry(entry_number).edit_destination(destination_number, new_output)
+    config.get_entry(entry_number).edit_destination(destination_number, os.path.realpath(new_output))
     return config, True
 
 
