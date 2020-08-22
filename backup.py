@@ -17,6 +17,9 @@ import configuration
 # Constant for the backup confirmation filename
 CONFIRMATION_FILENAME = "_BACKUP-CONFIRMATION.txt"
 
+# The string on the end of the final backup folders
+BACKUP_FOLDER_SUFFIX = "BACKUP"
+
 # Variables to track how many files have been processed during the backup process
 NUM_FILES_PROCESSED = 0
 NUM_FILES_MODIFIED = 0
@@ -34,6 +37,20 @@ def run_backup(config):
     """
     print("Initializing...", end="\r", flush=True)
     util.log("\n" + configuration.config_display_string(config, show_exclusions=True))
+
+    # Make sure each backup will have space on the drive
+    for input_number in range(1, config.num_entries() + 1):
+        for dest_number in range(1, config.get_entry(input_number).num_destinations()+1):
+            result = backup_has_space(config.get_entry(input_number).input,
+                                      config.get_entry(input_number).get_destination(dest_number),
+                                      config, input_number)
+            if not result:
+                print("Copying {} to {} will not fit on the drive.".format(
+                    config.get_entry(input_number).input, config.get_entry(input_number).get_destination(dest_number)))
+                print("Please clear up space on the drive you want to copy to and try again.")
+                return
+
+    # Loop through every entry in the configuration
     for input_number in range(1, config.num_entries()+1):
         input_path = config.get_entry(input_number).input
         outputs = config.get_entry(input_number).outputs
@@ -42,7 +59,7 @@ def run_backup(config):
         for output_path in outputs:
             # Get the name of the folder to make the backup in
             folder_name = os.path.split(input_path)[1]
-            backup_folder = os.path.join(output_path, folder_name + " BACKUP")
+            backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
 
             # Start the log messages
             util.log("\n" + '/'*60)
@@ -229,3 +246,28 @@ def log_exception(error_file_path, action="ACCESSING"):
     for item in exception_list:
         full_error_str += item
     util.log(full_error_str + '=' * 60 + "\n")
+
+
+def backup_has_space(input_path, output_path, config, input_number):
+    """
+    Checks if a given input will fit on the drive of a given output path. This takes into account if a backup
+    already exists at that backup location, and will only count the size difference.
+    :param input_path: The file path of the file or folder to be backed up.
+    :param output_path: The location to back up the input to.
+    :param config: The current configuration.
+    :param input_number: The number of the entry these paths are a part of.
+    :return: True if the backup will fit, false otherwise.
+    """
+    input_size, input_files = util.directory_size_with_exclusions(input_path, config, input_number)
+    total, used, free = shutil.disk_usage(output_path)
+    folder_name = os.path.split(input_path)[1]
+    backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
+    if os.path.isdir(backup_folder):
+        backup_size, backup_files = util.directory_size(backup_folder)
+    else:
+        backup_size = 0
+    size_diff = input_size - backup_size
+    if size_diff >= free:
+        return False
+    else:
+        return True
