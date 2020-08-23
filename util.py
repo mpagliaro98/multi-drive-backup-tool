@@ -35,11 +35,10 @@ def drive_space_display_string(path, precision):
     :return: A string containing formatted information about the given drives.
     """
     total, used, free = shutil.disk_usage(path)
-    format_str = "{:." + str(precision) + "f} GiB"
     return_str = "DRIVE: {}\\ ----- ".format(path)
-    return_str += "Total: " + format_str.format(total / (2 ** 30))
-    return_str += ", Used: " + format_str.format(used / (2 ** 30))
-    return_str += ", Free: " + format_str.format(free / (2 ** 30)) + "\n"
+    return_str += "Total: " + bytes_to_string(total, precision)
+    return_str += ", Used: " + bytes_to_string(used, precision)
+    return_str += ", Free: " + bytes_to_string(free, precision) + "\n"
     return return_str
 
 

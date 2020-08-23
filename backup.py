@@ -71,9 +71,9 @@ def run_backup(config):
 
             # Report on any errors and finalize the backup
             final_report_str = "Backup complete: {} files processed, {} new files, {} existing files modified, " + \
-                               "{} files removed ({:.2f} GiB)"
+                               "{} files removed ({})"
             util.log(final_report_str.format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED,
-                                             NUM_FILES_DELETED, TOTAL_SIZE_PROCESSED / (2 ** 30)))
+                                             NUM_FILES_DELETED, util.bytes_to_string(TOTAL_SIZE_PROCESSED, 2)))
             if NUM_FILES_ERROR > 0:
                 print("There were {} error(s) reported during this backup. Check the log for more info."
                       .format(NUM_FILES_ERROR))
@@ -159,9 +159,10 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
                     # Log the exception and indicate that an error occurred
                     log_exception(delete_file_path, "DELETING")
                     NUM_FILES_ERROR += 1
-    print("{}/{} files processed, {} new files, {} existing files modified, {} files removed ({:.2f}/{:.2f} GiB)"
+    print("{}/{} files processed, {} new files, {} existing files modified, {} files removed ({} / {})  "
           .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED, NUM_FILES_DELETED,
-                  TOTAL_SIZE_PROCESSED / (2 ** 30), total_size / (2 ** 30)), end="\r", flush=True)
+                  util.bytes_to_string(TOTAL_SIZE_PROCESSED, 2), util.bytes_to_string(total_size, 2)),
+          end="\r", flush=True)
     return True
 
 

@@ -379,8 +379,7 @@ def config_display_string(config, show_exclusions=False):
     for input_str, outputs_list in config.get_zipped_entries():
         # Display the size of this entry's input
         total_size, total_files = util.directory_size_with_exclusions(input_str, config, entry_number)
-        input_size = total_size / (2**30)
-        return_str += "\tBACKUP: {} ({:.2f} GiB, {} files)".format(input_str, input_size, total_files)
+        return_str += "\tBACKUP: {} ({}, {} files)".format(input_str, util.bytes_to_string(total_size, 2), total_files)
 
         # If this entry has exclusions, show them
         if config.get_entry(entry_number).num_exclusions() > 0:
