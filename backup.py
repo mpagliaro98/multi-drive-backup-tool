@@ -39,7 +39,7 @@ def run_backup(config):
     util.log("\n" + configuration.config_display_string(config, show_exclusions=True))
 
     # Make sure each backup will have space on the drive
-    print("Checking space requirements...", end="\r", flush=True)
+    print("Checking space requirements... (this may take a while)", end="\r", flush=True)
     if not backup_has_space(config):
         return
 
@@ -47,7 +47,7 @@ def run_backup(config):
     for input_number in range(1, config.num_entries()+1):
         input_path = config.get_entry(input_number).input
         outputs = config.get_entry(input_number).outputs
-        print("Initializing...", end="\r", flush=True)
+        print("Initializing the destination..." + " "*30, end="\r", flush=True)
         total_size, total_files = util.directory_size_with_exclusions(input_path, config, input_number)
         for output_path in outputs:
             # Get the name of the folder to make the backup in
@@ -252,40 +252,42 @@ def backup_has_space(config):
     :param config: The current configuration.
     :return: True if all backups will fit, false otherwise.
     """
-    new_drive_space = dict()
+    rolling_totals = dict()
     for input_number in range(1, config.num_entries() + 1):
         for dest_number in range(1, config.get_entry(input_number).num_destinations()+1):
             input_path = config.get_entry(input_number).input
             output_path = config.get_entry(input_number).get_destination(dest_number)
-            #print("Checking {} to {}".format(input_path, output_path))
 
             # Make an entry for this drive in the dictionary if it doesn't exist
             drive_letter, tail = os.path.splitdrive(output_path)
-            #print("Drive letter for {} is {}".format(output_path, drive_letter))
-            if drive_letter not in new_drive_space:
-                #print("Doesn't exist in dict")
-                new_drive_space[drive_letter] = 0
+            if drive_letter not in rolling_totals:
+                rolling_totals[drive_letter] = 0
 
             # If the backup folder exists, run a diff, otherwise just use the size of the input
             folder_name = os.path.split(input_path)[1]
             backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
             if os.path.isdir(backup_folder):
-                #print("Backup folder exists, do folder diff")
-                diff_size = util.folder_diff_size(input_path, backup_folder)
+                diff_size = util.folder_diff_size(input_path, backup_folder, config, input_number)
+                output_size, output_files = util.directory_size(backup_folder)
             else:
-                #print("No backup folder exists, get input size")
                 diff_size, total_files = util.directory_size_with_exclusions(input_path, config, input_number)
-            new_drive_space[drive_letter] = new_drive_space[drive_letter] + diff_size
+                output_size = 0
+            rolling_totals[drive_letter] = rolling_totals[drive_letter] + diff_size
 
             # Check if the worst case size of copying new files will fill the drive
             total, used, free = shutil.disk_usage(output_path)
-            #print("Diff size: {}, rolling total: {}, free: {}".format(diff_size, new_drive_space[drive_letter], free))
-            if new_drive_space[drive_letter] >= free:
+            if rolling_totals[drive_letter] >= free:
                 print(" "*40)
                 print("Copying {} to {} may not fit on the {} drive.".format(input_path, output_path, drive_letter))
                 print("Please clear up space on the drive you want to copy to and try again.")
                 print("Try clearing at least {} and trying again.".format(
-                    util.bytes_to_string(new_drive_space[drive_letter] - free, 3)))
+                    util.bytes_to_string(rolling_totals[drive_letter] - free, 3)))
                 util.log("The backup won't fit on the available drives. Cancelling operation.")
                 return False
+            else:
+                # The worst case will fit, so increment the rolling total by the actual difference and not worst case
+                rolling_totals[drive_letter] = rolling_totals[drive_letter] - diff_size
+                input_size, input_files = util.directory_size_with_exclusions(input_path, config, input_number)
+                true_diff_size = input_size - output_size
+                rolling_totals[drive_letter] = rolling_totals[drive_letter] + true_diff_size
         return True

@@ -215,8 +215,51 @@ def bytes_to_string(byte_value, precision):
     return return_str.format(byte_value)
 
 
-def folder_diff_size(path1, path2):
-    return 0
+def folder_diff_size(path1, path2, config, input_number):
+    """
+    Calculate the size in bytes of the worst case difference in sizes between path1 and path2. The worst case
+    is if every file from path1 that is new or changed from how it is in path2 is copied into path2 before
+    any of the leftover files in path2 are deleted.
+    :param path1: The first path, treated as the "input" for a backup.
+    :param path2: The second path, treated as the "output" for a backup.
+    :param config: The current configuration.
+    :param input_number: The number of the index of the entry, starting at 1.
+    :return: The size in bytes of the worst case file size increase that could happen to the output.
+    """
+    # Exclude this file if it's marked for exclusion in the configuration
+    if config.get_entry(input_number).should_exclude(path1):
+        return 0
+
+    if os.path.isfile(path1):
+        # If this file exists in path1 and path2
+        if os.path.isfile(path2):
+            # If the files are identical, return no size difference
+            if file_compare(path1, path2):
+                return 0
+            # If the files are different, return their difference, since path2 would immediately be overwritten
+            else:
+                return os.path.getsize(path1) - os.path.getsize(path2)
+        # If only path1 exists, return the size of path1
+        else:
+            return os.path.getsize(path1)
+    else:
+        # If path2 doesn't exist and is a directory, return the size of path1
+        if not os.path.isdir(path2):
+            size, files = directory_size(path1)
+            return size
+
+        # Loop through all contents of path1
+        total_size = 0
+        for filename in os.listdir(path1):
+            # Recurse on every file and directory in path1 (that may or may not be in path2 as well)
+            file_path1 = os.path.join(path1, filename)
+            file_path2 = os.path.join(path2, filename)
+            size = folder_diff_size(file_path1, file_path2, config, input_number)
+            total_size += size
+
+        # Return the total size. We will not subtract the sizes of the files that will be deleted in order
+        # to simulate the worst case where the largest number of files possible are in the drive at once
+        return total_size
 
 
 def logger(func):
