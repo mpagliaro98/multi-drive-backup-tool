@@ -39,16 +39,9 @@ def run_backup(config):
     util.log("\n" + configuration.config_display_string(config, show_exclusions=True))
 
     # Make sure each backup will have space on the drive
-    for input_number in range(1, config.num_entries() + 1):
-        for dest_number in range(1, config.get_entry(input_number).num_destinations()+1):
-            result = backup_has_space(config.get_entry(input_number).input,
-                                      config.get_entry(input_number).get_destination(dest_number),
-                                      config, input_number)
-            if not result:
-                print("Copying {} to {} will not fit on the drive.".format(
-                    config.get_entry(input_number).input, config.get_entry(input_number).get_destination(dest_number)))
-                print("Please clear up space on the drive you want to copy to and try again.")
-                return
+    print("Checking space requirements...", end="\r", flush=True)
+    if not backup_has_space(config):
+        return
 
     # Loop through every entry in the configuration
     for input_number in range(1, config.num_entries()+1):
@@ -68,7 +61,7 @@ def run_backup(config):
             util.log('/'*60 + "\n")
 
             # Run the backup process and time it
-            print(' '*20 + "\nBacking up {} to {}...".format(input_path, backup_folder))
+            print(' '*40 + "\nBacking up {} to {}...".format(input_path, backup_folder))
             reset_globals()
             start_time = time.time()
             recursive_backup(input_path, backup_folder, total_size, total_files, config, input_number)
@@ -248,26 +241,50 @@ def log_exception(error_file_path, action="ACCESSING"):
     util.log(full_error_str + '=' * 60 + "\n")
 
 
-def backup_has_space(input_path, output_path, config, input_number):
+def backup_has_space(config):
     """
-    Checks if a given input will fit on the drive of a given output path. This takes into account if a backup
-    already exists at that backup location, and will only count the size difference.
-    :param input_path: The file path of the file or folder to be backed up.
-    :param output_path: The location to back up the input to.
+    Loops through every input-output pair in the configuration, and checks to see if all input paths
+    can fit in all outputs if they were all to be copied over. If a backup already exists for one of
+    the input-output pairs, it will only compute the worst-case size difference when new files would
+    be copied over and old files removed. This keeps a running total of how the space on each affected
+    drive would change to ensure that all backups can fit.
     :param config: The current configuration.
-    :param input_number: The number of the entry these paths are a part of.
-    :return: True if the backup will fit, false otherwise.
+    :return: True if all backups will fit, false otherwise.
     """
-    input_size, input_files = util.directory_size_with_exclusions(input_path, config, input_number)
-    total, used, free = shutil.disk_usage(output_path)
-    folder_name = os.path.split(input_path)[1]
-    backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
-    if os.path.isdir(backup_folder):
-        backup_size, backup_files = util.directory_size(backup_folder)
-    else:
-        backup_size = 0
-    size_diff = input_size - backup_size
-    if size_diff >= free:
-        return False
-    else:
+    new_drive_space = dict()
+    for input_number in range(1, config.num_entries() + 1):
+        for dest_number in range(1, config.get_entry(input_number).num_destinations()+1):
+            input_path = config.get_entry(input_number).input
+            output_path = config.get_entry(input_number).get_destination(dest_number)
+            #print("Checking {} to {}".format(input_path, output_path))
+
+            # Make an entry for this drive in the dictionary if it doesn't exist
+            drive_letter, tail = os.path.splitdrive(output_path)
+            #print("Drive letter for {} is {}".format(output_path, drive_letter))
+            if drive_letter not in new_drive_space:
+                #print("Doesn't exist in dict")
+                new_drive_space[drive_letter] = 0
+
+            # If the backup folder exists, run a diff, otherwise just use the size of the input
+            folder_name = os.path.split(input_path)[1]
+            backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
+            if os.path.isdir(backup_folder):
+                #print("Backup folder exists, do folder diff")
+                diff_size = util.folder_diff_size(input_path, backup_folder)
+            else:
+                #print("No backup folder exists, get input size")
+                diff_size, total_files = util.directory_size_with_exclusions(input_path, config, input_number)
+            new_drive_space[drive_letter] = new_drive_space[drive_letter] + diff_size
+
+            # Check if the worst case size of copying new files will fill the drive
+            total, used, free = shutil.disk_usage(output_path)
+            #print("Diff size: {}, rolling total: {}, free: {}".format(diff_size, new_drive_space[drive_letter], free))
+            if new_drive_space[drive_letter] >= free:
+                print(" "*40)
+                print("Copying {} to {} may not fit on the {} drive.".format(input_path, output_path, drive_letter))
+                print("Please clear up space on the drive you want to copy to and try again.")
+                print("Try clearing at least {} and trying again.".format(
+                    util.bytes_to_string(new_drive_space[drive_letter] - free, 3)))
+                util.log("The backup won't fit on the available drives. Cancelling operation.")
+                return False
         return True

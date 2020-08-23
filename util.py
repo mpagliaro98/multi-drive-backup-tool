@@ -197,6 +197,29 @@ def path_is_in_directory(path_to_check, directory_path):
     return os.path.split(path_to_check)[0] == directory_path
 
 
+def bytes_to_string(byte_value, precision):
+    """
+    Creates a representation of a byte value as a string. This will find the most accurate unit to use
+    to display the byte value and return the string representation.
+    :param byte_value: A numerical value.
+    :param precision: The number of digits that should appear after the decimal.
+    :return: A string representation of the number of bytes given.
+    """
+    num_divisions = 0
+    prefix_list = ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi"]
+    prefix = prefix_list[num_divisions]
+    while byte_value >= 1024 and num_divisions <= len(prefix_list)-2:
+        byte_value /= 1024
+        num_divisions += 1
+        prefix = prefix_list[num_divisions]
+    return_str = "{:." + str(precision) + "f} " + prefix + "B"
+    return return_str.format(byte_value)
+
+
+def folder_diff_size(path1, path2):
+    return 0
+
+
 def logger(func):
     """
     Creates a decorator function that when applied to a function, enables logging during the runtime
