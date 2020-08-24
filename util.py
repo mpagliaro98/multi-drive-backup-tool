@@ -262,6 +262,28 @@ def folder_diff_size(path1, path2, config, input_number):
         return total_size
 
 
+def shorten_path(path, prefix):
+    """
+    Shortens a given path if it has a matching prefix. For example, if given the path "C:\folder1\folder2\file.txt"
+    and prefix "C:\folder1\folder2", it will shorten the first path to "...\folder2\file.txt".
+    :param path: A path to shorten.
+    :param prefix: A path that acts as a prefix of the given path.
+    :return: A shortened version of the path.
+    """
+    head, tail = os.path.split(prefix)
+    if tail == "":
+        return path
+    if len(path) > len(head):
+        path_head = path[:len(head)]
+        path_tail = path[len(head):]
+        if head == path_head:
+            return "..." + path_tail
+        else:
+            return path
+    else:
+        return path
+
+
 def logger(func):
     """
     Creates a decorator function that when applied to a function, enables logging during the runtime

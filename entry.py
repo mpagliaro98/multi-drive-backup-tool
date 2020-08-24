@@ -5,6 +5,8 @@ A file containing all information about configuration entries.
 """
 
 import exclusions
+import util
+import os
 
 
 class Entry:
@@ -135,8 +137,9 @@ class Entry:
             exclusion = self._exclusions[excl_idx]
             print_str = "{}: {} \"{}\"".format(excl_idx+1, exclusion.code, exclusion.data)
             if exclusion.has_limitation():
-                print_str += " limit to \"{}\" {}".format(exclusion.limitation.data,
-                                                          exclusion.limitation.get_proper_suffix())
+                print_str += " limit to \"{}\" {}".format(
+                    util.shorten_path(os.path.realpath(exclusion.limitation.data), self._input),
+                    exclusion.limitation.get_proper_suffix())
             print(print_str)
 
     def num_destinations(self):
@@ -195,8 +198,9 @@ class Entry:
             for exclusion in self._exclusions:
                 entry_str += "\tEXCLUSION: {} \"{}\"".format(exclusion.code, exclusion.data)
                 if exclusion.has_limitation():
-                    entry_str += " limited to \"{}\" {}".format(exclusion.limitation.data,
-                                                                exclusion.limitation.get_proper_suffix("\n"))
+                    entry_str += " limited to \"{}\" {}".format(
+                        util.shorten_path(os.path.realpath(exclusion.limitation.data), self._input),
+                        exclusion.limitation.get_proper_suffix("\n"))
                 else:
                     entry_str += "\n"
         else:
