@@ -137,9 +137,12 @@ class Entry:
             exclusion = self._exclusions[excl_idx]
             print_str = "{}: {} \"{}\"".format(excl_idx+1, exclusion.code, exclusion.data)
             if exclusion.has_limitation():
-                print_str += " limit to \"{}\" {}".format(
-                    util.shorten_path(os.path.realpath(exclusion.limitation.data), self._input),
-                    exclusion.limitation.get_proper_suffix())
+                if os.path.exists(os.path.realpath(exclusion.limitation.data)):
+                    display_limitation = util.shorten_path(os.path.realpath(exclusion.limitation.data), self._input)
+                else:
+                    display_limitation = exclusion.limitation.data
+                print_str += " limit to \"{}\" {}".format(display_limitation,
+                                                          exclusion.limitation.get_proper_suffix())
             print(print_str)
 
     def num_destinations(self):
@@ -198,9 +201,12 @@ class Entry:
             for exclusion in self._exclusions:
                 entry_str += "\tEXCLUSION: {} \"{}\"".format(exclusion.code, exclusion.data)
                 if exclusion.has_limitation():
-                    entry_str += " limited to \"{}\" {}".format(
-                        util.shorten_path(os.path.realpath(exclusion.limitation.data), self._input),
-                        exclusion.limitation.get_proper_suffix("\n"))
+                    if os.path.exists(os.path.realpath(exclusion.limitation.data)):
+                        display_limitation = util.shorten_path(os.path.realpath(exclusion.limitation.data), self._input)
+                    else:
+                        display_limitation = exclusion.limitation.data
+                    entry_str += " limited to \"{}\" {}".format(display_limitation,
+                                                                exclusion.limitation.get_proper_suffix("\n"))
                 else:
                     entry_str += "\n"
         else:
