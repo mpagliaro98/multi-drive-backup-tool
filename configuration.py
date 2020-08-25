@@ -126,13 +126,16 @@ class Configuration:
 
     def enumerate_entries(self):
         """
-        Iterate through each input/outputs entry in this configuration and display them to the
-        screen, prefaced by numbers.
+        Iterate through each input/outputs entry in this configuration and write them to a
+        string, prefaced by numbers.
+        :return: A string containing every enumerated entry.
         """
         entry_inputs = self.get_all_entry_inputs()
         entry_outputs = self.get_all_entry_outputs()
+        return_str = ""
         for entry_idx in range(len(entry_inputs)):
-            print("{}: {} --> {}".format(entry_idx+1, entry_inputs[entry_idx], entry_outputs[entry_idx]))
+            return_str += "{}: {} --> {}\n".format(entry_idx+1, entry_inputs[entry_idx], entry_outputs[entry_idx])
+        return return_str.strip()
 
     def num_entries(self):
         """

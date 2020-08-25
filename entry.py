@@ -124,15 +124,20 @@ class Entry:
 
     def enumerate_destinations(self):
         """
-        Iterate through each destination of this entry and display them alongside numbers.
+        Iterate through each destination of this entry and return a string of them alongside numbers.
+        :return: A string containing every enumerated destination.
         """
+        return_str = ""
         for dest_idx in range(len(self._outputs)):
-            print("{}: {}".format(dest_idx+1, self._outputs[dest_idx]))
+            return_str += "{}: {}\n".format(dest_idx+1, self._outputs[dest_idx])
+        return return_str.strip()
 
     def enumerate_exclusions(self):
         """
-        Iterate through each exclusion of this entry and display them alongside numbers.
+        Iterate through each exclusion of this entry and return a string of them alongside numbers.
+        :return: A string containing every enumerated exclusion and limitation.
         """
+        return_str = ""
         for excl_idx in range(len(self._exclusions)):
             exclusion = self._exclusions[excl_idx]
             print_str = "{}: {} \"{}\"".format(excl_idx+1, exclusion.code, exclusion.data)
@@ -143,7 +148,8 @@ class Entry:
                     display_limitation = exclusion.limitation.data
                 print_str += " limit to \"{}\" {}".format(display_limitation,
                                                           exclusion.limitation.get_proper_suffix())
-            print(print_str)
+            return_str += print_str + "\n"
+        return return_str.strip()
 
     def num_destinations(self):
         """

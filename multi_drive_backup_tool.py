@@ -89,7 +89,7 @@ def menu_option_destination(config):
     :return: The updated configuration with the new destination paths.
     """
     # Display a list of entries in the configuration
-    config.enumerate_entries()
+    print(config.enumerate_entries())
     # Accept input to select one of those entries (or all at once)
     entry_number = input_entry_number(low_bound=0, high_bound=config.num_entries(),
                                       input_text="Enter a number to specify that entry's destinations " +
@@ -114,7 +114,7 @@ def menu_option_exclude(config):
     :return: The updated configuration with the new exclusions.
     """
     # Display a list of entries in the configuration
-    config.enumerate_entries()
+    print(config.enumerate_entries())
     # Accept input to select one of those entries
     entry_number = input_entry_number(low_bound=1, high_bound=config.num_entries(),
                                       input_text="Enter a number to add an exclusion to that entry: ")
@@ -165,7 +165,7 @@ def menu_option_edit(config):
     :return: The updated configuration with edited values.
     """
     # Display a list of entries in the configuration
-    config.enumerate_entries()
+    print(config.enumerate_entries())
     # Accept input to select one of those entries
     entry_number = input_entry_number(low_bound=1, high_bound=config.num_entries(),
                                       input_text="Enter a number to edit or delete that entry: ")
@@ -238,8 +238,7 @@ def sub_option_edit_destinations(config, entry_number):
 
         # Edit destination
         if destination_input == 1:
-            print()
-            entry.enumerate_destinations()
+            print("\n" + entry.enumerate_destinations())
             dest_number = input_entry_number(low_bound=1, high_bound=entry.num_destinations(),
                                              input_text="Enter a number to specify which destination to edit: ")
             result = False
@@ -252,8 +251,7 @@ def sub_option_edit_destinations(config, entry_number):
                           "of the input.")
         # Delete destination
         elif destination_input == 2:
-            print()
-            entry.enumerate_destinations()
+            print("\n" + entry.enumerate_destinations())
             dest_number = input_entry_number(low_bound=1, high_bound=entry.num_destinations(),
                                              input_text="Enter a number to specify which destination to delete: ")
             entry.delete_destination(dest_number)
@@ -284,8 +282,7 @@ def sub_option_edit_exclusions(config, entry_number):
 
         # Edit exclusion
         if exclusion_input == 1:
-            print()
-            entry.enumerate_exclusions()
+            print("\n" + entry.enumerate_exclusions())
             excl_number = input_entry_number(low_bound=1, high_bound=entry.num_exclusions(),
                                              input_text="Enter a number to specify which exclusion to edit: ")
             exclusion = entry.get_exclusion(excl_number)
@@ -319,8 +316,7 @@ def sub_option_edit_exclusions(config, entry_number):
                     break
         # Delete exclusion
         elif exclusion_input == 2:
-            print()
-            entry.enumerate_exclusions()
+            print("\n" + entry.enumerate_exclusions())
             excl_number = input_entry_number(low_bound=1, high_bound=entry.num_exclusions(),
                                              input_text="Enter a number to specify which exclusion to delete: ")
             entry.delete_exclusion(excl_number)
