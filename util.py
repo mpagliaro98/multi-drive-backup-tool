@@ -335,3 +335,16 @@ def log(log_str=""):
     """
     global LOG_FILE
     LOG_FILE.write(log_str + "\n")
+
+
+def log_print(log_str=""):
+    """
+    Logging function, this takes any string and writes it to the current log file as well as prints it
+    to standard output. This automatically puts a newline after the string in the file and in the console
+    output. The log file must be opened before using this function.
+    :param log_str:
+    :return:
+    """
+    global LOG_FILE
+    LOG_FILE.write(log_str + "\n")
+    print(log_str)

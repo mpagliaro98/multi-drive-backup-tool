@@ -75,9 +75,8 @@ def run_backup(config):
             util.log(final_report_str.format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED,
                                              NUM_FILES_DELETED, util.bytes_to_string(TOTAL_SIZE_PROCESSED, 2)))
             if NUM_FILES_ERROR > 0:
-                print("There were {} error(s) reported during this backup. Check the log for more info."
-                      .format(NUM_FILES_ERROR))
-                util.log("There were {} error(s) reported during this backup.".format(NUM_FILES_ERROR))
+                util.log_print("There were {} error(s) reported during this backup.".format(NUM_FILES_ERROR))
+                print("Please check the log file for more info on the individual errors.")
             create_backup_text_file(backup_folder)
 
 
@@ -277,12 +276,12 @@ def backup_has_space(config):
             # Check if the worst case size of copying new files will fill the drive
             total, used, free = shutil.disk_usage(output_path)
             if rolling_totals[drive_letter] >= free:
-                print(" "*40)
-                print("Copying {} to {} may not fit on the {} drive.".format(input_path, output_path, drive_letter))
-                print("Please clear up space on the drive you want to copy to and try again.")
-                print("Try clearing at least {} and trying again.".format(
-                    util.bytes_to_string(rolling_totals[drive_letter] - free, 3)))
-                util.log("The backup won't fit on the available drives. Cancelling operation.")
+                util.log_print(" "*40)
+                util.log_print("Copying {} to {} may not fit on the {} drive.".format(input_path, output_path,
+                                                                                      drive_letter))
+                util.log_print("Please clear up space on the drive you want to copy to and try again.")
+                util.log_print("Try clearing at least {} on the {} drive and trying again.".format(
+                    util.bytes_to_string(rolling_totals[drive_letter] - free, 3), drive_letter))
                 return False
             else:
                 # The worst case will fit, so increment the rolling total by the actual difference and not worst case
