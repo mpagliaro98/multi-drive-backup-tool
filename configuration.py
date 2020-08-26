@@ -392,7 +392,12 @@ def config_display_string(config, show_exclusions=False):
                 for exclusion in config.get_entry(entry_number).exclusions:
                     return_str += "\t\t\t{} \"{}\"".format(exclusion.code, exclusion.data)
                     if exclusion.has_limitation():
-                        return_str += " limited to \"{}\" {}".format(exclusion.limitation.data,
+                        if os.path.exists(os.path.realpath(exclusion.limitation.data)):
+                            display_limitation = util.shorten_path(os.path.realpath(exclusion.limitation.data),
+                                                                   config.get_entry(entry_number).input)
+                        else:
+                            display_limitation = exclusion.limitation.data
+                        return_str += " limited to \"{}\" {}".format(display_limitation,
                                                                      exclusion.limitation.get_proper_suffix("\n"))
                     else:
                         return_str += "\n"
