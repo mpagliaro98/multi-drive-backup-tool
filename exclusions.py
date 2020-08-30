@@ -6,6 +6,7 @@ file, and changes only need to be made here to add additional types of exclusion
 """
 
 import os
+from os.path import realpath as rpath
 import limitations
 
 
@@ -253,4 +254,8 @@ EXCLUSION_TYPES = [ExclusionType(code="startswith", menu_text="Starts with some 
                                  function=lambda excl, path: os.path.splitext(path)[1] == excl.data),
                    ExclusionType(code="directory", accepts_limitations=False, menu_text="Specific directory path",
                                  input_text="Folders with this absolute path will be excluded: ",
-                                 function=lambda excl, path: os.path.realpath(path) == os.path.realpath(excl.data))]
+                                 function=lambda excl, path: os.path.isdir(path) and rpath(path) == rpath(excl.data)),
+                   ExclusionType(code="file", menu_text="Specific filename",
+                                 input_text="Files with this name and extension will be excluded: ",
+                                 function=lambda excl, path: os.path.isfile(path) and os.path.split(
+                                     path)[1] == excl.data)]
