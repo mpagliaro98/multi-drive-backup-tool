@@ -30,7 +30,10 @@ TOTAL_SIZE_PROCESSED = 0
 @util.logger
 def run_backup(config):
     """
-    The primary entry function that starts and runs the backup process.
+    The primary entry function that starts and runs the backup process. This algorithm will go through each
+    input-output pair in the configuration individually and run on each. It begins on each pair by marking which
+    files will be new, modified, or deleted, then it uses those to check space requirements on the disk, then it
+    does the file operations on each file in each list.
     :param config: A configuration containing paths to folders to backup.
     """
     print("Initializing...", end="\r", flush=True)
@@ -350,91 +353,6 @@ def backup_status(mode, count, limit):
     print("{} files: {}/{}".format(mode_str, count, limit) + ' '*20, end="\r", flush=True)
 
 
-def recursive_backup(input_path, output_path, total_size, total_files, config, input_number):
-    """
-    The main backup algorithm. This recursively walks through the files specified by the
-    input and copies them to their respective spot in the destination. If a backup has already
-    been made previously, this will only update files that have been changed, added, or removed,
-    causing subsequent backups to run much faster.
-    :param input_path: The path to a file or folder to backup.
-    :param output_path: The path to the inputs spot in the destination to back it up to.
-    :param total_size: The total size in bytes of the full input backup. This shouldn't decrease during recursion.
-    :param total_files: The total number of files in the full input backup. This shouldn't decrease during recursion.
-    :param config: The current backup configuration.
-    :param input_number: The number of the index of the entry, starting at 1.
-    :return: True if the current file/directory was processed, false if it was excluded.
-    """
-    global NUM_FILES_ERROR
-    # Exclude this file or folder if it should be left out
-    if config.get_entry(input_number).should_exclude(input_path):
-        util.log("EXCLUDED - " + input_path)
-        return False
-    # If this path is to a file
-    if os.path.isfile(input_path):
-        try:
-            # Check if the file exists in output, then check if it's changed and copy it if it has been
-            if os.path.exists(output_path):
-                if not util.file_compare(input_path, output_path):
-                    shutil.copy2(input_path, output_path)
-                    mark_file_processed(os.path.getsize(input_path), modified=True, is_new=False)
-                    util.log("UPDATED - " + output_path)
-                else:
-                    mark_file_processed(os.path.getsize(input_path), modified=False, is_new=False)
-            else:
-                shutil.copy2(input_path, output_path)
-                mark_file_processed(os.path.getsize(input_path), modified=False, is_new=True)
-                util.log("NEW - " + output_path)
-        except PermissionError:
-            # Write the full error to the log file and record that an error occurred
-            util.log_exception(output_path, "CREATING OR UPDATING")
-            mark_file_processed(os.path.getsize(input_path), error=True)
-    # Otherwise, it's a directory
-    else:
-        # If this directory doesn't exist in the output, make it
-        if not os.path.exists(output_path):
-            try:
-                os.mkdir(output_path)
-                shutil.copymode(input_path, output_path)
-            except PermissionError:
-                # Log the exception and indicate that an error occurred
-                util.log_exception(output_path, "CREATING DIRECTORY")
-                NUM_FILES_ERROR += 1
-        files_processed = []
-        for filename in os.listdir(input_path):
-            result = recursive_backup(os.path.join(input_path, filename), os.path.join(output_path, filename),
-                                      total_size, total_files, config, input_number)
-            if result:
-                files_processed.append(filename)
-
-        # If any files/folders remain in the output that weren't in the input, delete them
-        for output_file in os.listdir(output_path):
-            if output_file not in files_processed:
-                delete_file_path = os.path.join(output_path, output_file)
-                # Use the correct delete function based on if it's a file or folder
-                try:
-                    if os.path.isdir(delete_file_path):
-                        deleted_size, deleted_file_count = util.directory_size(delete_file_path)
-                        for _ in range(deleted_file_count):
-                            mark_file_processed(deleted=True)
-                        util.rmtree(delete_file_path)
-                    else:
-                        os.remove(delete_file_path)
-                        # Don't increment the deleted count if this is the old confirmation file
-                        if not output_file == CONFIRMATION_FILENAME and \
-                                not output_path == config.get_entry(input_number).input:
-                            mark_file_processed(deleted=True)
-                    util.log("DELETED - " + delete_file_path)
-                except PermissionError:
-                    # Log the exception and indicate that an error occurred
-                    util.log_exception(delete_file_path, "DELETING")
-                    NUM_FILES_ERROR += 1
-    print("{}/{} files processed, {} new files, {} existing files modified, {} files removed ({} / {})  "
-          .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED, NUM_FILES_DELETED,
-                  util.bytes_to_string(TOTAL_SIZE_PROCESSED, 2), util.bytes_to_string(total_size, 2)),
-          end="\r", flush=True)
-    return True
-
-
 def reset_globals():
     """
     Reset the variables that track how many files are being processed during the file preparation stage.
@@ -494,54 +412,3 @@ def create_backup_text_file(backup_base_folder):
     text_file = open(file_path, "w")
     text_file.write("This backup was completed on " + current_time)
     text_file.close()
-
-
-def backup_has_space(config):
-    """
-    Loops through every input-output pair in the configuration, and checks to see if all input paths
-    can fit in all outputs if they were all to be copied over. If a backup already exists for one of
-    the input-output pairs, it will only compute the worst-case size difference when new files would
-    be copied over and old files removed. This keeps a running total of how the space on each affected
-    drive would change to ensure that all backups can fit.
-    :param config: The current configuration.
-    :return: True if all backups will fit, false otherwise.
-    """
-    rolling_totals = dict()
-    for input_number in range(1, config.num_entries() + 1):
-        for dest_number in range(1, config.get_entry(input_number).num_destinations()+1):
-            input_path = config.get_entry(input_number).input
-            output_path = config.get_entry(input_number).get_destination(dest_number)
-
-            # Make an entry for this drive in the dictionary if it doesn't exist
-            drive_letter, tail = os.path.splitdrive(output_path)
-            if drive_letter not in rolling_totals:
-                rolling_totals[drive_letter] = 0
-
-            # If the backup folder exists, run a diff, otherwise just use the size of the input
-            folder_name = os.path.split(input_path)[1]
-            backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
-            if os.path.isdir(backup_folder):
-                diff_size = util.folder_diff_size(input_path, backup_folder, config, input_number)
-                output_size, output_files = util.directory_size(backup_folder)
-            else:
-                diff_size, total_files = util.directory_size_with_exclusions(input_path, config, input_number)
-                output_size = 0
-            rolling_totals[drive_letter] = rolling_totals[drive_letter] + diff_size
-
-            # Check if the worst case size of copying new files will fill the drive
-            total, used, free = shutil.disk_usage(output_path)
-            if rolling_totals[drive_letter] >= free:
-                util.log_print(" "*40)
-                util.log_print("Copying {} to {} may not fit on the {} drive.".format(input_path, output_path,
-                                                                                      drive_letter))
-                util.log_print("Please clear up space on the drive you want to copy to and try again.")
-                util.log_print("Try clearing at least {} on the {} drive and trying again.".format(
-                    util.bytes_to_string(rolling_totals[drive_letter] - free, 3), drive_letter))
-                return False
-            else:
-                # The worst case will fit, so increment the rolling total by the actual difference and not worst case
-                rolling_totals[drive_letter] = rolling_totals[drive_letter] - diff_size
-                input_size, input_files = util.directory_size_with_exclusions(input_path, config, input_number)
-                true_diff_size = input_size - output_size
-                rolling_totals[drive_letter] = rolling_totals[drive_letter] + true_diff_size
-        return True
