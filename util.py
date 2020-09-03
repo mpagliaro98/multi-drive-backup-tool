@@ -173,18 +173,22 @@ def rmtree(start_path):
     given directory, then recursively walks through all sub-directories. This is meant as a substitute
     to using shutil.rmtree() as I encountered issues using that to delete certain types of files.
     :param start_path: The directory to delete.
+    :return: The total number of files deleted.
     """
+    files_deleted = 0
     for path, dirs, files in os.walk(start_path):
         # Delete all files, give write permissions if necessary
         for filename in files:
             full_filename = os.path.join(path, filename)
             os.chmod(full_filename, stat.S_IWRITE)
             os.remove(full_filename)
+            files_deleted += 1
         # Recursively delete all sub-folders
         for folder_name in dirs:
-            rmtree(os.path.join(path, folder_name))
+            files_deleted += rmtree(os.path.join(path, folder_name))
     # Delete this folder now that it's empty
     os.rmdir(start_path)
+    return files_deleted
 
 
 def path_is_in_directory(path_to_check, directory_path):
