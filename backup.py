@@ -184,7 +184,12 @@ def mark_files(input_path, output_path, config, input_number):
                             output_filename = os.path.join(output_path, output_dir_files[output_dir_idx])
                             if not output_dir_files[output_dir_idx] == CONFIRMATION_FILENAME or \
                                     not input_path == config.get_entry(input_number).input:
-                                mark_file_processed(deleted=True)
+                                if os.path.isdir(output_filename):
+                                    delete_size, delete_files = util.directory_size(output_filename)
+                                    for _ in range(delete_files):
+                                        mark_file_processed(deleted=True)
+                                else:
+                                    mark_file_processed(deleted=True)
                             remove_files.append((output_filename, os.path.getsize(output_filename)))
                             output_dir_idx += 1
 
@@ -200,7 +205,12 @@ def mark_files(input_path, output_path, config, input_number):
                     output_filename = os.path.join(output_path, output_dir_files[end_output_idx])
                     if not output_dir_files[end_output_idx] == CONFIRMATION_FILENAME or \
                             not input_path == config.get_entry(input_number).input:
-                        mark_file_processed(deleted=True)
+                        if os.path.isdir(output_filename):
+                            delete_size, delete_files = util.directory_size(output_filename)
+                            for _ in range(delete_files):
+                                mark_file_processed(deleted=True)
+                        else:
+                            mark_file_processed(deleted=True)
                     remove_files.append((output_filename, os.path.getsize(output_filename)))
 
         except FileNotFoundError as error:
