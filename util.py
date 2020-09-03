@@ -10,6 +10,8 @@ import shutil
 import filecmp
 from datetime import datetime
 import stat
+import sys
+import traceback
 
 
 # The log file to be written to whenever log() is called
@@ -348,3 +350,18 @@ def log_print(log_str=""):
     global LOG_FILE
     LOG_FILE.write(log_str + "\n")
     print(log_str)
+
+
+def log_exception(error_file_path, action="ACCESSING"):
+    """
+    Writes the most recent exception to the log file. This includes the full traceback.
+    :param error_file_path: The file or folder that caused the error.
+    :param action: What was happening to that file to cause the error, such as "creating" or "deleting".
+    """
+    log("\n" + '=' * 60 + "\nERROR {} {}".format(action, error_file_path))
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    exception_list = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    full_error_str = ""
+    for item in exception_list:
+        full_error_str += item
+    log(full_error_str + '=' * 60 + "\n")

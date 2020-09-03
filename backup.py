@@ -8,8 +8,6 @@ import os
 import shutil
 import time
 from datetime import datetime
-import sys
-import traceback
 import util
 import configuration
 
@@ -150,7 +148,7 @@ def mark_files(input_path, output_path, config, input_number):
                 shutil.copymode(input_path, output_path)
             except PermissionError:
                 # Log the exception and return so we don't process any of this directory's children
-                log_exception(output_path, "CREATING DIRECTORY")
+                util.log_exception(output_path, "CREATING DIRECTORY")
                 NUM_FILES_ERROR += 1
                 return [], [], []
 
@@ -300,7 +298,7 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
                 util.log("NEW - " + output_path)
         except PermissionError:
             # Write the full error to the log file and record that an error occurred
-            log_exception(output_path, "CREATING OR UPDATING")
+            util.log_exception(output_path, "CREATING OR UPDATING")
             mark_file_processed(os.path.getsize(input_path), error=True)
     # Otherwise, it's a directory
     else:
@@ -311,7 +309,7 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
                 shutil.copymode(input_path, output_path)
             except PermissionError:
                 # Log the exception and indicate that an error occurred
-                log_exception(output_path, "CREATING DIRECTORY")
+                util.log_exception(output_path, "CREATING DIRECTORY")
                 NUM_FILES_ERROR += 1
         files_processed = []
         for filename in os.listdir(input_path):
@@ -340,7 +338,7 @@ def recursive_backup(input_path, output_path, total_size, total_files, config, i
                     util.log("DELETED - " + delete_file_path)
                 except PermissionError:
                     # Log the exception and indicate that an error occurred
-                    log_exception(delete_file_path, "DELETING")
+                    util.log_exception(delete_file_path, "DELETING")
                     NUM_FILES_ERROR += 1
     print("{}/{} files processed, {} new files, {} existing files modified, {} files removed ({} / {})  "
           .format(NUM_FILES_PROCESSED, total_files, NUM_FILES_NEW, NUM_FILES_MODIFIED, NUM_FILES_DELETED,
@@ -408,21 +406,6 @@ def create_backup_text_file(backup_base_folder):
     text_file = open(file_path, "w")
     text_file.write("This backup was completed on " + current_time)
     text_file.close()
-
-
-def log_exception(error_file_path, action="ACCESSING"):
-    """
-    Writes the most recent exception to the log file. This includes the full traceback.
-    :param error_file_path: The file or folder that caused the error.
-    :param action: What was happening to that file to cause the error, such as "creating" or "deleting".
-    """
-    util.log("\n" + '=' * 60 + "\nERROR {} {}".format(action, error_file_path))
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    exception_list = traceback.format_exception(exc_type, exc_value, exc_traceback)
-    full_error_str = ""
-    for item in exception_list:
-        full_error_str += item
-    util.log(full_error_str + '=' * 60 + "\n")
 
 
 def backup_has_space(config):
