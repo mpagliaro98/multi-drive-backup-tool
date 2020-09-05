@@ -75,7 +75,7 @@ def menu_option_input(config):
         result = configuration.append_input_to_config(config, input_name)
         # No changes occur to the config if it's invalid, so show that it's invalid
         if not result:
-            print("The given path was invalid.")
+            print("The given path was invalid or created a cyclic entry.")
 
 
 def menu_option_destination(config):
@@ -99,7 +99,7 @@ def menu_option_destination(config):
             break
         result = configuration.append_output_to_config(config, entry_number, destination_input)
         if not result:
-            print("The given path was invalid, is already specified, or is a sub-folder of the input.")
+            print("The given path was invalid, is a sub-folder of the input, or created a cyclic entry.")
 
 
 def menu_option_exclude(config):
@@ -183,11 +183,11 @@ def menu_option_edit(config):
                 input_name = input("Enter the new absolute path of a folder or file to backup: ")
                 result = configuration.edit_input_in_config(config, entry_number, input_name)
                 if not result:
-                    print("The given path is invalid, already specified, or a destination became a sub-folder.")
+                    print("The given path is invalid, created a cyclic entry, or a destination became a sub-folder.")
         # Edit the destinations
         elif edit_input == 2:
             if entry.num_destinations() > 0:
-                sub_option_edit_destinations(entry)
+                sub_option_edit_destinations(config, entry)
             else:
                 print("There are no destinations to edit or delete.")
                 continue
@@ -213,11 +213,12 @@ def menu_option_edit(config):
             break
 
 
-def sub_option_edit_destinations(entry):
+def sub_option_edit_destinations(config, entry):
     """
     The code that is run when the sub-option for editing the destinations of an entry is selected.
     This will display a menu, allowing the user to choose to edit a destination, delete a destination,
     or return to the previous menu.
+    :param config: The current configuration.
     :param entry: An entry from the configuration that's currently being edited.
     """
     while True:
@@ -233,10 +234,9 @@ def sub_option_edit_destinations(entry):
             result = False
             while not result:
                 input_name = input("Enter the new absolute path of a folder to make a destination: ")
-                result = configuration.edit_destination_in_config(entry, dest_number, input_name)
+                result = configuration.edit_destination_in_config(entry, dest_number, input_name, config)
                 if not result:
-                    print("The given path was invalid, is already specified, or is a sub-folder " +
-                          "of the input.")
+                    print("The given path was invalid, is a sub-folder of the input, or created a cyclic entry.")
         # Delete destination
         elif destination_input == 2:
             print("\n" + entry.enumerate_destinations())

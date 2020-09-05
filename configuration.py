@@ -9,6 +9,7 @@ import os
 import pickle
 import util
 import entry
+import copy
 
 # Static global variable for the name of the directory configs are saved to
 CONFIG_DIRECTORY = "configs"
@@ -151,6 +152,26 @@ class Configuration:
         """
         del self._entries[entry_number-1]
 
+    def check_for_cyclic_entries(self):
+        """
+        Detects cyclic entries in the configuration. A cyclic entry is defined as an entry who's input
+        path contains the output of a previous entry. For example, if entry 1 takes the folder a/b/c/d and
+        backs it up to m/n/o/p, then entry 2 wants to backup the folder m/n/o, that would be a cyclic entry
+        since during the backup process, the size of the folder entry 2 would backup would grow. This throws
+        off directory size calculations and gives the user a technically non-accurate size number.
+        :return: True if this configuration contains at least one cyclic entry, false otherwise.
+        """
+        destination_list = []
+        for config_entry in self._entries:
+            for destination in config_entry.outputs:
+                destination_list.append(destination)
+            for destination in destination_list:
+                output_absolute = os.path.join(destination, '')
+                input_absolute = os.path.join(config_entry.input, '')
+                if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
+                    return True
+        return False
+
     def equals(self, other_config):
         """
         Check if this configuration is equal to another. For them to be equal, the names need to be
@@ -257,7 +278,8 @@ def load_config(config_name):
 def append_input_to_config(config, input_string):
     """
     Add the given input string, which should be a valid path to a file or directory, to the
-    configuration as a new entry. The path will be checked to be valid.
+    configuration as a new entry. The path will be checked to be valid and that it does not
+    create a cyclic entry.
     :param config: The configuration to add this path to.
     :param input_string: An absolute file path to a valid file or directory.
     :return: A boolean that is True when the given input path is valid, and false otherwise.
@@ -266,8 +288,11 @@ def append_input_to_config(config, input_string):
     if not os.path.isdir(input_string) and not os.path.isfile(input_string):
         return False
 
-    # Add the string as a new entry.
+    # Add the string as a new entry and check for cyclic entries, remove it if it creates one
     config.new_entry(os.path.realpath(input_string))
+    if config.check_for_cyclic_entries():
+        config.delete_entry(config.num_entries())
+        return False
     return True
 
 
@@ -299,6 +324,13 @@ def append_output_to_config(config, entry_number, output_string):
         if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
             return False
 
+    # Copy the configuration and attempt to add the new output, return false if it creates cyclic entries
+    copy_config = copy.deepcopy(config)
+    for current_entry_number in entry_numbers:
+        copy_config.get_entry(current_entry_number).new_destination(os.path.realpath(output_string))
+    if copy_config.check_for_cyclic_entries():
+        return False
+
     # Add the string as a new output for this entry.
     for current_entry_number in entry_numbers:
         config.get_entry(current_entry_number).new_destination(os.path.realpath(output_string))
@@ -308,15 +340,13 @@ def append_output_to_config(config, entry_number, output_string):
 def edit_input_in_config(config, entry_number, new_input):
     """
     Edit the name of an input in the configuration. This will be checked to ensure it's a valid
-    directory/file path, and not already in the configuration.
+    directory/file path and doesn't create a cyclic entry.
     :param config: The configuration to edit a path in.
     :param entry_number: The number of the index of the entry, starting at 1.
     :param new_input: The new input path.
     :return: A boolean that is True when the given input path is valid, and false otherwise.
     """
-    # Return false if this input already exists, or it's not a valid directory/file.
-    if config.entry_exists(new_input):
-        return False
+    # Return false if this input is not a valid directory/file.
     if not os.path.isdir(new_input) and not os.path.isfile(new_input):
         return False
 
@@ -327,18 +357,23 @@ def edit_input_in_config(config, entry_number, new_input):
         if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
             return False
 
-    # Overwrite the name of the original entry.
+    # Overwrite the name of the original entry and check for cyclic entries.
+    old_input = config.get_entry(entry_number).input
     config.get_entry(entry_number).input = os.path.realpath(new_input)
+    if config.check_for_cyclic_entries():
+        config.get_entry(entry_number).input = old_input
+        return False
     return True
 
 
-def edit_destination_in_config(config_entry, destination_number, new_output):
+def edit_destination_in_config(config_entry, destination_number, new_output, config):
     """
     Edit the name of a destination path within an entry of the configuration. This will be checked
     to ensure it's a valid directory path and not already in this entry.
     :param config_entry: An entry from the configuration that's currently being edited.
     :param destination_number: The number of the index of the destination in this entry, starting at 1.
     :param new_output: The new destination path.
+    :param config: The current configuration, needed to check for cyclic entries.
     :return: A boolean that is True when the given destination path is valid, and false otherwise.
     """
     # Return false if the output isn't a valid directory or it's a sub-path of the input.
@@ -349,8 +384,12 @@ def edit_destination_in_config(config_entry, destination_number, new_output):
     if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
         return False
 
-    # Overwrite the original destination.
+    # Overwrite the original destination and check for cyclic entries, if one exists then revert the change.
+    old_destination = config_entry.get_destination(destination_number)
     config_entry.edit_destination(destination_number, os.path.realpath(new_output))
+    if config.check_for_cyclic_entries():
+        config_entry.edit_destination(destination_number, old_destination)
+        return False
     return True
 
 
