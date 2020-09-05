@@ -199,16 +199,16 @@ class LimitationTypeOutput(LimitationType):
     def check_function(self, limitation, path_to_exclude, path_destination):
         """
         Implements this abstract method from LimitationType. This calls the limitation type's function, and
-        only passes the limitation and the output path to it. It will return false if the output path is None.
+        only passes the limitation and the output path to it. It will return true if the output path is None.
         :param limitation: The limitation of this type that is being used.
         :param path_to_exclude: A path to a file that's being checked for exclusion.
         :param path_destination: A destination path of where the file will be sent during the backup process.
                                  This can be None.
-        :return: True if the limitation type function passes, false otherwise. False if the destination
+        :return: True if the limitation type function passes, false otherwise. True if the destination
                  path is None.
         """
         if path_destination is None:
-            return False
+            return True
         return self._function(limitation, path_destination)
 
 
@@ -224,4 +224,7 @@ LIMITATION_TYPES = \
      LimitationTypeInput(code="sub", suffix_string="and all sub-directories",
                          menu_text="This limitation should affect the specified directory and all of its " +
                                    "sub-directories",
-                         function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep))]
+                         function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep)),
+     LimitationTypeOutput(code="drive", suffix_string="this drive when running a backup",
+                          menu_text="This limitation should only apply when backing up to a specific drive",
+                          function=lambda limit, path: os.path.splitdrive(path)[0] == limit.data)]
