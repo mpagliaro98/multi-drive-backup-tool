@@ -181,16 +181,18 @@ class Entry:
         """
         del self._exclusions[exclusion_number-1]
 
-    def should_exclude(self, path_to_exclude):
+    def should_exclude(self, path_to_exclude, path_destination=None):
         """
         Checks if a given file path should be excluded, based on this entry's exclusions.
         :param path_to_exclude: A file path to a folder or file to check if it should be excluded.
+        :param path_destination: The path of where the folder or file would be in its output. Is set to
+                                 None if no path is specified.
         :return: True if this folder/file should be excluded, false otherwise.
         """
         for exclusion in self._exclusions:
             for exclusion_type in exclusions.EXCLUSION_TYPES:
                 if exclusion.code == exclusion_type.code:
-                    if exclusion_type.exclude_path(exclusion, path_to_exclude):
+                    if exclusion_type.exclude_path(exclusion, path_to_exclude, path_destination):
                         return True
         return False
 

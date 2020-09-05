@@ -109,18 +109,19 @@ class Exclusion:
         """
         return self._limitation is not None
 
-    def limitation_check(self, path_to_exclude):
+    def limitation_check(self, path_to_exclude, path_destination):
         """
         This limitation check is done every time a file is checked to be excluded, and based on the exclusion
         alone it should be excluded. This will check if the current exclusion type accepts limitations, and if
         this exclusion has a limitation, and if both are true, it will check if the limitation is satisfied.
         :param path_to_exclude: The path to a folder or file that is being checked if it satisfies this exclusion.
+        :param path_destination: The path of where the folder or file would be in its output.
         :return: True if this exclusion type accepts limitations, this exclusion has a limitation, and the given
                  path satisfies the limitation. This also returns true if the type doesn't accept limitations or
                  there is no limitation. Will return false if it checks the limitation and it's not satisfied.
         """
         if self.accepts_limitations() and self.has_limitation():
-            if self._limitation.satisfied(path_to_exclude):
+            if self._limitation.satisfied(path_to_exclude, path_destination):
                 return True
             else:
                 return False
@@ -219,7 +220,7 @@ class ExclusionType:
         """
         return self._function
 
-    def exclude_path(self, exclusion, path_to_exclude):
+    def exclude_path(self, exclusion, path_to_exclude, path_destination):
         """
         Check if this should exclude a given file path given an exclusion's data. This will use this
         exclusion type's function to check if it passes, and if it does, it will perform a limitation
@@ -227,10 +228,11 @@ class ExclusionType:
         excluded, and if not it will return false.
         :param exclusion: An exclusion with data to use to verify if the file should be excluded.
         :param path_to_exclude: A path to a file to check.
+        :param path_destination: The path of where the folder or file would be in its output.
         :return: True if the path should be excluded, false otherwise.
         """
         if self._function(exclusion, path_to_exclude):
-            if exclusion.limitation_check(path_to_exclude):
+            if exclusion.limitation_check(path_to_exclude, path_destination):
                 return True
         return False
 

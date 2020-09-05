@@ -7,6 +7,7 @@ in this file, and changes to those only need to be made in this file to affect t
 
 import os
 import util
+import abc
 
 
 class Limitation:
@@ -57,17 +58,18 @@ class Limitation:
         """
         self._data = new_data
 
-    def satisfied(self, path_to_exclude):
+    def satisfied(self, path_to_exclude, path_destination):
         """
         Checks if this limitation is satisfied by a given file path. This will find the limitation type that
         corresponds to this limitation's code, then check if that limitation type's function returns true when
         given the path.
         :param path_to_exclude: A file path to check if it satisfies the limitation.
+        :param path_destination: The path of where the folder or file would be in its output.
         :return: True if the limitation is satisfied, false otherwise.
         """
         for limitation_type in LIMITATION_TYPES:
             if self._code == limitation_type.code:
-                if limitation_type.function(self, path_to_exclude):
+                if limitation_type.check_function(self, path_to_exclude, path_destination):
                     return True
         return False
 
@@ -101,7 +103,7 @@ class Limitation:
         return False
 
 
-class LimitationType:
+class LimitationType(metaclass=abc.ABCMeta):
     """
     A class representing a type of limitation. Each type defines how it operates on data, and what kinds of
     data satisfy the limitation. They each have a unique code, a suffix string used for displaying, menu text
@@ -157,18 +159,69 @@ class LimitationType:
         """
         return self._function
 
+    @abc.abstractmethod
+    def check_function(self, limitation, path_to_exclude, path_destination):
+        """
+        An abstract method that will call this limitation type's function. Each sub-class of LimitationType
+        must define this in order to define which data is sent to the limitation type function.
+        :param limitation: The limitation of this type that is being used.
+        :param path_to_exclude: A path to a file that's being checked for exclusion.
+        :param path_destination: A destination path of where the file will be sent during the backup process.
+                                 This can be None.
+        :return: True if the limitation type function passes, false otherwise.
+        """
+        pass
+
+
+class LimitationTypeInput(LimitationType):
+    """
+    A sub-class of LimitationType that works only on the input path that is given to check_function().
+    """
+
+    def check_function(self, limitation, path_to_exclude, path_destination):
+        """
+        Implements this abstract method from LimitationType. This calls the limitation type's function, and
+        only passes the limitation and the input path to it.
+        :param limitation: The limitation of this type that is being used.
+        :param path_to_exclude: A path to a file that's being checked for exclusion.
+        :param path_destination: A destination path of where the file will be sent during the backup process.
+                                 This can be None.
+        :return: True if the limitation type function passes, false otherwise.
+        """
+        return self._function(limitation, path_to_exclude)
+
+
+class LimitationTypeOutput(LimitationType):
+    """
+    A sub-class of LimitationType that works only on the output path that is given to check_function().
+    """
+
+    def check_function(self, limitation, path_to_exclude, path_destination):
+        """
+        Implements this abstract method from LimitationType. This calls the limitation type's function, and
+        only passes the limitation and the output path to it. It will return false if the output path is None.
+        :param limitation: The limitation of this type that is being used.
+        :param path_to_exclude: A path to a file that's being checked for exclusion.
+        :param path_destination: A destination path of where the file will be sent during the backup process.
+                                 This can be None.
+        :return: True if the limitation type function passes, false otherwise. False if the destination
+                 path is None.
+        """
+        if path_destination is None:
+            return False
+        return self._function(limitation, path_destination)
+
 
 """
 A global list of limitation types. This list should be referenced whenever creating menus to select a type
 of limitation or create a new limitation. To add a new type of limitation, only a new element should be added
 to this list.
 """
-LIMITATION_TYPES = [LimitationType(code="dir", suffix_string="only",
-                                   menu_text="This limitation should only affect the directory specified and no " +
+LIMITATION_TYPES = \
+    [LimitationTypeInput(code="dir", suffix_string="only",
+                         menu_text="This limitation should only affect the directory specified and no sub-directories",
+                         function=lambda limit, path: util.path_is_in_directory(path, os.path.realpath(limit.data))),
+     LimitationTypeInput(code="sub", suffix_string="and all sub-directories",
+                         menu_text="This limitation should affect the specified directory and all of its " +
                                    "sub-directories",
-                                   function=lambda limit, path: util.path_is_in_directory(
-                                       path, os.path.realpath(limit.data))),
-                    LimitationType(code="sub", suffix_string="and all sub-directories",
-                                   menu_text="This limitation should affect the specified directory and all of " +
-                                   "its sub-directories",
-                                   function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep))]
+                         function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep))]

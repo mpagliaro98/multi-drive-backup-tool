@@ -118,7 +118,7 @@ def mark_files(input_path, output_path, config, input_number):
     global NUM_FILES_ERROR
 
     # Don't continue down this path if it should be excluded
-    if config.get_entry(input_number).should_exclude(input_path):
+    if config.get_entry(input_number).should_exclude(input_path, output_path):
         logging.log("EXCLUDED - " + input_path)
         return [], [], []
 
