@@ -257,20 +257,18 @@ def load_config(config_name):
 def append_input_to_config(config, input_string):
     """
     Add the given input string, which should be a valid path to a file or directory, to the
-    configuration as a new entry. The path will be checked to be valid and not already in the
-    configuration.
+    configuration as a new entry. The path will be checked to be valid.
     :param config: The configuration to add this path to.
     :param input_string: An absolute file path to a valid file or directory.
-    :return: The configuration object with a new entry, and a boolean that is True when the
-             given input path is valid, and false otherwise.
+    :return: A boolean that is True when the given input path is valid, and false otherwise.
     """
     # Return false if this input is not a valid directory/file.
     if not os.path.isdir(input_string) and not os.path.isfile(input_string):
-        return config, False
+        return False
 
     # Add the string as a new entry.
     config.new_entry(os.path.realpath(input_string))
-    return config, True
+    return True
 
 
 def append_output_to_config(config, entry_number, output_string):
@@ -285,8 +283,7 @@ def append_output_to_config(config, entry_number, output_string):
                          This starts at 1, not 0. If the number is 0, the destination will be
                          appended to every entry.
     :param output_string: An absolute directory path where this input should be backed-up to.
-    :return: The configuration object with a new destination, and a boolean that is True when the
-             given destination path is valid, and false otherwise.
+    :return: A boolean that is True when the given destination path is valid, and false otherwise.
     """
     if entry_number == 0:
         entry_numbers = range(1, config.num_entries()+1)
@@ -295,17 +292,17 @@ def append_output_to_config(config, entry_number, output_string):
 
     # Return false if the output isn't a valid directory or it's a sub-path of the input.
     if not os.path.isdir(output_string):
-        return config, False
+        return False
     for current_entry_number in entry_numbers:
         output_absolute = os.path.join(os.path.realpath(output_string), '')
         input_absolute = os.path.join(os.path.realpath(config.get_entry(current_entry_number).input), '')
         if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
-            return config, False
+            return False
 
     # Add the string as a new output for this entry.
     for current_entry_number in entry_numbers:
         config.get_entry(current_entry_number).new_destination(os.path.realpath(output_string))
-    return config, True
+    return True
 
 
 def edit_input_in_config(config, entry_number, new_input):
@@ -315,49 +312,46 @@ def edit_input_in_config(config, entry_number, new_input):
     :param config: The configuration to edit a path in.
     :param entry_number: The number of the index of the entry, starting at 1.
     :param new_input: The new input path.
-    :return: The configuration object with an edited entry, and a boolean that is True when the
-             given input path is valid, and false otherwise.
+    :return: A boolean that is True when the given input path is valid, and false otherwise.
     """
     # Return false if this input already exists, or it's not a valid directory/file.
     if config.entry_exists(new_input):
-        return config, False
+        return False
     if not os.path.isdir(new_input) and not os.path.isfile(new_input):
-        return config, False
+        return False
 
     # Ensure the input can't be changed to that one of its outputs becomes a sub-folder.
     for destination in config.get_entry(entry_number).outputs:
         output_absolute = os.path.join(os.path.realpath(destination), '')
         input_absolute = os.path.join(os.path.realpath(new_input), '')
         if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
-            return config, False
+            return False
 
     # Overwrite the name of the original entry.
     config.get_entry(entry_number).input = os.path.realpath(new_input)
-    return config, True
+    return True
 
 
-def edit_destination_in_config(config, entry_number, destination_number, new_output):
+def edit_destination_in_config(config_entry, destination_number, new_output):
     """
     Edit the name of a destination path within an entry of the configuration. This will be checked
     to ensure it's a valid directory path and not already in this entry.
-    :param config: The configuration to edit a path in.
-    :param entry_number: The number of the index of the entry, starting at 1.
+    :param config_entry: An entry from the configuration that's currently being edited.
     :param destination_number: The number of the index of the destination in this entry, starting at 1.
     :param new_output: The new destination path.
-    :return: The configuration object with an edited destination, and a boolean that is True when the
-             given destination path is valid, and false otherwise.
+    :return: A boolean that is True when the given destination path is valid, and false otherwise.
     """
     # Return false if the output isn't a valid directory or it's a sub-path of the input.
     if not os.path.isdir(new_output):
-        return config, False
+        return False
     output_absolute = os.path.join(os.path.realpath(new_output), '')
-    input_absolute = os.path.join(os.path.realpath(config.get_entry(entry_number).input), '')
+    input_absolute = os.path.join(os.path.realpath(config_entry.input), '')
     if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
-        return config, False
+        return False
 
     # Overwrite the original destination.
-    config.get_entry(entry_number).edit_destination(destination_number, os.path.realpath(new_output))
-    return config, True
+    config_entry.edit_destination(destination_number, os.path.realpath(new_output))
+    return True
 
 
 def config_display_string(config, show_exclusions=False):
