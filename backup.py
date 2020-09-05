@@ -280,7 +280,6 @@ def backup_files(new_files, changed_files, remove_files):
 
     # Prepare values that will track the progress of each section of the backup
     num_errors = 0
-    mode = 0
     count = 0
     limit = len(remove_files)
 
@@ -293,7 +292,7 @@ def backup_files(new_files, changed_files, remove_files):
                 deleted_file_count = util.rmtree(delete_file_path)
                 for _ in range(deleted_file_count):
                     count += 1
-                    backup_status(mode, count, limit)
+                    print("Deleting old files: {}/{}".format(count, limit) + ' '*20, end="\r", flush=True)
             else:
                 os.remove(delete_file_path)
             logging.log("DELETED - " + delete_file_path)
@@ -303,7 +302,6 @@ def backup_files(new_files, changed_files, remove_files):
             num_errors += 1
 
     # Reset the counter values and copy over every file in the new list
-    mode = 1
     count = 0
     limit = len(new_files)
     for file_tuple in new_files:
@@ -317,10 +315,9 @@ def backup_files(new_files, changed_files, remove_files):
             logging.log_exception(output_path, "CREATING")
             num_errors += 1
         count += 1
-        backup_status(mode, count, limit)
+        print("Copying over new files: {}/{}".format(count, limit) + ' '*20, end="\r", flush=True)
 
     # Reset the counter values and overwrite every file in the changed list
-    mode = 2
     count = 0
     limit = len(changed_files)
     for file_tuple in changed_files:
@@ -334,28 +331,8 @@ def backup_files(new_files, changed_files, remove_files):
             logging.log_exception(output_path, "UPDATING")
             num_errors += 1
         count += 1
-        backup_status(mode, count, limit)
+        print("Updating existing files: {}/{}".format(count, limit) + ' '*20, end="\r", flush=True)
     return num_errors
-
-
-def backup_status(mode, count, limit):
-    """
-    Display the updating status message during the backup process. The format for the message is
-    "{mode} files: {count}/{limit}"
-    :param mode: The mode that defines how the message starts. Mode 0 is "Deleting old", mode 1 is "copying
-                 over new", and mode 2 is "updating existing".
-    :param count: The value to go on the left side of the slash.
-    :param limit: The value to go on the right side of the slash.
-    """
-    if mode == 0:
-        mode_str = "Deleting old"
-    elif mode == 1:
-        mode_str = "Copying over new"
-    elif mode == 2:
-        mode_str = "Updating existing"
-    else:
-        mode_str = "Accessing"
-    print("{} files: {}/{}".format(mode_str, count, limit) + ' '*20, end="\r", flush=True)
 
 
 def reset_globals():
