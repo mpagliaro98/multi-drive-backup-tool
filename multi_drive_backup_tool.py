@@ -290,7 +290,13 @@ def sub_option_edit_exclusions(entry):
                     exclusion.code = exclusion_codes[new_exclusion_input-1]
                 # Change exclusion data
                 elif excl_edit_input == 2:
-                    new_data = input("Enter new data for this exclusion: ")
+                    exclusion_codes = [item.code for item in EXCLUSION_TYPES]
+                    exclusion_input_messages = [item.input_text for item in EXCLUSION_TYPES]
+                    input_message = "Enter the new data for this exclusion: "
+                    for exclusion_type_idx in range(len(exclusion_codes)):
+                        if exclusion_codes[exclusion_type_idx] == exclusion.code:
+                            input_message = exclusion_input_messages[exclusion_type_idx]
+                    new_data = input(input_message)
                     exclusion.data = new_data
                 # Add or edit limitation
                 elif excl_edit_input == 3:
