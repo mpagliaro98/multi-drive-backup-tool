@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 import util
 import configuration
+import logging
 
 
 # Constant for the backup confirmation filename
@@ -27,7 +28,7 @@ NUM_FILES_DELETED = 0
 TOTAL_SIZE_PROCESSED = 0
 
 
-@util.logger
+@logging.logger
 def run_backup(config):
     """
     The primary entry function that starts and runs the backup process. This algorithm will go through each
@@ -37,7 +38,7 @@ def run_backup(config):
     :param config: A configuration containing paths to folders to backup.
     """
     print("Initializing...", end="\r", flush=True)
-    util.log("\n" + configuration.config_display_string(config, show_exclusions=True))
+    logging.log("\n" + configuration.config_display_string(config, show_exclusions=True))
 
     # Loop through every entry in the configuration
     for input_number in range(1, config.num_entries()+1):
@@ -49,10 +50,10 @@ def run_backup(config):
             backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
 
             # Start the log messages
-            util.log("\n" + '/'*60)
-            util.log("///// INPUT: " + input_path)
-            util.log("///// OUTPUT: " + backup_folder)
-            util.log('/'*60 + "\n")
+            logging.log("\n" + '/'*60 +
+                        "\n///// INPUT: " + input_path +
+                        "\n///// OUTPUT: " + backup_folder +
+                        "\n" + '/'*60 + "\n")
 
             # Mark all the files needed for the backup process
             print(' ' * 40 + "\nPreparing files for backup from {} to {}...".format(input_path, backup_folder))
@@ -61,17 +62,17 @@ def run_backup(config):
             new_files, changed_files, remove_files = mark_files(input_path, backup_folder, config, input_number)
             print("\nFile preparation complete.")
             if NUM_FILES_ERROR > 0:
-                util.log_print("There were {} error(s) reported during file preparation.".format(NUM_FILES_ERROR))
+                logging.log_print("There were {} error(s) reported during file preparation.".format(NUM_FILES_ERROR))
                 print("Please check the log file for more info on the individual errors.")
 
             # Check that doing this backup won't over-fill the disk, if it will then return
             has_space, remaining_space = check_space_requirements(new_files, changed_files, remove_files, backup_folder)
             if not has_space:
                 drive_letter, tail = os.path.splitdrive(backup_folder)
-                util.log_print("\nCopying {} to {} may not fit on the {} drive.".format(input_path, backup_folder,
-                                                                                        drive_letter))
-                util.log_print("Please clear up space on the drive you want to copy to and try again.")
-                util.log_print("Try clearing at least {} on the {} drive and trying again.".format(
+                logging.log_print("\nCopying {} to {} may not fit on the {} drive.".format(input_path, backup_folder,
+                                                                                           drive_letter))
+                logging.log_print("Please clear up space on the drive you want to copy to and try again.")
+                logging.log_print("Try clearing at least {} on the {} drive and trying again.".format(
                     util.bytes_to_string(-1 * remaining_space, 3), drive_letter))
                 return
 
@@ -81,16 +82,16 @@ def run_backup(config):
             end_time = time.time()
             print("\nBackup complete. ({})".format(util.time_string(end_time-start_time)))
             if num_errors > 0:
-                util.log_print("There were {} error(s) reported during the backup.".format(num_errors))
+                logging.log_print("There were {} error(s) reported during the backup.".format(num_errors))
                 print("Please check the log file for more info on the individual errors.")
 
             # Report on any errors and finalize the backup
             final_report_str = "Backup complete: {} files processed, {} new files, {} existing files modified, " + \
                                "{} files removed ({})"
-            util.log(final_report_str.format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED,
-                                             NUM_FILES_DELETED, util.bytes_to_string(TOTAL_SIZE_PROCESSED, 2)))
+            logging.log(final_report_str.format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED,
+                                                NUM_FILES_DELETED, util.bytes_to_string(TOTAL_SIZE_PROCESSED, 2)))
             if NUM_FILES_ERROR > 0:
-                util.log_print("There were {} error(s) reported during this backup.".format(NUM_FILES_ERROR))
+                logging.log_print("There were {} error(s) reported during this backup.".format(NUM_FILES_ERROR))
                 print("Please check the log file for more info on the individual errors.")
             create_backup_text_file(backup_folder)
 
@@ -118,7 +119,7 @@ def mark_files(input_path, output_path, config, input_number):
 
     # Don't continue down this path if it should be excluded
     if config.get_entry(input_number).should_exclude(input_path):
-        util.log("EXCLUDED - " + input_path)
+        logging.log("EXCLUDED - " + input_path)
         return [], [], []
 
     # If this is a file, check what to do with it and increment counters as necessary
@@ -151,7 +152,7 @@ def mark_files(input_path, output_path, config, input_number):
                 shutil.copymode(input_path, output_path)
             except PermissionError:
                 # Log the exception and return so we don't process any of this directory's children
-                util.log_exception(output_path, "CREATING DIRECTORY")
+                logging.log_exception(output_path, "CREATING DIRECTORY")
                 NUM_FILES_ERROR += 1
                 return [], [], []
 
@@ -295,10 +296,10 @@ def backup_files(new_files, changed_files, remove_files):
                     backup_status(mode, count, limit)
             else:
                 os.remove(delete_file_path)
-            util.log("DELETED - " + delete_file_path)
+            logging.log("DELETED - " + delete_file_path)
         except PermissionError:
             # Log the exception and indicate that an error occurred
-            util.log_exception(delete_file_path, "DELETING")
+            logging.log_exception(delete_file_path, "DELETING")
             num_errors += 1
 
     # Reset the counter values and copy over every file in the new list
@@ -310,10 +311,10 @@ def backup_files(new_files, changed_files, remove_files):
         output_path = file_tuple[2]
         try:
             shutil.copy2(new_file, output_path)
-            util.log("NEW - " + output_path)
+            logging.log("NEW - " + output_path)
         except PermissionError:
             # Write the full error to the log file and record that an error occurred
-            util.log_exception(output_path, "CREATING")
+            logging.log_exception(output_path, "CREATING")
             num_errors += 1
         count += 1
         backup_status(mode, count, limit)
@@ -327,10 +328,10 @@ def backup_files(new_files, changed_files, remove_files):
         output_path = file_tuple[2]
         try:
             shutil.copy2(new_file, output_path)
-            util.log("UPDATED - " + output_path)
+            logging.log("UPDATED - " + output_path)
         except PermissionError:
             # Write the full error to the log file and record that an error occurred
-            util.log_exception(output_path, "UPDATING")
+            logging.log_exception(output_path, "UPDATING")
             num_errors += 1
         count += 1
         backup_status(mode, count, limit)
