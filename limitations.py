@@ -107,16 +107,17 @@ class LimitationType(metaclass=abc.ABCMeta):
     """
     A class representing a type of limitation. Each type defines how it operates on data, and what kinds of
     data satisfy the limitation. They each have a unique code, a suffix string used for displaying, menu text
-    for when each is selectable in menus, and a function that takes a limitation and a path and returns true
-    or false if that path satisfies that limitation.
+    for when each is selectable in menus, input text for when the user is prompted to enter data for this limitation,
+    and a function that takes a limitation and a path and returns true or false if that path satisfies that limitation.
     """
 
-    def __init__(self, code, suffix_string, menu_text, function):
+    def __init__(self, code, suffix_string, menu_text, input_text, function):
         """
         Create the new limitation type object. All fields are initialized from the start.
         :param code: A unique string identifier for this type.
         :param suffix_string: A string that can be used to display how this limitation modifies an exclusion.
         :param menu_text: Text that should display in menus when selecting which type to choose.
+        :param input_text: Text that should display when inputting data for this limitation type.
         :param function: A function that takes a limitation object and a string file path. This will return true
                          if the file path satisfies the limitation based on the given limitation's data, and
                          false otherwise.
@@ -124,6 +125,7 @@ class LimitationType(metaclass=abc.ABCMeta):
         self._code = code
         self._suffix_string = suffix_string
         self._menu_text = menu_text
+        self._input_text = input_text
         self._function = function
 
     @property
@@ -149,6 +151,14 @@ class LimitationType(metaclass=abc.ABCMeta):
         :return: The menu text as a string.
         """
         return self._menu_text
+
+    @property
+    def input_text(self):
+        """
+        Text that should display when inputting data for this limitation type.
+        :return: The input text as a string.
+        """
+        return self._input_text
 
     @property
     def function(self):
@@ -219,12 +229,14 @@ to this list.
 """
 LIMITATION_TYPES = \
     [LimitationTypeInput(code="dir", suffix_string="only",
-                         menu_text="This limitation should only affect the directory specified and no sub-directories",
+                         menu_text="This exclusion should only affect a given directory and no sub-directories",
+                         input_text="Enter the absolute path of a directory to limit this exclusion to: ",
                          function=lambda limit, path: util.path_is_in_directory(path, os.path.realpath(limit.data))),
      LimitationTypeInput(code="sub", suffix_string="and all sub-directories",
-                         menu_text="This limitation should affect the specified directory and all of its " +
-                                   "sub-directories",
+                         menu_text="This exclusion should affect a given directory and all of its sub-directories",
+                         input_text="Enter the absolute path of a directory to limit this exclusion to: ",
                          function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep)),
      LimitationTypeOutput(code="drive", suffix_string="this drive when running a backup",
-                          menu_text="This limitation should only apply when backing up to a specific drive",
+                          menu_text="This exclusion should only apply to a specific drive during a backup",
+                          input_text="Enter the drive letter and a colon of the drive to limit this to: ",
                           function=lambda limit, path: os.path.splitdrive(path)[0] == limit.data)]

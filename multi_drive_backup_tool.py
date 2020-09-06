@@ -136,17 +136,18 @@ def menu_option_exclude(config):
 
         # If this exclusion type takes limitations, prompt if the user would like to add one
         if EXCLUSION_TYPES[exclusion_input-1].accepts_limitations:
-            directory_input = input("Would you like to limit this exclusion to a directory? (y/n): ")
+            directory_input = input("Would you like to apply a limitation to this exclusion? (y/n): ")
             if directory_input.lower() == "y":
-                # Get the directory to limit this exclusion to
-                limit_directory = input("Enter the absolute path of a folder to limit this exclusion to: ")
-
                 # Allow the user to select which limitation mode to use
                 limitation_input = input_menu([item.menu_text for item in LIMITATION_TYPES])
                 limitation_code = LIMITATION_TYPES[limitation_input-1].code
 
+                # Get the data for this limitation
+                input_text_list = [item.input_text for item in LIMITATION_TYPES]
+                limit_data = input(input_text_list[limitation_input-1])
+
                 # Add this limitation to the entry
-                entry.get_exclusion(exclusion_number).add_limitation(limitation_code, limit_directory)
+                entry.get_exclusion(exclusion_number).add_limitation(limitation_code, limit_data)
 
 
 def menu_option_edit(config):
@@ -354,7 +355,13 @@ def sub_option_edit_limitations(exclusion):
                 exclusion.limitation.code = limitation_codes[new_limitation_input-1]
             # Change limitation data
             elif limit_edit_input == 2:
-                new_data = input("Enter new data for this limitation: ")
+                limitation_codes = [item.code for item in LIMITATION_TYPES]
+                limitation_input_messages = [item.input_text for item in LIMITATION_TYPES]
+                input_message = "Enter the new data for this limitation: "
+                for limitation_type_idx in range(len(limitation_codes)):
+                    if limitation_codes[limitation_type_idx] == exclusion.limitation.code:
+                        input_message = limitation_input_messages[limitation_type_idx]
+                new_data = input(input_message)
                 exclusion.limitation.data = new_data
             # Delete the limitation
             elif limit_edit_input == 3:
