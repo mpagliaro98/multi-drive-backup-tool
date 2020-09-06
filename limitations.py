@@ -209,12 +209,12 @@ class LimitationTypeOutput(LimitationType):
     def check_function(self, limitation, path_to_exclude, path_destination):
         """
         Implements this abstract method from LimitationType. This calls the limitation type's function, and
-        only passes the limitation and the output path to it. It will return true if the output path is None.
+        only passes the limitation and the output path to it. It will return false if the output path is None.
         :param limitation: The limitation of this type that is being used.
         :param path_to_exclude: A path to a file that's being checked for exclusion.
         :param path_destination: A destination path of where the file will be sent during the backup process.
                                  This can be None.
-        :return: True if the limitation type function passes, false otherwise. True if the destination
+        :return: True if the limitation type function passes, false otherwise. False if the destination
                  path is None.
         """
         if path_destination is None:
