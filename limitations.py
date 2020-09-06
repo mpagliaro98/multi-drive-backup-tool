@@ -73,6 +73,18 @@ class Limitation:
                     return True
         return False
 
+    def always_applicable(self):
+        """
+        Checks if this limitation is always applicable. Every limitation type specifies if it's always applicable
+        or not, so this checks with the corresponding limitation type and returns true if it's always applicable.
+        :return: True if this limitation is always applicable, false otherwise.
+        """
+        for limitation_type in LIMITATION_TYPES:
+            if self._code == limitation_type.code:
+                if limitation_type.always_applicable:
+                    return True
+        return False
+
     def get_proper_suffix(self, default_suffix=""):
         """
         Get the suffix string of the limitation type that corresponds to this limitation.
@@ -111,7 +123,7 @@ class LimitationType(metaclass=abc.ABCMeta):
     and a function that takes a limitation and a path and returns true or false if that path satisfies that limitation.
     """
 
-    def __init__(self, code, suffix_string, menu_text, input_text, function):
+    def __init__(self, code, suffix_string, menu_text, input_text, function, always_applicable=False):
         """
         Create the new limitation type object. All fields are initialized from the start.
         :param code: A unique string identifier for this type.
@@ -121,12 +133,17 @@ class LimitationType(metaclass=abc.ABCMeta):
         :param function: A function that takes a limitation object and a string file path. This will return true
                          if the file path satisfies the limitation based on the given limitation's data, and
                          false otherwise.
+        :param always_applicable: A boolean that indicates if this limitation is always applicable to exclusions.
+                                  A limitation type that is always applicable is allowed to be attached to an
+                                  exclusion even if that exclusion type's accepts_limitations is false. This is
+                                  false by default.
         """
         self._code = code
         self._suffix_string = suffix_string
         self._menu_text = menu_text
         self._input_text = input_text
         self._function = function
+        self._always_applicable = always_applicable
 
     @property
     def code(self):
@@ -168,6 +185,16 @@ class LimitationType(metaclass=abc.ABCMeta):
         :return: The limitation function.
         """
         return self._function
+
+    @property
+    def always_applicable(self):
+        """
+        A boolean that indicates if this limitation is always applicable to exclusions. A limitation type that
+        is always applicable is allowed to be attached to an exclusion even if that exclusion type's
+        accepts_limitations is false.
+        :return: True if this limitation type is always applicable, false otherwise.
+        """
+        return self._always_applicable
 
     @abc.abstractmethod
     def check_function(self, limitation, path_to_exclude, path_destination):
@@ -222,6 +249,19 @@ class LimitationTypeOutput(LimitationType):
         return self._function(limitation, path_destination)
 
 
+def get_limitation_type(limitation):
+    """
+    Utility function to get a limitation's type object by finding the limitation type that has the given
+    limitation's code.
+    :param limitation: The limitation to find the type for.
+    :return: The limitation type if found, None otherwise.
+    """
+    for limitation_type in LIMITATION_TYPES:
+        if limitation_type.code == limitation.code:
+            return limitation_type
+    return None
+
+
 """
 A global list of limitation types. This list should be referenced whenever creating menus to select a type
 of limitation or create a new limitation. To add a new type of limitation, only a new element should be added
@@ -236,7 +276,7 @@ LIMITATION_TYPES = \
                          menu_text="This exclusion should affect a given directory and all of its sub-directories",
                          input_text="Enter the absolute path of a directory to limit this exclusion to: ",
                          function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep)),
-     LimitationTypeOutput(code="drive", suffix_string="this drive when running a backup",
+     LimitationTypeOutput(code="drive", suffix_string="this drive when running a backup", always_applicable=True,
                           menu_text="This exclusion should only apply to a specific drive during a backup",
                           input_text="Enter the drive letter and a colon of the drive to limit this to: ",
                           function=lambda limit, path: os.path.splitdrive(path)[0] == limit.data)]

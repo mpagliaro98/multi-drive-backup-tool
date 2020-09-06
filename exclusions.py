@@ -39,14 +39,15 @@ class Exclusion:
     def code(self, new_code):
         """
         Change the code of this exclusion so it corresponds to a different type. If the code is changed to a
-        type that does not accept limitations, and this exclusion had a limitation already, that limitation
-        will be deleted.
+        type that does not accept limitations, and this exclusion had a limitation already that isn't always
+        applicable, that limitation will be deleted.
         :param new_code: The code to change it to.
         """
         self._code = new_code
         for exclusion_type in EXCLUSION_TYPES:
             if self._code == exclusion_type.code:
-                if not exclusion_type.accepts_limitations:
+                if not exclusion_type.accepts_limitations and self.has_limitation() and not \
+                        self._limitation.always_applicable():
                     del self.limitation
 
     @property
@@ -92,7 +93,7 @@ class Exclusion:
     def accepts_limitations(self):
         """
         Checks if this exclusion accepts limitations. Each exclusion type specifies whether or not limitations
-        can be used with it, so this checks if the type corresponding to this exclusion's code accpets
+        can be used with it, so this checks if the type corresponding to this exclusion's code accepts
         limitations or not.
         :return: True if this exclusion accepts limitations, false otherwise.
         """
@@ -111,20 +112,24 @@ class Exclusion:
 
     def limitation_check(self, path_to_exclude, path_destination):
         """
-        This limitation check is done every time a file is checked to be excluded, and based on the exclusion
-        alone it should be excluded. This will check if the current exclusion type accepts limitations, and if
-        this exclusion has a limitation, and if both are true, it will check if the limitation is satisfied.
+        This limitation check is done every time a file is checked to be excluded and the exclusion alone
+        returns true. This checks if this exclusion has a limitation, then if its exclusion type accepts limitations or
+        the limitation is always applicable. If both cases are true, it will check if the limitation is satisfied.
         :param path_to_exclude: The path to a folder or file that is being checked if it satisfies this exclusion.
         :param path_destination: The path of where the folder or file would be in its output.
         :return: True if this exclusion type accepts limitations, this exclusion has a limitation, and the given
                  path satisfies the limitation. This also returns true if the type doesn't accept limitations or
                  there is no limitation. Will return false if it checks the limitation and it's not satisfied.
         """
-        if self.accepts_limitations() and self.has_limitation():
-            if self._limitation.satisfied(path_to_exclude, path_destination):
-                return True
+        if self.has_limitation():
+            limitation_type = limitations.get_limitation_type(self._limitation)
+            if self.accepts_limitations() or limitation_type.always_applicable:
+                if self._limitation.satisfied(path_to_exclude, path_destination):
+                    return True
+                else:
+                    return False
             else:
-                return False
+                return True
         else:
             return True
 
@@ -235,6 +240,19 @@ class ExclusionType:
             if exclusion.limitation_check(path_to_exclude, path_destination):
                 return True
         return False
+
+
+def get_exclusion_type(exclusion):
+    """
+    Utility function to get an exclusion's type object by finding the exclusion type that has the given
+    exclusion's code.
+    :param exclusion: The exclusion to find the type for.
+    :return: The exclusion type if found, None otherwise.
+    """
+    for exclusion_type in EXCLUSION_TYPES:
+        if exclusion_type.code == exclusion.code:
+            return exclusion_type
+    return None
 
 
 """

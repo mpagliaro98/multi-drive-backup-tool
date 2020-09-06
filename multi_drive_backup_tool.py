@@ -134,20 +134,25 @@ def menu_option_exclude(config):
         elif exclusion_input == len(exclusion_codes)+1:
             break
 
-        # If this exclusion type takes limitations, prompt if the user would like to add one
-        if EXCLUSION_TYPES[exclusion_input-1].accepts_limitations:
-            directory_input = input("Would you like to apply a limitation to this exclusion? (y/n): ")
-            if directory_input.lower() == "y":
-                # Allow the user to select which limitation mode to use
+        # Prompt if the user would like to add a limitation
+        directory_input = input("Would you like to apply a limitation to this exclusion? (y/n): ")
+        if directory_input.lower() == "y":
+            # Allow the user to select which limitation mode to use
+            while True:
                 limitation_input = input_menu([item.menu_text for item in LIMITATION_TYPES])
-                limitation_code = LIMITATION_TYPES[limitation_input-1].code
+                if not EXCLUSION_TYPES[exclusion_input-1].accepts_limitations and not \
+                        LIMITATION_TYPES[limitation_input-1].always_applicable:
+                    print("This limitation is not allowed with this type of exclusion.")
+                else:
+                    break
+            limitation_code = LIMITATION_TYPES[limitation_input-1].code
 
-                # Get the data for this limitation
-                input_text_list = [item.input_text for item in LIMITATION_TYPES]
-                limit_data = input(input_text_list[limitation_input-1])
+            # Get the data for this limitation
+            input_text_list = [item.input_text for item in LIMITATION_TYPES]
+            limit_data = input(input_text_list[limitation_input-1])
 
-                # Add this limitation to the entry
-                entry.get_exclusion(exclusion_number).add_limitation(limitation_code, limit_data)
+            # Add this limitation to the entry
+            entry.get_exclusion(exclusion_number).add_limitation(limitation_code, limit_data)
 
 
 def menu_option_edit(config):
@@ -326,18 +331,17 @@ def sub_option_edit_limitations(exclusion):
     delete it. If no limitation exists, it will allow the user to create one.
     :param exclusion: The current exclusion whose limitation is being edited.
     """
-    # Don't allow adding or editing if this exclusion type doesn't allow limitations
-    for exclusion_type in EXCLUSION_TYPES:
-        if exclusion.code == exclusion_type.code:
-            if not exclusion_type.accepts_limitations:
-                print("This exclusion type does not allow limitations.")
-                return
     # Adding a limitation
     if not exclusion.has_limitation():
-        limitation_input = input_menu([item.menu_text for item in LIMITATION_TYPES])
-        limitation_code = LIMITATION_TYPES[limitation_input - 1].code
+        while True:
+            limitation_input = input_menu([item.menu_text for item in LIMITATION_TYPES])
+            if not exclusion.accepts_limitations() and not LIMITATION_TYPES[limitation_input-1].always_applicable:
+                print("This limitation is not allowed with this type of exclusion.")
+            else:
+                break
+        limitation_code = LIMITATION_TYPES[limitation_input-1].code
         input_text_list = [item.input_text for item in LIMITATION_TYPES]
-        limit_data = input(input_text_list[limitation_input - 1])
+        limit_data = input(input_text_list[limitation_input-1])
         exclusion.add_limitation(limitation_code, limit_data)
     # Editing a limitation
     else:
@@ -351,8 +355,14 @@ def sub_option_edit_limitations(exclusion):
             if limit_edit_input == 1:
                 limitation_codes = [item.code for item in LIMITATION_TYPES]
                 limitation_menu_options = [item.menu_text for item in LIMITATION_TYPES]
-                new_limitation_input = input_menu(limitation_menu_options,
-                                                  input_text="Choose one of these options to change the type to: ")
+                while True:
+                    new_limitation_input = input_menu(limitation_menu_options,
+                                                      input_text="Choose one of these options to change the type to: ")
+                    if not exclusion.accepts_limitations() and not \
+                            LIMITATION_TYPES[new_limitation_input-1].always_applicable:
+                        print("This limitation is not allowed with this type of exclusion.")
+                    else:
+                        break
                 exclusion.limitation.code = limitation_codes[new_limitation_input-1]
             # Change limitation data
             elif limit_edit_input == 2:
