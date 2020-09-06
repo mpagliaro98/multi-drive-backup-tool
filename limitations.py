@@ -218,7 +218,7 @@ class LimitationTypeOutput(LimitationType):
                  path is None.
         """
         if path_destination is None:
-            return True
+            return False
         return self._function(limitation, path_destination)
 
 

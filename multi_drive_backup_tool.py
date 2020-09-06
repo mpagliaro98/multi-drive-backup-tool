@@ -334,10 +334,11 @@ def sub_option_edit_limitations(exclusion):
                 return
     # Adding a limitation
     if not exclusion.has_limitation():
-        limit_directory = input("Enter the absolute path of a folder to limit this exclusion to: ")
         limitation_input = input_menu([item.menu_text for item in LIMITATION_TYPES])
-        limitation_code = LIMITATION_TYPES[limitation_input-1].code
-        exclusion.add_limitation(limitation_code, limit_directory)
+        limitation_code = LIMITATION_TYPES[limitation_input - 1].code
+        input_text_list = [item.input_text for item in LIMITATION_TYPES]
+        limit_data = input(input_text_list[limitation_input - 1])
+        exclusion.add_limitation(limitation_code, limit_data)
     # Editing a limitation
     else:
         while True:
