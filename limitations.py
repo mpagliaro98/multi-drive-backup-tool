@@ -85,6 +85,21 @@ class Limitation:
                     return True
         return False
 
+    def get_proper_prefix(self, default_prefix=""):
+        """
+        Get the prefix string of the limitation type that corresponds to this limitation.
+        :param default_prefix: The string to use by default if no prefix is found. This default value will also
+                               be appended to the end of the prefix if it is found (allowing for things such as
+                               new-lines). It is the empty string by default.
+        :return: The proper prefix with default_prefix appended to the end of it if one exists, or just
+                 default_prefix if none exists.
+        """
+        limit_mode = default_prefix
+        for limitation_type in LIMITATION_TYPES:
+            if self._code == limitation_type.code:
+                limit_mode = limitation_type.prefix_string + default_prefix
+        return limit_mode
+
     def get_proper_suffix(self, default_suffix=""):
         """
         Get the suffix string of the limitation type that corresponds to this limitation.
@@ -123,11 +138,14 @@ class LimitationType(metaclass=abc.ABCMeta):
     and a function that takes a limitation and a path and returns true or false if that path satisfies that limitation.
     """
 
-    def __init__(self, code, suffix_string, menu_text, input_text, function, always_applicable=False):
+    def __init__(self, code, prefix_string, suffix_string, menu_text, input_text, function, always_applicable=False):
         """
         Create the new limitation type object. All fields are initialized from the start.
         :param code: A unique string identifier for this type.
-        :param suffix_string: A string that can be used to display how this limitation modifies an exclusion.
+        :param prefix_string: A string that can be printed before limitation data to explain how this limitation
+                              modifies an exclusion.
+        :param suffix_string: A string that can be printed after limitation data to explain how this limitation
+                              modifies an exclusion.
         :param menu_text: Text that should display in menus when selecting which type to choose.
         :param input_text: Text that should display when inputting data for this limitation type.
         :param function: A function that takes a limitation object and a string file path. This will return true
@@ -139,6 +157,7 @@ class LimitationType(metaclass=abc.ABCMeta):
                                   false by default.
         """
         self._code = code
+        self._prefix_string = prefix_string
         self._suffix_string = suffix_string
         self._menu_text = menu_text
         self._input_text = input_text
@@ -154,9 +173,17 @@ class LimitationType(metaclass=abc.ABCMeta):
         return self._code
 
     @property
+    def prefix_string(self):
+        """
+        A string that can be printed before limitation data to explain how this limitation modifies an exclusion.
+        :return: The suffix string as a string.
+        """
+        return self._prefix_string
+
+    @property
     def suffix_string(self):
         """
-        Text that can be used to display how this limitation modifies an exclusion.
+        A string that can be printed after limitation data to explain how this limitation modifies an exclusion.
         :return: The suffix string as a string.
         """
         return self._suffix_string
@@ -268,15 +295,16 @@ of limitation or create a new limitation. To add a new type of limitation, only 
 to this list.
 """
 LIMITATION_TYPES = \
-    [LimitationTypeInput(code="dir", suffix_string="only",
+    [LimitationTypeInput(code="dir", prefix_string="directory", suffix_string="only",
                          menu_text="This exclusion should only affect a given directory and no sub-directories",
                          input_text="Enter the absolute path of a directory to limit this exclusion to: ",
                          function=lambda limit, path: util.path_is_in_directory(path, os.path.realpath(limit.data))),
-     LimitationTypeInput(code="sub", suffix_string="and all sub-directories",
+     LimitationTypeInput(code="sub", prefix_string="directory", suffix_string="and all sub-directories",
                          menu_text="This exclusion should affect a given directory and all of its sub-directories",
                          input_text="Enter the absolute path of a directory to limit this exclusion to: ",
                          function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep)),
-     LimitationTypeOutput(code="drive", suffix_string="this drive when running a backup", always_applicable=True,
+     LimitationTypeOutput(code="drive", prefix_string="the", suffix_string="drive during backups",
                           menu_text="This exclusion should only apply to a specific drive during a backup",
                           input_text="Enter the drive letter and a colon of the drive to limit this to: ",
+                          always_applicable=True,
                           function=lambda limit, path: os.path.splitdrive(path)[0] == limit.data)]

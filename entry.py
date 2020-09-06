@@ -146,8 +146,9 @@ class Entry:
                     display_limitation = util.shorten_path(os.path.realpath(exclusion.limitation.data), self._input)
                 else:
                     display_limitation = exclusion.limitation.data
-                print_str += " limit to \"{}\" {}".format(display_limitation,
-                                                          exclusion.limitation.get_proper_suffix())
+                print_str += " limit to {} \"{}\" {}".format(exclusion.limitation.get_proper_prefix(),
+                                                             display_limitation,
+                                                             exclusion.limitation.get_proper_suffix())
             return_str += print_str + "\n"
         return return_str.strip()
 
@@ -213,8 +214,9 @@ class Entry:
                         display_limitation = util.shorten_path(os.path.realpath(exclusion.limitation.data), self._input)
                     else:
                         display_limitation = exclusion.limitation.data
-                    entry_str += " limited to \"{}\" {}".format(display_limitation,
-                                                                exclusion.limitation.get_proper_suffix("\n"))
+                    entry_str += " limited to {} \"{}\" {}".format(exclusion.limitation.get_proper_prefix(),
+                                                                   display_limitation,
+                                                                   exclusion.limitation.get_proper_suffix("\n"))
                 else:
                     entry_str += "\n"
         else:

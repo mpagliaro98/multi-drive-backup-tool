@@ -430,8 +430,9 @@ def config_display_string(config, show_exclusions=False):
                                                                    config.get_entry(entry_number).input)
                         else:
                             display_limitation = exclusion.limitation.data
-                        return_str += " limited to \"{}\" {}".format(display_limitation,
-                                                                     exclusion.limitation.get_proper_suffix("\n"))
+                        return_str += " limited to {} \"{}\" {}".format(exclusion.limitation.get_proper_prefix(),
+                                                                        display_limitation,
+                                                                        exclusion.limitation.get_proper_suffix("\n"))
                     else:
                         return_str += "\n"
             else:
