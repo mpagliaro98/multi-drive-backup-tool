@@ -283,7 +283,7 @@ def sub_option_edit_exclusions(entry):
                                   "Change the exclusion data",
                                   "Add a limitation",
                                   "Return to the previous menu"]
-                if exclusion.has_limitation():
+                if exclusion.has_limitations():
                     excl_edit_menu[excl_edit_menu.index("Add a limitation")] = "Edit the limitation"
                 excl_edit_input = input_menu(excl_edit_menu)
 
@@ -332,7 +332,7 @@ def sub_option_edit_limitations(exclusion):
     :param exclusion: The current exclusion whose limitation is being edited.
     """
     # Adding a limitation
-    if not exclusion.has_limitation():
+    if not exclusion.has_limitations():
         while True:
             limitation_input = input_menu([item.menu_text for item in LIMITATION_TYPES])
             if not exclusion.accepts_limitations() and not LIMITATION_TYPES[limitation_input-1].always_applicable:
@@ -370,13 +370,13 @@ def sub_option_edit_limitations(exclusion):
                 limitation_input_messages = [item.input_text for item in LIMITATION_TYPES]
                 input_message = "Enter the new data for this limitation: "
                 for limitation_type_idx in range(len(limitation_codes)):
-                    if limitation_codes[limitation_type_idx] == exclusion.limitation.code:
+                    if limitation_codes[limitation_type_idx] == exclusion.get_limitation(1).code:
                         input_message = limitation_input_messages[limitation_type_idx]
                 new_data = input(input_message)
-                exclusion.limitation.data = new_data
+                exclusion.get_limitation(1).data = new_data
             # Delete the limitation
             elif limit_edit_input == 3:
-                del exclusion.limitation
+                exclusion.delete_limitation(1)
                 break
             # Return to the previous menu
             elif limit_edit_input == 4:

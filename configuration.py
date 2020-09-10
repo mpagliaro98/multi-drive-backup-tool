@@ -424,15 +424,15 @@ def config_display_string(config, show_exclusions=False):
                 return_str += "\n\t\tEXCLUSIONS:\n"
                 for exclusion in config.get_entry(entry_number).exclusions:
                     return_str += "\t\t\t{} \"{}\"".format(exclusion.code, exclusion.data)
-                    if exclusion.has_limitation():
-                        if os.path.exists(os.path.realpath(exclusion.limitation.data)):
-                            display_limitation = util.shorten_path(os.path.realpath(exclusion.limitation.data),
+                    if exclusion.has_limitations():
+                        if os.path.exists(os.path.realpath(exclusion.get_limitation(1).data)):
+                            display_limitation = util.shorten_path(os.path.realpath(exclusion.get_limitation(1).data),
                                                                    config.get_entry(entry_number).input)
                         else:
-                            display_limitation = exclusion.limitation.data
-                        return_str += " limited to {} \"{}\" {}".format(exclusion.limitation.get_proper_prefix(),
-                                                                        display_limitation,
-                                                                        exclusion.limitation.get_proper_suffix("\n"))
+                            display_limitation = exclusion.get_limitation(1).data
+                        return_str += " limited to {} \"{}\" {}".format(
+                            exclusion.get_limitation(1).get_proper_prefix(), display_limitation,
+                            exclusion.get_limitation(1).get_proper_suffix("\n"))
                     else:
                         return_str += "\n"
             else:

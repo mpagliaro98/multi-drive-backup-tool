@@ -25,7 +25,7 @@ class Exclusion:
         """
         self._code = code
         self._data = data
-        self._limitation = None
+        self._limitations = []
 
     @property
     def code(self):
@@ -39,16 +39,17 @@ class Exclusion:
     def code(self, new_code):
         """
         Change the code of this exclusion so it corresponds to a different type. If the code is changed to a
-        type that does not accept limitations, and this exclusion had a limitation already that isn't always
-        applicable, that limitation will be deleted.
+        type that does not accept limitations, all limitations on this exclusion that aren't always applicable
+        will be deleted.
         :param new_code: The code to change it to.
         """
         self._code = new_code
         for exclusion_type in EXCLUSION_TYPES:
             if self._code == exclusion_type.code:
-                if not exclusion_type.accepts_limitations and self.has_limitation() and not \
-                        self._limitation.always_applicable():
-                    del self.limitation
+                for limitation_idx in range(len(self._limitations)):
+                    limitation = self._limitations[limitation_idx]
+                    if not exclusion_type.accepts_limitations and not limitation.always_applicable():
+                        self.delete_limitation(limitation_idx+1)
 
     @property
     def data(self):
@@ -66,20 +67,26 @@ class Exclusion:
         """
         self._data = new_data
 
-    @property
-    def limitation(self):
+    def get_limitation(self, limitation_number):
         """
-        The optional limitation attached to this exclusion.
+        Get a limitation attached to this exclusion.
+        :param limitation_number: The index of the limitation to get, starting at 1.
         :return: The limitation as a Limitation object.
         """
-        return self._limitation
+        return self._limitations[limitation_number-1]
 
-    @limitation.deleter
-    def limitation(self):
+    def delete_limitation(self, limitation_number):
         """
-        Remove the limitation from this exclusion.
+        Remove a limitation from this exclusion.
+        :param limitation_number: The index of the limitation to get, starting at 1.
         """
-        self._limitation = None
+        del self._limitations[limitation_number-1]
+
+    def delete_limitations(self):
+        """
+        Delete all limitations from this exclusion.
+        """
+        self._limitations = []
 
     def add_limitation(self, limitation_code, limitation_data):
         """
@@ -88,7 +95,7 @@ class Exclusion:
         :param limitation_code: The code of the limitation type this limitation uses.
         :param limitation_data: The limitation data.
         """
-        self._limitation = limitations.Limitation(limitation_code, limitation_data)
+        self._limitations.append(limitations.Limitation(limitation_code, limitation_data))
 
     def accepts_limitations(self):
         """
@@ -103,40 +110,43 @@ class Exclusion:
                     return True
         return False
 
-    def has_limitation(self):
+    def has_limitations(self):
         """
-        Checks if this exclusion has a limitation applied to it.
+        Checks if this exclusion has at least one limitation applied to it.
         :return: True if a limitation exists on this exclusion, false otherwise.
         """
-        return self._limitation is not None
+        return len(self._limitations) > 0
 
     def limitation_check(self, path_to_exclude, path_destination):
         """
         This limitation check is done every time a file is checked to be excluded and the exclusion alone
-        returns true. This checks if this exclusion has a limitation, then if its exclusion type accepts limitations or
+        returns true. This checks if this exclusion has limitations, then if its exclusion type accepts limitations or
         the limitation is always applicable. If both cases are true, it will check if the limitation is satisfied.
+        This is checked for every limitation on this exclusion. If one limitation is satisfied, then this whole
+        function returns true.
         :param path_to_exclude: The path to a folder or file that is being checked if it satisfies this exclusion.
         :param path_destination: The path of where the folder or file would be in its output.
         :return: True if this exclusion type accepts limitations, this exclusion has a limitation, and the given
-                 path satisfies the limitation. This also returns true if the type doesn't accept limitations or
-                 there is no limitation. Will return false if it checks the limitation and it's not satisfied.
+                 path satisfies at least one limitation. This also returns true if the type doesn't accept limitations
+                 or there is no limitation. Will return false if it checks a limitation and it's not satisfied.
         """
-        if self.has_limitation():
-            limitation_type = limitations.get_limitation_type(self._limitation)
-            if self.accepts_limitations() or limitation_type.always_applicable:
-                if self._limitation.satisfied(path_to_exclude, path_destination):
-                    return True
+        if self.has_limitations():
+            for limitation in self._limitations:
+                limitation_type = limitations.get_limitation_type(limitation)
+                if self.accepts_limitations() or limitation_type.always_applicable:
+                    if limitation.satisfied(path_to_exclude, path_destination):
+                        return True
                 else:
-                    return False
-            else:
-                return True
+                    # Should be an impossible state
+                    return True
+            return False
         else:
             return True
 
     def equals(self, other_exclusion):
         """
         Check if this exclusion is equal to another. Two exclusions are equal if their code and data are
-        both the same, and if they have the same limitation or both have no limitation.
+        both the same, and if they have the same limitations or both have no limitations.
         :param other_exclusion: An exclusion to check if it's equal to this one.
         :return: True if the two exclusions are equal, false otherwise.
         """
@@ -145,13 +155,13 @@ class Exclusion:
         # Both codes and data must be the same
         if not self._code == other_exclusion._code or not self._data == other_exclusion._data:
             return False
-        # If both do have limitations, both those limitations must be the same
-        if self.has_limitation() and other_exclusion.has_limitation():
-            if not self._limitation.equals(other_exclusion._limitation):
-                return False
-        # If one doesn't have a limitation, then both must not have a limitation
-        elif self.has_limitation() != other_exclusion.has_limitation():
+        # Both exclusions must have the same number of limitations
+        if len(self._limitations) != len(other_exclusion._limitations):
             return False
+        # Every limitation in both exclusions must be identical
+        for limitation_idx in range(len(self._limitations)):
+            if not self._limitations[limitation_idx].equals(other_exclusion._limitations[limitation_idx]):
+                return False
         return True
 
 
