@@ -423,16 +423,11 @@ def config_display_string(config, show_exclusions=False):
             if show_exclusions:
                 return_str += "\n\t\tEXCLUSIONS:\n"
                 for exclusion in config.get_entry(entry_number).exclusions:
-                    return_str += "\t\t\t{} \"{}\"".format(exclusion.code, exclusion.data)
+                    return_str += "\t\t\t{}\n".format(exclusion.to_string())
                     if exclusion.has_limitations():
-                        if os.path.exists(os.path.realpath(exclusion.get_limitation(1).data)):
-                            display_limitation = util.shorten_path(os.path.realpath(exclusion.get_limitation(1).data),
-                                                                   config.get_entry(entry_number).input)
-                        else:
-                            display_limitation = exclusion.get_limitation(1).data
-                        return_str += " limited to {} \"{}\" {}".format(
-                            exclusion.get_limitation(1).get_proper_prefix(), display_limitation,
-                            exclusion.get_limitation(1).get_proper_suffix("\n"))
+                        for limitation in exclusion.limitations:
+                            return_str += "\t\t\t\tLimit to {}\n".format(limitation.to_string(
+                                config.get_entry(entry_number).input))
                     else:
                         return_str += "\n"
             else:

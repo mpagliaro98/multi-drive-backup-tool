@@ -5,8 +5,6 @@ A file containing all information about configuration entries.
 """
 
 import exclusions
-import util
-import os
 
 
 class Entry:
@@ -140,16 +138,10 @@ class Entry:
         return_str = ""
         for excl_idx in range(len(self._exclusions)):
             exclusion = self._exclusions[excl_idx]
-            print_str = "{}: {} \"{}\"".format(excl_idx+1, exclusion.code, exclusion.data)
+            print_str = "{}: {}".format(excl_idx+1, exclusion.to_string())
             if exclusion.has_limitations():
-                if os.path.exists(os.path.realpath(exclusion.get_limitations(1).data)):
-                    display_limitation = util.shorten_path(os.path.realpath(exclusion.get_limitation(1).data),
-                                                           self._input)
-                else:
-                    display_limitation = exclusion.get_limitation(1).data
-                print_str += " limit to {} \"{}\" {}".format(exclusion.get_limitation(1).get_proper_prefix(),
-                                                             display_limitation,
-                                                             exclusion.get_limitation(1).get_proper_suffix())
+                for limitation in exclusion.limitations:
+                    print_str += "\n\tLimit to {}".format(limitation.to_string(self._input))
             return_str += print_str + "\n"
         return return_str.strip()
 
@@ -209,16 +201,10 @@ class Entry:
         if exclusion_mode:
             # Display each exclusion and if it contains a limitation
             for exclusion in self._exclusions:
-                entry_str += "\tEXCLUSION: {} \"{}\"".format(exclusion.code, exclusion.data)
+                entry_str += "\tEXCLUSION: {}\n".format(exclusion.to_string())
                 if exclusion.has_limitations():
-                    if os.path.exists(os.path.realpath(exclusion.get_limitation(1).data)):
-                        display_limitation = util.shorten_path(os.path.realpath(exclusion.get_limitation(1).data),
-                                                               self._input)
-                    else:
-                        display_limitation = exclusion.get_limitation(1).data
-                    entry_str += " limited to {} \"{}\" {}".format(exclusion.get_limitation(1).get_proper_prefix(),
-                                                                   display_limitation,
-                                                                   exclusion.get_limitation(1).get_proper_suffix("\n"))
+                    for limitation in exclusion.limitations:
+                        entry_str += "\t\tLIMITATION: {}\n".format(limitation.to_string(self._input))
                 else:
                     entry_str += "\n"
         else:

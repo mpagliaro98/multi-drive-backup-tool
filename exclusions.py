@@ -67,6 +67,14 @@ class Exclusion:
         """
         self._data = new_data
 
+    @property
+    def limitations(self):
+        """
+        The list of limitations this exclusion has.
+        :return: The list of limitation objects.
+        """
+        return self._limitations
+
     def get_limitation(self, limitation_number):
         """
         Get a limitation attached to this exclusion.
@@ -142,6 +150,13 @@ class Exclusion:
             return False
         else:
             return True
+
+    def to_string(self):
+        """
+        Creates a string representation of this exclusion, not including limitations.
+        :return: This exclusion's code and data as a string.
+        """
+        return "{} \"{}\"".format(self._code, self._data)
 
     def equals(self, other_exclusion):
         """

@@ -115,6 +115,21 @@ class Limitation:
                 limit_mode = limitation_type.suffix_string + default_suffix
         return limit_mode
 
+    def to_string(self, entry_input=None):
+        """
+        Creates a string representation of this limitation. If given another path as an argument, it will
+        try to shorten the data of this limitation.
+        :param entry_input: A path that could be used to shorten this limitation's data. For instance, if the
+                            limitation data is the path a/b/c/d, and you pass in a/b/c for entry_input, when
+                            the limitation data is displayed it will appear as .../c/d
+        :return: This limitation's information in a string.
+        """
+        if entry_input is not None and os.path.exists(os.path.realpath(self._data)):
+            display_limitation = util.shorten_path(os.path.realpath(self._data), entry_input)
+        else:
+            display_limitation = self._data
+        return "{} \"{}\" {}".format(self.get_proper_prefix(), display_limitation, self.get_proper_suffix())
+
     def equals(self, other_limitation):
         """
         Check if this limitation is equal to another. Two limitations are equal if their codes and data
