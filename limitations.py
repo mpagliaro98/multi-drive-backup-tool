@@ -85,6 +85,19 @@ class Limitation:
                     return True
         return False
 
+    def data_is_path(self):
+        """
+        Checks if this limitation's data should be a path. Every limitation type specifies if it's data should be
+        a path or not, so this checks with the corresponding limitation type and returns true if it's data is meant
+        to be a file path.
+        :return: True if this limitation's data should be a path, false otherwise.
+        """
+        for limitation_type in LIMITATION_TYPES:
+            if self._code == limitation_type.code:
+                if limitation_type.data_is_path:
+                    return True
+        return False
+
     def get_proper_prefix(self, default_prefix=""):
         """
         Get the prefix string of the limitation type that corresponds to this limitation.
@@ -117,14 +130,14 @@ class Limitation:
 
     def to_string(self, entry_input=None):
         """
-        Creates a string representation of this limitation. If given another path as an argument, it will
-        try to shorten the data of this limitation.
+        Creates a string representation of this limitation. If given another path as an argument and this limitation's
+        type specifies the data should be a path, it will try to shorten the data of this limitation.
         :param entry_input: A path that could be used to shorten this limitation's data. For instance, if the
                             limitation data is the path a/b/c/d, and you pass in a/b/c for entry_input, when
                             the limitation data is displayed it will appear as .../c/d
         :return: This limitation's information in a string.
         """
-        if entry_input is not None and os.path.exists(os.path.realpath(self._data)):
+        if entry_input is not None and self.data_is_path() and os.path.exists(os.path.realpath(self._data)):
             display_limitation = util.shorten_path(os.path.realpath(self._data), entry_input)
         else:
             display_limitation = self._data
@@ -153,7 +166,8 @@ class LimitationType(metaclass=abc.ABCMeta):
     and a function that takes a limitation and a path and returns true or false if that path satisfies that limitation.
     """
 
-    def __init__(self, code, prefix_string, suffix_string, menu_text, input_text, function, always_applicable=False):
+    def __init__(self, code, prefix_string, suffix_string, menu_text, input_text, function,
+                 always_applicable=False, data_is_path=False):
         """
         Create the new limitation type object. All fields are initialized from the start.
         :param code: A unique string identifier for this type.
@@ -170,6 +184,9 @@ class LimitationType(metaclass=abc.ABCMeta):
                                   A limitation type that is always applicable is allowed to be attached to an
                                   exclusion even if that exclusion type's accepts_limitations is false. This is
                                   false by default.
+        :param data_is_path: A boolean that indicates the data held by this limitation should be a path. If true,
+                             it will attempt to display the data as a path where possible and attempt to shorten
+                             the path. False by default.
         """
         self._code = code
         self._prefix_string = prefix_string
@@ -178,6 +195,7 @@ class LimitationType(metaclass=abc.ABCMeta):
         self._input_text = input_text
         self._function = function
         self._always_applicable = always_applicable
+        self._data_is_path = data_is_path
 
     @property
     def code(self):
@@ -237,6 +255,15 @@ class LimitationType(metaclass=abc.ABCMeta):
         :return: True if this limitation type is always applicable, false otherwise.
         """
         return self._always_applicable
+
+    @property
+    def data_is_path(self):
+        """
+        A boolean that indicates the data held by this limitation should be a path. If true, it will attempt to
+        display the data as a path where possible and attempt to shorten the path. False by default.
+        :return: True if this limitation type's data should be a file path, false otherwise.
+        """
+        return self._data_is_path
 
     @abc.abstractmethod
     def check_function(self, limitation, path_to_exclude, path_destination):
@@ -313,10 +340,12 @@ LIMITATION_TYPES = \
     [LimitationTypeInput(code="dir", prefix_string="directory", suffix_string="only",
                          menu_text="This exclusion should only affect a given directory and no sub-directories",
                          input_text="Enter the absolute path of a directory to limit this exclusion to: ",
+                         data_is_path=True,
                          function=lambda limit, path: util.path_is_in_directory(path, os.path.realpath(limit.data))),
      LimitationTypeInput(code="sub", prefix_string="directory", suffix_string="and all sub-directories",
                          menu_text="This exclusion should affect a given directory and all of its sub-directories",
                          input_text="Enter the absolute path of a directory to limit this exclusion to: ",
+                         data_is_path=True,
                          function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep)),
      LimitationTypeOutput(code="drive", prefix_string="the", suffix_string="drive during backups",
                           menu_text="This exclusion should only apply to a specific drive during a backup",
