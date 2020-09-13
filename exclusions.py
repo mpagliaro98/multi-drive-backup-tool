@@ -151,12 +151,19 @@ class Exclusion:
         else:
             return True
 
-    def to_string(self):
+    def to_string(self, include_limitations=False, entry_input=None):
         """
-        Creates a string representation of this exclusion, not including limitations.
+        Creates a string representation of this exclusion. Using an optional parameter, limitations can
+        also be included in the string.
+        :param include_limitations: Writes limitations as well if true, false otherwise.
+        :param entry_input:
         :return: This exclusion's code and data as a string.
         """
-        return "{} \"{}\"".format(self._code, self._data)
+        return_str = "{} \"{}\"".format(self._code, self._data)
+        if include_limitations:
+            for limitation in self._limitations:
+                return_str += "\n\tLimited to {}".format(limitation.to_string(entry_input))
+        return return_str
 
     def equals(self, other_exclusion):
         """

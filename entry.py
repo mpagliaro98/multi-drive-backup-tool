@@ -205,8 +205,6 @@ class Entry:
                 if exclusion.has_limitations():
                     for limitation in exclusion.limitations:
                         entry_str += "\t\tLIMITATION: {}\n".format(limitation.to_string(self._input))
-                else:
-                    entry_str += "\n"
         else:
             # Display each destination path
             for destination in self._outputs:
