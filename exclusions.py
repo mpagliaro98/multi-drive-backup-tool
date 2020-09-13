@@ -46,10 +46,13 @@ class Exclusion:
         self._code = new_code
         for exclusion_type in EXCLUSION_TYPES:
             if self._code == exclusion_type.code:
+                limit_idx_list = []
                 for limitation_idx in range(len(self._limitations)):
                     limitation = self._limitations[limitation_idx]
                     if not exclusion_type.accepts_limitations and not limitation.always_applicable():
-                        self.delete_limitation(limitation_idx+1)
+                        limit_idx_list.append(limitation_idx+1)
+                for delete_idx in reversed(limit_idx_list):
+                    self.delete_limitation(delete_idx)
 
     @property
     def data(self):
@@ -75,6 +78,13 @@ class Exclusion:
         """
         return self._limitations
 
+    @limitations.deleter
+    def limitations(self):
+        """
+        Delete all limitations from this exclusion.
+        """
+        self._limitations = []
+
     def get_limitation(self, limitation_number):
         """
         Get a limitation attached to this exclusion.
@@ -89,12 +99,6 @@ class Exclusion:
         :param limitation_number: The index of the limitation to get, starting at 1.
         """
         del self._limitations[limitation_number-1]
-
-    def delete_limitations(self):
-        """
-        Delete all limitations from this exclusion.
-        """
-        self._limitations = []
 
     def add_limitation(self, limitation_code, limitation_data):
         """
@@ -125,6 +129,13 @@ class Exclusion:
         """
         return len(self._limitations) > 0
 
+    def num_limitations(self):
+        """
+        Gets the number of limitations that this exclusion has.
+        :return: The number of limitations.
+        """
+        return len(self._limitations)
+
     def limitation_check(self, path_to_exclude, path_destination):
         """
         This limitation check is done every time a file is checked to be excluded and the exclusion alone
@@ -150,6 +161,17 @@ class Exclusion:
             return False
         else:
             return True
+
+    def enumerate_limitations(self, entry_input=None):
+        """
+        Iterate through all the limitations of this exclusion and display them alongside a number.
+        :return: A string containing every enumerated limitation.
+        """
+        return_str = ""
+        for limit_idx in range(len(self._limitations)):
+            limitation = self._limitations[limit_idx]
+            return_str += "{}: {}".format(limit_idx+1, limitation.to_string(entry_input=entry_input))
+        return return_str.strip()
 
     def to_string(self, include_limitations=False, entry_input=None):
         """
