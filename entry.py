@@ -184,10 +184,9 @@ class Entry:
         :return: True if this folder/file should be excluded, false otherwise.
         """
         for exclusion in self._exclusions:
-            for exclusion_type in exclusions.EXCLUSION_TYPES:
-                if exclusion.code == exclusion_type.code:
-                    if exclusion_type.exclude_path(exclusion, path_to_exclude, path_destination):
-                        return True
+            exclusion_type = exclusions.get_exclusion_type(exclusion)
+            if exclusion_type.exclude_path(exclusion, path_to_exclude, path_destination):
+                return True
         return False
 
     def to_string(self, exclusion_mode=False):

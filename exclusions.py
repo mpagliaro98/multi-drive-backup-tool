@@ -44,15 +44,14 @@ class Exclusion:
         :param new_code: The code to change it to.
         """
         self._code = new_code
-        for exclusion_type in EXCLUSION_TYPES:
-            if self._code == exclusion_type.code:
-                limit_idx_list = []
-                for limitation_idx in range(len(self._limitations)):
-                    limitation = self._limitations[limitation_idx]
-                    if not exclusion_type.accepts_limitations and not limitation.always_applicable():
-                        limit_idx_list.append(limitation_idx+1)
-                for delete_idx in reversed(limit_idx_list):
-                    self.delete_limitation(delete_idx)
+        exclusion_type = get_exclusion_type(self)
+        limit_idx_list = []
+        for limitation_idx in range(len(self._limitations)):
+            limitation = self._limitations[limitation_idx]
+            if not exclusion_type.accepts_limitations and not limitation.always_applicable():
+                limit_idx_list.append(limitation_idx+1)
+        for delete_idx in reversed(limit_idx_list):
+            self.delete_limitation(delete_idx)
 
     @property
     def data(self):
@@ -116,11 +115,11 @@ class Exclusion:
         limitations or not.
         :return: True if this exclusion accepts limitations, false otherwise.
         """
-        for exclusion_type in EXCLUSION_TYPES:
-            if self._code == exclusion_type.code:
-                if exclusion_type.accepts_limitations:
-                    return True
-        return False
+        exclusion_type = get_exclusion_type(self)
+        if exclusion_type.accepts_limitations:
+            return True
+        else:
+            return False
 
     def has_limitations(self):
         """
@@ -170,7 +169,7 @@ class Exclusion:
         return_str = ""
         for limit_idx in range(len(self._limitations)):
             limitation = self._limitations[limit_idx]
-            return_str += "{}: {}".format(limit_idx+1, limitation.to_string(entry_input=entry_input))
+            return_str += "{}: {}\n".format(limit_idx+1, limitation.to_string(entry_input=entry_input))
         return return_str.strip()
 
     def to_string(self, include_limitations=False, entry_input=None):

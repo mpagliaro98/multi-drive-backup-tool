@@ -67,11 +67,11 @@ class Limitation:
         :param path_destination: The path of where the folder or file would be in its output.
         :return: True if the limitation is satisfied, false otherwise.
         """
-        for limitation_type in LIMITATION_TYPES:
-            if self._code == limitation_type.code:
-                if limitation_type.check_function(self, path_to_exclude, path_destination):
-                    return True
-        return False
+        limitation_type = get_limitation_type(self)
+        if limitation_type.check_function(self, path_to_exclude, path_destination):
+            return True
+        else:
+            return False
 
     def always_applicable(self):
         """
@@ -79,11 +79,11 @@ class Limitation:
         or not, so this checks with the corresponding limitation type and returns true if it's always applicable.
         :return: True if this limitation is always applicable, false otherwise.
         """
-        for limitation_type in LIMITATION_TYPES:
-            if self._code == limitation_type.code:
-                if limitation_type.always_applicable:
-                    return True
-        return False
+        limitation_type = get_limitation_type(self)
+        if limitation_type.always_applicable:
+            return True
+        else:
+            return False
 
     def data_is_path(self):
         """
@@ -92,41 +92,11 @@ class Limitation:
         to be a file path.
         :return: True if this limitation's data should be a path, false otherwise.
         """
-        for limitation_type in LIMITATION_TYPES:
-            if self._code == limitation_type.code:
-                if limitation_type.data_is_path:
-                    return True
-        return False
-
-    def get_proper_prefix(self, default_prefix=""):
-        """
-        Get the prefix string of the limitation type that corresponds to this limitation.
-        :param default_prefix: The string to use by default if no prefix is found. This default value will also
-                               be appended to the end of the prefix if it is found (allowing for things such as
-                               new-lines). It is the empty string by default.
-        :return: The proper prefix with default_prefix appended to the end of it if one exists, or just
-                 default_prefix if none exists.
-        """
-        limit_mode = default_prefix
-        for limitation_type in LIMITATION_TYPES:
-            if self._code == limitation_type.code:
-                limit_mode = limitation_type.prefix_string + default_prefix
-        return limit_mode
-
-    def get_proper_suffix(self, default_suffix=""):
-        """
-        Get the suffix string of the limitation type that corresponds to this limitation.
-        :param default_suffix: The string to use by default if no suffix is found. This default value will also
-                               be appended to the end of the suffix if it is found (allowing for things such as
-                               new-lines). It is the empty string by default.
-        :return: The proper suffix with default_suffix appended to the end of it if one exists, or just
-                 default_suffix if none exists.
-        """
-        limit_mode = default_suffix
-        for limitation_type in LIMITATION_TYPES:
-            if self._code == limitation_type.code:
-                limit_mode = limitation_type.suffix_string + default_suffix
-        return limit_mode
+        limitation_type = get_limitation_type(self)
+        if limitation_type.data_is_path:
+            return True
+        else:
+            return False
 
     def to_string(self, entry_input=None):
         """
@@ -141,7 +111,8 @@ class Limitation:
             display_limitation = util.shorten_path(os.path.realpath(self._data), entry_input)
         else:
             display_limitation = self._data
-        return "{} \"{}\" {}".format(self.get_proper_prefix(), display_limitation, self.get_proper_suffix())
+        return "{} \"{}\" {}".format(get_limitation_type(self).prefix_string, display_limitation,
+                                     get_limitation_type(self).suffix_string)
 
     def equals(self, other_limitation):
         """
