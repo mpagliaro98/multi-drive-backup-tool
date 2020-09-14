@@ -73,31 +73,6 @@ class Limitation:
         else:
             return False
 
-    def always_applicable(self):
-        """
-        Checks if this limitation is always applicable. Every limitation type specifies if it's always applicable
-        or not, so this checks with the corresponding limitation type and returns true if it's always applicable.
-        :return: True if this limitation is always applicable, false otherwise.
-        """
-        limitation_type = get_limitation_type(self)
-        if limitation_type.always_applicable:
-            return True
-        else:
-            return False
-
-    def data_is_path(self):
-        """
-        Checks if this limitation's data should be a path. Every limitation type specifies if it's data should be
-        a path or not, so this checks with the corresponding limitation type and returns true if it's data is meant
-        to be a file path.
-        :return: True if this limitation's data should be a path, false otherwise.
-        """
-        limitation_type = get_limitation_type(self)
-        if limitation_type.data_is_path:
-            return True
-        else:
-            return False
-
     def to_string(self, entry_input=None):
         """
         Creates a string representation of this limitation. If given another path as an argument and this limitation's
@@ -107,12 +82,12 @@ class Limitation:
                             the limitation data is displayed it will appear as .../c/d
         :return: This limitation's information in a string.
         """
-        if entry_input is not None and self.data_is_path() and os.path.exists(os.path.realpath(self._data)):
+        limitation_type = get_limitation_type(self)
+        if entry_input is not None and limitation_type.data_is_path and os.path.exists(os.path.realpath(self._data)):
             display_limitation = util.shorten_path(os.path.realpath(self._data), entry_input)
         else:
             display_limitation = self._data
-        return "{} \"{}\" {}".format(get_limitation_type(self).prefix_string, display_limitation,
-                                     get_limitation_type(self).suffix_string)
+        return "{} \"{}\" {}".format(limitation_type.prefix_string, display_limitation, limitation_type.suffix_string)
 
     def equals(self, other_limitation):
         """

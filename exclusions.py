@@ -48,7 +48,8 @@ class Exclusion:
         limit_idx_list = []
         for limitation_idx in range(len(self._limitations)):
             limitation = self._limitations[limitation_idx]
-            if not exclusion_type.accepts_limitations and not limitation.always_applicable():
+            limitation_type = limitations.get_limitation_type(limitation)
+            if not exclusion_type.accepts_limitations and not limitation_type.always_applicable:
                 limit_idx_list.append(limitation_idx+1)
         for delete_idx in reversed(limit_idx_list):
             self.delete_limitation(delete_idx)
