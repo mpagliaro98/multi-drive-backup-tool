@@ -109,19 +109,6 @@ class Exclusion:
         """
         self._limitations.append(limitations.Limitation(limitation_code, limitation_data))
 
-    def accepts_limitations(self):
-        """
-        Checks if this exclusion accepts limitations. Each exclusion type specifies whether or not limitations
-        can be used with it, so this checks if the type corresponding to this exclusion's code accepts
-        limitations or not.
-        :return: True if this exclusion accepts limitations, false otherwise.
-        """
-        exclusion_type = get_exclusion_type(self)
-        if exclusion_type.accepts_limitations:
-            return True
-        else:
-            return False
-
     def has_limitations(self):
         """
         Checks if this exclusion has at least one limitation applied to it.
@@ -149,10 +136,11 @@ class Exclusion:
                  path satisfies at least one limitation. This also returns true if the type doesn't accept limitations
                  or there is no limitation. Will return false if it checks a limitation and it's not satisfied.
         """
+        exclusion_type = get_exclusion_type(self)
         if self.has_limitations():
             for limitation in self._limitations:
                 limitation_type = limitations.get_limitation_type(limitation)
-                if self.accepts_limitations() or limitation_type.always_applicable:
+                if exclusion_type.accepts_limitations or limitation_type.always_applicable:
                     if limitation.satisfied(path_to_exclude, path_destination):
                         return True
                 else:
