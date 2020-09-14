@@ -1,8 +1,8 @@
 """
-multi_drive_backup_tool.py
+mdbt_cli.py
 Author: Michael Pagliaro
-The main entry-point for the tool. Handles all user input. This file acts as the entire
-user interface and most of the front-end of the application.
+The command line interface. This is one possible entry-point to the application which presents users
+with menus and options on the command line.
 """
 
 import configuration
