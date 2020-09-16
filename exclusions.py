@@ -6,6 +6,7 @@ file, and changes only need to be made here to add additional types of exclusion
 """
 
 import os
+from datetime import datetime
 from os.path import realpath as rpath
 import limitations
 
@@ -320,4 +321,12 @@ EXCLUSION_TYPES = [ExclusionType(code="startswith", menu_text="Starts with some 
                    ExclusionType(code="file", menu_text="Specific filename",
                                  input_text="Files with this name and extension will be excluded: ",
                                  function=lambda excl, path: os.path.isfile(path) and os.path.split(
-                                     path)[1] == excl.data)]
+                                     path)[1] == excl.data),
+                   ExclusionType(code="before", menu_text="Files modified before a given date",
+                                 input_text="Files modified before this date will be excluded (MM/DD/YYYY): ",
+                                 function=lambda excl, path: os.path.isfile(path) and datetime.strptime(
+                                     excl.data, "%m/%d/%Y") > datetime.fromtimestamp(os.path.getmtime(path))),
+                   ExclusionType(code="after", menu_text="Files modified after a given date",
+                                 input_text="Files modified after this date will be excluded (MM/DD/YYYY): ",
+                                 function=lambda excl, path: os.path.isfile(path) and datetime.strptime(
+                                     excl.data, "%m/%d/%Y") < datetime.fromtimestamp(os.path.getmtime(path)))]
