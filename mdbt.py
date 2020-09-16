@@ -5,9 +5,10 @@ The command line argument interface. This is one possible entry-point to the app
 to interface with it by passing command line arguments in order to run different functions of the program.
 """
 
-
 import sys
 import getopt
+import itertools
+import collections
 import configuration
 import backup
 
@@ -26,6 +27,45 @@ class ArgumentDoesNotExistException(Exception):
     errors like these will be caught by getopt, so this will rarely appear.
     """
     pass
+
+
+class Iterator:
+    """
+    A wrapper class for an iterator that allows access of the current value.
+    """
+
+    def __init__(self, iterator, starting_value):
+        """
+        Create this iterator wrapper. A starting value is required since we cannot view the current value
+        of the iterator before calling next.
+        :param iterator: The iterator to use.
+        :param starting_value: The starting value of this iterator.
+        """
+        self._iterator = iterator
+        self._current = starting_value
+
+    def __next__(self):
+        """
+        Increment to the next value. This stores the value to be accessed later.
+        :return: The new current value.
+        """
+        self._current = next(self._iterator)
+        return self._current
+
+    def __iter__(self):
+        """
+        Allows this object to be iterable.
+        :return: This object.
+        """
+        return self
+
+    @property
+    def current(self):
+        """
+        The current value being viewed by the iterator.
+        :return: The iterator's current value.
+        """
+        return self._current
 
 
 ########################################################################################
@@ -169,56 +209,55 @@ class ArgumentWrapper(Argument):
 ########################################################################################
 # Argument Functions ###################################################################
 # All argument functions should take **kwargs as their only defined parameter, and #####
-# return a configuration object and an index into the current options list. ############
+# return a dictionary of specific values or None.                                  #####
 ########################################################################################
+# Supported inputs: "config": A configuration, "opts": A list of options, ##############
+#     "iterator": An iterator with a 'current' field                      ##############
+# Supported return values: "config": A configuration, "advance": The number of values ##
+#     to increment the iterator by                                                    ##
+########################################################################################
+
+
+def option_input(**kwargs):
+    config = kwargs["config"]
 
 
 def option_save(**kwargs):
     """
-    The code run when the save argument is given. This expects a configuration, a list of options from
-    getopt, and the index of the current option being used. This will save the given configuration
-    to a file with the name given with this argument.
+    The code run when the save argument is given. This will save the given configuration to a file with the
+    name given with this argument.
     :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration, 'opts' as
-                   a list of options created by getopt, and 'opt_idx' as the index into that list where
-                   the current argument is.
-    :return: A tuple of the current configuration and the current opt_idx.
+                   a list of options created by getopt, and 'iterator' as the current iterator being used.
     """
     config = kwargs["config"]
     opts = kwargs["opts"]
-    opt_idx = kwargs["opt_idx"]
-    config_name = opts[opt_idx][1]
+    iterator = kwargs["iterator"]
+    config_name = opts[iterator.current][1]
     config.name = config_name
     configuration.save_config(config, config_name)
-    return config, opt_idx
 
 
 def option_load(**kwargs):
     """
-    The code run when the load argument is given. This expects a list of options from getopt and the index
-    of the current option being used. This will load the configuration of the name that was provided with
-    the argument and return it.
+    The code run when the load argument is given. This will load the configuration of a given name and return it.
     :param kwargs: A dictionary of arguments. This expects 'opts' as a list of options created by getopt and
-                   'opt_idx' as the index into that list where the current argument is.
-    :return: A tuple of the loaded configuration and the current opt_idx.
+                   'iterator' as the current iterator being used.
+    :return: The new configuration object returned in a dictionary with the key 'config'.
     """
     opts = kwargs["opts"]
-    opt_idx = kwargs["opt_idx"]
-    config_name = opts[opt_idx][1]
-    return configuration.load_config(config_name), opt_idx
+    iterator = kwargs["iterator"]
+    config_name = opts[iterator.current][1]
+    print("Loading {}.dat...".format(config_name))
+    return {"config": configuration.load_config(config_name)}
 
 
 def option_backup(**kwargs):
     """
-    The code run when the backup argument is given. This expects a configuration and the index of the
-    current option being used. This will pass the configuration to the backup module to run the backup
-    process.
-    :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration and 'opt_idx'
-                   as the index into that list where the current argument is.
-    :return: A tuple of the current configuration and the current opt_idx.
+    The code run when the backup argument is given. This will pass the configuration to the backup module
+    to run the backup process.
+    :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration.
     """
-    config = kwargs["config"]
-    backup.run_backup(config)
-    return config, kwargs["opt_idx"]
+    backup.run_backup(kwargs["config"])
 
 
 ########################################################################################
@@ -227,7 +266,8 @@ def option_backup(**kwargs):
 ########################################################################################
 
 
-ARGUMENT_FLAGS = [Argument("s", "config_name", "A name to save this configuration as.", option_save),
+ARGUMENT_FLAGS = [Argument("i", "input_path", "A path that will be a source for a backup.", option_input),
+                  Argument("s", "config_name", "A name to save this configuration as.", option_save),
                   Argument("l", "config_name", "The name of a saved configuration to load.", option_load),
                   ArgumentWrapper("c", "config_name", "Load this config at the start and save it at the end.",
                                   option_load, option_save),
@@ -251,8 +291,8 @@ def display_usage():
     print("Usage: mdbt.py [combination of flags below]")
     for arg in ARGUMENT_FLAGS:
         prefix = "--" if len(arg.flag) > 1 else "-"
-        print(' '*4 + ("{}{}: {}".format(prefix, arg.flag, arg.usage) if arg.data is None
-              else "{}{} <{}>: {}".format(prefix, arg.flag, arg.data, arg.usage)))
+        print(' ' * 4 + ("{}{}: {}".format(prefix, arg.flag, arg.usage) if arg.data is None
+                         else "{}{} <{}>: {}".format(prefix, arg.flag, arg.data, arg.usage)))
 
 
 def get_argument(flag):
@@ -268,6 +308,29 @@ def get_argument(flag):
         if flag_value == arg.flag:
             return arg
     raise ArgumentDoesNotExistException
+
+
+def process_return_vals(return_vals, **kwargs):
+    """
+    Given a dictionary of return values from one of the menu option functions, this will process each of
+    them and update necessary values. To support additional return values, this function needs to be updated
+    along with every time it is called.
+    :param return_vals: A dictionary of return values given by one of the menu option functions. This can
+                        be None.
+    :param kwargs: Additional arguments, which in this case are objects that could possibly be updated by an
+                   incoming return value. This expects 'config' and 'iterator'.
+    :return: A tuple of a configuration object and an Iterator. If these are not changed by this function, the
+             ones passed in will just be returned.
+    """
+    return_config = kwargs["config"]
+    return_iterator = kwargs["iterator"]
+    if return_vals is not None:
+        for key, value in return_vals.items():
+            if key == "config":
+                return_config = value
+            elif key == "advance":
+                collections.deque(itertools.islice(return_iterator, value))
+    return return_config, return_iterator
 
 
 def main(argv):
@@ -313,25 +376,31 @@ def main(argv):
         del opts[opt_idx]
 
     # Run the begin function of every wrapper argument
-    for opt_idx in range(len(wrapper_opts)):
+    iterator = Iterator(iter(range(len(wrapper_opts))), starting_value=0)
+    for opt_idx in iterator:
         opt = wrapper_opts[opt_idx][0]
         argument = get_argument(opt)
-        config, opt_idx = argument.begin_function(config=config, opts=wrapper_opts, opt_idx=opt_idx)
+        return_vals = argument.begin_function(config=config, opts=wrapper_opts, iterator=iterator)
+        config, iterator = process_return_vals(return_vals, config=config, iterator=iterator)
 
     # Loop through the main argument list
-    for opt_idx in range(len(opts)):
+    iterator = Iterator(iter(range(len(opts))), starting_value=0)
+    for opt_idx in iterator:
         opt = opts[opt_idx][0]
         argument = get_argument(opt)
         if isinstance(argument, ArgumentData):
             continue
         else:
-            config, opt_idx = argument.function(config=config, opts=opts, opt_idx=opt_idx)
+            return_vals = argument.function(config=config, opts=opts, iterator=iterator)
+            config, iterator = process_return_vals(return_vals, config=config, iterator=iterator)
 
     # Run the end function of every wrapper argument
-    for opt_idx in range(len(wrapper_opts)):
+    iterator = Iterator(iter(range(len(wrapper_opts))), starting_value=0)
+    for opt_idx in iterator:
         opt = wrapper_opts[opt_idx][0]
         argument = get_argument(opt)
-        config, opt_idx = argument.end_function(config=config, opts=wrapper_opts, opt_idx=opt_idx)
+        return_vals = argument.end_function(config=config, opts=wrapper_opts, iterator=iterator)
+        config, iterator = process_return_vals(return_vals, config=config, iterator=iterator)
 
 
 if __name__ == "__main__":
