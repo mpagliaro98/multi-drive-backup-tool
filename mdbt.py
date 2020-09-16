@@ -44,6 +44,13 @@ class BadArgumentsException(Exception):
     pass
 
 
+class WrapperArgumentException(Exception):
+    """
+    An exception raised when a wrapper argument is invoked more than once during a single execution.
+    """
+    pass
+
+
 class Iterator:
     """
     A wrapper class for an iterator that allows access of the current value.
@@ -188,37 +195,37 @@ class ArgumentWrapper(Argument):
 
     def __init__(self, flag, data, usage, begin_function, end_function):
         """
-        Creates the wrapper argument type. This will call the constructor of argument, but set its
-        function field to None. Instead, this type has a begin_function and end_function property.
-        When this argument is processed, the begin_function will run before any other arguments, and
-        the end_function will run after any other arguments.
+        Creates the wrapper argument type. This will call the constructor of argument, but also creates two
+        unique fields: a begin_function and an end_function. The function field will be changed as this
+        argument gets used throughout the application.
         :param flag: The flag that denotes this argument. This should be unique across all arguments.
         :param data: What data is expected from this argument. This is mainly used in usage text.
         :param usage: Some text to describe this argument in the usage text.
-        :param begin_function: A function that will be called when this argument is invoked before the
-                               main argument loop.
-        :param end_function: A function that will be called when this argument is invoked after the
-                             main argument loop.
+        :param begin_function: A function that will be called the first time this argument is invoked.
+        :param end_function: A function that will be called the second time this argument is invoked.
         """
-        super().__init__(flag, data, usage, None)
+        super().__init__(flag, data, usage, begin_function)
         self._begin_function = begin_function
         self._end_function = end_function
 
     @property
-    def begin_function(self):
+    def function(self):
         """
-        A function that will be called when this argument is invoked before the main argument loop.
-        :return: The function object for this argument's begin function.
+        Overrides the function property of its parent class. When this wrapper argument is first created, the
+        function field is set to begin_function. When this method is called, begin_function will be returned, and
+        the function field will now be set to the end_function. If this field is called again, end_function will
+        be returned, and the function field will be set to None. Any time it is called after that, it will raise
+        a WrapperArgumentException.
+        :return: The proper function object depending on how many times this argument was invoked.
         """
-        return self._begin_function
-
-    @property
-    def end_function(self):
-        """
-        A function that will be called when this argument is invoked after the main argument loop.
-        :return: The function object for this argument's end function.
-        """
-        return self._end_function
+        if self._function == self._begin_function:
+            self._function = self._end_function
+            return self._begin_function
+        elif self._function == self._end_function:
+            self._function = None
+            return self._end_function
+        else:
+            raise WrapperArgumentException("Argument \"" + self._flag + "\" cannot be invoked more than once.")
 
 
 ########################################################################################
@@ -406,6 +413,47 @@ def process_return_vals(return_vals, **kwargs):
     return return_config, return_iterator
 
 
+def extract_opt_type(opts, arg_type):
+    """
+    Loop through a list of options and take any options of a given argument type and put them into a
+    separate list. These options in the new list will be removed from the original list.
+    :param opts: A list of options created by getopt.
+    :param arg_type: An argument class to extract from the list.
+    :return: A list of arg_type options that used to be in the original list. The opts list will be
+             modified by reference.
+    """
+    opts_type = []
+    wrapper_opt_idxs = []
+    for opt_idx in range(len(opts)):
+        argument = get_argument(opts[opt_idx][0])
+        if isinstance(argument, arg_type):
+            opts_type.append(opts[opt_idx])
+            wrapper_opt_idxs.append(opt_idx)
+    for opt_idx in reversed(wrapper_opt_idxs):
+        del opts[opt_idx]
+    return opts_type
+
+
+def argument_loop(config, opts):
+    """
+    Loops through a list of command line arguments parsed by getopt and processes the function and data
+    associated with each one.
+    :param config: The current configuration.
+    :param opts: A list of options created by getopt.
+    :return: The configuration, which can be modified.
+    """
+    iterator = Iterator(iter(range(len(opts))), starting_value=0)
+    for opt_idx in iterator:
+        opt = opts[opt_idx][0]
+        argument = get_argument(opt)
+        if isinstance(argument, ArgumentData):
+            raise BadArgumentsException("Data argument \"" + argument.flag + "\" found when not required.")
+        else:
+            return_vals = argument.function(config=config, opts=opts, iterator=iterator)
+            config, iterator = process_return_vals(return_vals, config=config, iterator=iterator)
+    return config
+
+
 def main(argv):
     """
     The main entry-point for this command line argument interface. This will check which arguments were entered
@@ -437,43 +485,17 @@ def main(argv):
         display_usage()
         sys.exit(2)
 
-    # Loop through opts, collect a list of wrapper arguments and remove those from the main argument list
-    wrapper_opts = []
-    wrapper_opt_idxs = []
-    for opt_idx in range(len(opts)):
-        argument = get_argument(opts[opt_idx][0])
-        if isinstance(argument, ArgumentWrapper):
-            wrapper_opts.append(opts[opt_idx])
-            wrapper_opt_idxs.append(opt_idx)
-    for opt_idx in reversed(wrapper_opt_idxs):
-        del opts[opt_idx]
+    # Collect a list of wrapper arguments and remove those from the main argument list
+    wrapper_opts = extract_opt_type(opts, ArgumentWrapper)
 
     # Run the begin function of every wrapper argument
-    iterator = Iterator(iter(range(len(wrapper_opts))), starting_value=0)
-    for opt_idx in iterator:
-        opt = wrapper_opts[opt_idx][0]
-        argument = get_argument(opt)
-        return_vals = argument.begin_function(config=config, opts=wrapper_opts, iterator=iterator)
-        config, iterator = process_return_vals(return_vals, config=config, iterator=iterator)
+    config = argument_loop(config, wrapper_opts)
 
     # Loop through the main argument list
-    iterator = Iterator(iter(range(len(opts))), starting_value=0)
-    for opt_idx in iterator:
-        opt = opts[opt_idx][0]
-        argument = get_argument(opt)
-        if isinstance(argument, ArgumentData):
-            continue
-        else:
-            return_vals = argument.function(config=config, opts=opts, iterator=iterator)
-            config, iterator = process_return_vals(return_vals, config=config, iterator=iterator)
+    config = argument_loop(config, opts)
 
     # Run the end function of every wrapper argument
-    iterator = Iterator(iter(range(len(wrapper_opts))), starting_value=0)
-    for opt_idx in iterator:
-        opt = wrapper_opts[opt_idx][0]
-        argument = get_argument(opt)
-        return_vals = argument.end_function(config=config, opts=wrapper_opts, iterator=iterator)
-        config, iterator = process_return_vals(return_vals, config=config, iterator=iterator)
+    argument_loop(config, wrapper_opts)
 
 
 if __name__ == "__main__":
