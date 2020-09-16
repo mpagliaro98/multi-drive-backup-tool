@@ -251,9 +251,7 @@ def option_input(**kwargs):
     opts = kwargs["opts"]
     iterator = kwargs["iterator"]
     input_data = opts[iterator.current][1]
-    result = configuration.append_input_to_config(config, input_data)
-    if not result:
-        raise BadDataException("The given input path was invalid or created a cyclic entry.")
+    configuration.append_input_to_config(config, input_data)
 
 
 def option_destination(**kwargs):
@@ -284,9 +282,7 @@ def option_destination(**kwargs):
         raise BadDataException("The input index should correspond to a valid entry.")
 
     # Create the new destination
-    result = configuration.append_output_to_config(config, input_index, output_data)
-    if not result:
-        raise BadDataException("The given path was invalid, is a sub-folder of the input, or created a cyclic entry.")
+    configuration.append_output_to_config(config, input_index, output_data)
     return {"advance": 1}
 
 

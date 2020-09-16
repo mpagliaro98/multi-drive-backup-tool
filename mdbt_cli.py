@@ -6,6 +6,7 @@ with menus and options on the command line.
 """
 
 import configuration
+from configuration import InvalidPathException, SubPathException, CyclicEntryException
 from exclusions import EXCLUSION_TYPES
 from limitations import LIMITATION_TYPES
 import util
@@ -71,11 +72,12 @@ def menu_option_input(config):
         input_name = input("Enter the absolute path of a folder or file to backup (enter \"end\" to stop): ")
         if input_name == "end":
             break
-        # Check if the input is valid, and if so add it to the config
-        result = configuration.append_input_to_config(config, input_name)
-        # No changes occur to the config if it's invalid, so show that it's invalid
-        if not result:
-            print("The given path was invalid or created a cyclic entry.")
+        # Check if the input is valid, and if so add it to the config, otherwise display what went wrong
+        try:
+            configuration.append_input_to_config(config, input_name)
+            break
+        except (InvalidPathException, CyclicEntryException) as error:
+            print(error)
 
 
 def menu_option_destination(config):
@@ -97,9 +99,10 @@ def menu_option_destination(config):
         destination_input = input()
         if destination_input == "end":
             break
-        result = configuration.append_output_to_config(config, entry_number, destination_input)
-        if not result:
-            print("The given path was invalid, is a sub-folder of the input, or created a cyclic entry.")
+        try:
+            configuration.append_output_to_config(config, entry_number, destination_input)
+        except (InvalidPathException, SubPathException, CyclicEntryException) as error:
+            print(error)
 
 
 def menu_option_exclude(config):
@@ -205,12 +208,13 @@ def menu_option_edit(config):
 
         # Edit the input path
         if edit_input == 1:
-            result = False
-            while not result:
+            while True:
                 input_name = input("Enter the new absolute path of a folder or file to backup: ")
-                result = configuration.edit_input_in_config(config, entry_number, input_name)
-                if not result:
-                    print("The given path is invalid, created a cyclic entry, or a destination became a sub-folder.")
+                try:
+                    configuration.edit_input_in_config(config, entry_number, input_name)
+                    break
+                except (InvalidPathException, SubPathException, CyclicEntryException) as error:
+                    print(error)
         # Edit the destinations
         elif edit_input == 2:
             if entry.num_destinations() > 0:
@@ -258,12 +262,13 @@ def sub_option_edit_destinations(config, entry):
             print("\n" + entry.enumerate_destinations())
             dest_number = input_entry_number(low_bound=1, high_bound=entry.num_destinations(),
                                              input_text="Enter a number to specify which destination to edit: ")
-            result = False
-            while not result:
+            while True:
                 input_name = input("Enter the new absolute path of a folder to make a destination: ")
-                result = configuration.edit_destination_in_config(entry, dest_number, input_name, config)
-                if not result:
-                    print("The given path was invalid, is a sub-folder of the input, or created a cyclic entry.")
+                try:
+                    configuration.edit_destination_in_config(entry, dest_number, input_name, config)
+                    break
+                except (InvalidPathException, SubPathException, CyclicEntryException) as error:
+                    print(error)
         # Delete destination
         elif destination_input == 2:
             print("\n" + entry.enumerate_destinations())

@@ -15,6 +15,27 @@ import copy
 CONFIG_DIRECTORY = "configs"
 
 
+class InvalidPathException(Exception):
+    """
+    Exception raised when trying to add a new path to a configuration that doesn't exist.
+    """
+    pass
+
+
+class CyclicEntryException(Exception):
+    """
+    Exception raised when adding or editing a path in a configuration creates a cyclic entry.
+    """
+    pass
+
+
+class SubPathException(Exception):
+    """
+    Exception raised when an output in a configuration becomes a sub-path of its input.
+    """
+    pass
+
+
 class Configuration:
     """
     Class for representing configurations. This holds the name of the current configuration (if it
@@ -279,21 +300,20 @@ def append_input_to_config(config, input_string):
     """
     Add the given input string, which should be a valid path to a file or directory, to the
     configuration as a new entry. The path will be checked to be valid and that it does not
-    create a cyclic entry.
+    create a cyclic entry. This can raise an InvalidPathException or a CyclicEntryException
+    if some of the input is not valid.
     :param config: The configuration to add this path to.
     :param input_string: An absolute file path to a valid file or directory.
-    :return: A boolean that is True when the given input path is valid, and false otherwise.
     """
     # Return false if this input is not a valid directory/file.
     if not os.path.isdir(input_string) and not os.path.isfile(input_string):
-        return False
+        raise InvalidPathException("\"" + input_string + "\" is not a valid directory or file.")
 
     # Add the string as a new entry and check for cyclic entries, remove it if it creates one
     config.new_entry(os.path.realpath(input_string))
     if config.check_for_cyclic_entries():
         config.delete_entry(config.num_entries())
-        return False
-    return True
+        raise CyclicEntryException("Adding \"" + input_string + "\" as an input creates a cyclic entry.")
 
 
 def append_output_to_config(config, entry_number, output_string):
@@ -302,13 +322,14 @@ def append_output_to_config(config, entry_number, output_string):
     entries in the given configuration. A number must be provided that corresponds to the
     index of the entry to modify in the configuration (starting at 1). If the input number is
     0, the given destination will be added to every entry. This will only append the
-    destination to the configuration and will not overwrite any existing destinations.
+    destination to the configuration and will not overwrite any existing destinations. This can
+    raise an InvalidPathException, SubPathException, or CyclicEntryException if some of the data is
+    not valid.
     :param config: The configuration to add this path to.
     :param entry_number: The index in the configuration of the entry to add the destination to.
                          This starts at 1, not 0. If the number is 0, the destination will be
                          appended to every entry.
     :param output_string: An absolute directory path where this input should be backed-up to.
-    :return: A boolean that is True when the given destination path is valid, and false otherwise.
     """
     if entry_number == 0:
         entry_numbers = range(1, config.num_entries()+1)
@@ -317,80 +338,84 @@ def append_output_to_config(config, entry_number, output_string):
 
     # Return false if the output isn't a valid directory or it's a sub-path of the input.
     if not os.path.isdir(output_string):
-        return False
+        raise InvalidPathException("\"" + output_string + "\" is not a valid directory.")
     for current_entry_number in entry_numbers:
         output_absolute = os.path.join(os.path.realpath(output_string), '')
         input_absolute = os.path.join(os.path.realpath(config.get_entry(current_entry_number).input), '')
         if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
-            return False
+            raise SubPathException("New output \"" + output_absolute + "\" is a sub-path of the input \"" +
+                                   input_absolute + "\".")
 
     # Copy the configuration and attempt to add the new output, return false if it creates cyclic entries
     copy_config = copy.deepcopy(config)
     for current_entry_number in entry_numbers:
         copy_config.get_entry(current_entry_number).new_destination(os.path.realpath(output_string))
     if copy_config.check_for_cyclic_entries():
-        return False
+        raise CyclicEntryException("Adding \"" + output_string + "\" as an output to " +
+                                   ("entry " + str(entry_number) if not entry_number == 0 else "all entries") +
+                                   "creates a cyclic entry.")
 
     # Add the string as a new output for this entry.
     for current_entry_number in entry_numbers:
         config.get_entry(current_entry_number).new_destination(os.path.realpath(output_string))
-    return True
 
 
 def edit_input_in_config(config, entry_number, new_input):
     """
     Edit the name of an input in the configuration. This will be checked to ensure it's a valid
-    directory/file path and doesn't create a cyclic entry.
+    directory/file path and doesn't create a cyclic entry. This can raise an InvalidPathException,
+    SubPathException, or CyclicEntryException if some of the data is not valid.
     :param config: The configuration to edit a path in.
     :param entry_number: The number of the index of the entry, starting at 1.
     :param new_input: The new input path.
-    :return: A boolean that is True when the given input path is valid, and false otherwise.
     """
     # Return false if this input is not a valid directory/file.
     if not os.path.isdir(new_input) and not os.path.isfile(new_input):
-        return False
+        raise InvalidPathException("\"" + new_input + "\" is not a valid directory or file.")
 
     # Ensure the input can't be changed to that one of its outputs becomes a sub-folder.
     for destination in config.get_entry(entry_number).outputs:
         output_absolute = os.path.join(os.path.realpath(destination), '')
         input_absolute = os.path.join(os.path.realpath(new_input), '')
         if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
-            return False
+            raise SubPathException("Changing the input to \"" + input_absolute + "\" makes output \"" +
+                                   output_absolute + "\" become a sub-path of the new input.")
 
     # Overwrite the name of the original entry and check for cyclic entries.
     old_input = config.get_entry(entry_number).input
     config.get_entry(entry_number).input = os.path.realpath(new_input)
     if config.check_for_cyclic_entries():
         config.get_entry(entry_number).input = old_input
-        return False
-    return True
+        raise CyclicEntryException("Changing \"" + old_input + "\" to \"" + new_input + "\" creates a cyclic entry.")
 
 
 def edit_destination_in_config(config_entry, destination_number, new_output, config):
     """
     Edit the name of a destination path within an entry of the configuration. This will be checked
-    to ensure it's a valid directory path and not already in this entry.
+    to ensure it's a valid directory path and not already in this entry. This can
+    raise an InvalidPathException, SubPathException, or CyclicEntryException if some of the data is
+    not valid.
     :param config_entry: An entry from the configuration that's currently being edited.
     :param destination_number: The number of the index of the destination in this entry, starting at 1.
     :param new_output: The new destination path.
     :param config: The current configuration, needed to check for cyclic entries.
-    :return: A boolean that is True when the given destination path is valid, and false otherwise.
     """
     # Return false if the output isn't a valid directory or it's a sub-path of the input.
     if not os.path.isdir(new_output):
-        return False
+        raise InvalidPathException("\"" + new_output + "\" is not a valid directory.")
     output_absolute = os.path.join(os.path.realpath(new_output), '')
     input_absolute = os.path.join(os.path.realpath(config_entry.input), '')
     if os.path.commonprefix([output_absolute, input_absolute]) == input_absolute:
-        return False
+        raise SubPathException("New output \"" + output_absolute + "\" is a sub-path of the input \"" +
+                               input_absolute + "\".")
 
     # Overwrite the original destination and check for cyclic entries, if one exists then revert the change.
     old_destination = config_entry.get_destination(destination_number)
     config_entry.edit_destination(destination_number, os.path.realpath(new_output))
     if config.check_for_cyclic_entries():
         config_entry.edit_destination(destination_number, old_destination)
-        return False
-    return True
+        raise CyclicEntryException("Changing \"" + old_destination + "\" to \"" + new_output +
+                                   "\" creates a cyclic entry.")
 
 
 def config_display_string(config, show_exclusions=False):
