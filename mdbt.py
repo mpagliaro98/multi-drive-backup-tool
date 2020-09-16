@@ -29,6 +29,21 @@ class ArgumentDoesNotExistException(Exception):
     pass
 
 
+class BadDataException(Exception):
+    """
+    An exception raised when an argument comes in with improperly formatted or invalid data.
+    """
+    pass
+
+
+class BadArgumentsException(Exception):
+    """
+    An exception raised when improper arguments are given. This is usually raised when data arguments
+    are required and aren't found.
+    """
+    pass
+
+
 class Iterator:
     """
     A wrapper class for an iterator that allows access of the current value.
@@ -219,7 +234,53 @@ class ArgumentWrapper(Argument):
 
 
 def option_input(**kwargs):
+    """
+    The code run when the input argument is given. This will create a new input path in the configuration
+    to a folder or file specified.
+    :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration, 'opts' as
+                   a list of options created by getopt, and 'iterator' as the current iterator being used.
+    """
     config = kwargs["config"]
+    opts = kwargs["opts"]
+    iterator = kwargs["iterator"]
+    input_data = opts[iterator.current][1]
+    result = configuration.append_input_to_config(config, input_data)
+    if not result:
+        raise BadDataException("The given input path was invalid or created a cyclic entry.")
+
+
+def option_destination(**kwargs):
+    """
+    The code run when the destination argument is given. This will create a new destination path in the
+    configuration for the specified entry.
+    :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration, 'opts' as
+                   a list of options created by getopt, and 'iterator' as the current iterator being used.
+    """
+    config = kwargs["config"]
+    opts = kwargs["opts"]
+    iterator = kwargs["iterator"]
+    output_data = opts[iterator.current][1]
+    next_opt = opts[iterator.current+1]
+    next_opt_type = get_argument(next_opt[0])
+
+    # Make sure this is followed by a data argument and extract its data
+    if not isinstance(next_opt_type, ArgumentData):
+        raise BadArgumentsException("Destination argument should be followed by a data argument for input_index.")
+    input_index = next_opt[1]
+
+    # Validate the data from the data argument
+    if input_index.isnumeric():
+        input_index = int(input_index)
+    else:
+        raise BadDataException("The input index should be a valid number.")
+    if input_index > config.num_entries() or input_index <= 0:
+        raise BadDataException("The input index should correspond to a valid entry.")
+
+    # Create the new destination
+    result = configuration.append_output_to_config(config, input_index, output_data)
+    if not result:
+        raise BadDataException("The given path was invalid, is a sub-folder of the input, or created a cyclic entry.")
+    return {"advance": 1}
 
 
 def option_save(**kwargs):
@@ -260,6 +321,15 @@ def option_backup(**kwargs):
     backup.run_backup(kwargs["config"])
 
 
+def option_print(**kwargs):
+    """
+    The code run when the print argument is given. This will display the given configuration.
+    :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration.
+    """
+    print("\nCalculating file sizes...", end="\r", flush=True)
+    print(configuration.config_display_string(kwargs["config"], show_exclusions=True))
+
+
 ########################################################################################
 # Arguments ############################################################################
 # All arguments used by this application are defined here. #############################
@@ -267,11 +337,14 @@ def option_backup(**kwargs):
 
 
 ARGUMENT_FLAGS = [Argument("i", "input_path", "A path that will be a source for a backup.", option_input),
+                  Argument("d", "destination_path", "A path that will be a destination for an input. Should be " +
+                           "followed by --ii <input_index>.", option_destination),
                   Argument("s", "config_name", "A name to save this configuration as.", option_save),
                   Argument("l", "config_name", "The name of a saved configuration to load.", option_load),
                   ArgumentWrapper("c", "config_name", "Load this config at the start and save it at the end.",
                                   option_load, option_save),
                   ArgumentEmpty("b", "Run a backup on the current configuration.", option_backup),
+                  ArgumentEmpty("p", "Print the current configuration.", option_print),
                   ArgumentData("ii", "input_index", "Input index"),
                   ArgumentData("di", "destination_index", "Destination index"),
                   ArgumentData("ei", "exclusion_index", "Exclusion index"),
