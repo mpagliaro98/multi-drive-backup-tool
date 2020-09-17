@@ -384,29 +384,6 @@ def get_argument(flag):
     raise ArgumentDoesNotExistException
 
 
-def process_return_vals(return_vals, **kwargs):
-    """
-    Given a dictionary of return values from one of the menu option functions, this will process each of
-    them and update necessary values. To support additional return values, this function needs to be updated
-    along with every time it is called.
-    :param return_vals: A dictionary of return values given by one of the menu option functions. This can
-                        be None.
-    :param kwargs: Additional arguments, which in this case are objects that could possibly be updated by an
-                   incoming return value. This expects 'config' and 'iterator'.
-    :return: A tuple of a configuration object and an Iterator. If these are not changed by this function, the
-             ones passed in will just be returned.
-    """
-    return_config = kwargs["config"]
-    return_iterator = kwargs["iterator"]
-    if return_vals is not None:
-        for key, value in return_vals.items():
-            if key == "config":
-                return_config = value
-            elif key == "advance":
-                collections.deque(itertools.islice(return_iterator, value))
-    return return_config, return_iterator
-
-
 def extract_opt_type(opts, arg_type):
     """
     Loop through a list of options and take any options of a given argument type and put them into a
@@ -440,11 +417,20 @@ def argument_loop(config, opts):
     for opt_idx in iterator:
         opt = opts[opt_idx][0]
         argument = get_argument(opt)
+
+        # Raise exception if trying to process data argument, otherwise run the argument's function
         if isinstance(argument, ArgumentData):
             raise BadArgumentsException("Data argument \"" + argument.flag + "\" found when not required.")
         else:
             return_vals = argument.function(config=config, opts=opts, iterator=iterator)
-            config, iterator = process_return_vals(return_vals, config=config, iterator=iterator)
+
+            # Process return values, to add new supported return values add new if statements here
+            if return_vals is not None:
+                for key, value in return_vals.items():
+                    if key == "config":
+                        config = value
+                    elif key == "advance":
+                        collections.deque(itertools.islice(iterator, value))
     return config
 
 
