@@ -56,15 +56,13 @@ class Iterator:
     A wrapper class for an iterator that allows access of the current value.
     """
 
-    def __init__(self, iterator, starting_value):
+    def __init__(self, to_iterate):
         """
-        Create this iterator wrapper. A starting value is required since we cannot view the current value
-        of the iterator before calling next.
-        :param iterator: The iterator to use.
-        :param starting_value: The starting value of this iterator.
+        Create this type of iterator that can view the current value without advancing the iterator.
+        :param to_iterate: The object to iterate over.
         """
-        self._iterator = iterator
-        self._current = starting_value
+        self._iterator = iter(to_iterate)
+        self._current = to_iterate[0] if len(to_iterate) > 0 else None
 
     def __next__(self):
         """
@@ -438,7 +436,7 @@ def argument_loop(config, opts):
     :param opts: A list of options created by getopt.
     :return: The configuration, which can be modified.
     """
-    iterator = Iterator(iter(range(len(opts))), starting_value=0)
+    iterator = Iterator(range(len(opts)))
     for opt_idx in iterator:
         opt = opts[opt_idx][0]
         argument = get_argument(opt)
