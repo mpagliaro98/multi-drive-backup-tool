@@ -260,6 +260,8 @@ def option_destination(**kwargs):
     configuration for the specified entry.
     :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration, 'opts' as
                    a list of options created by getopt, and 'iterator' as the current iterator being used.
+    :return: An integer under the 'advance' label to indicate how many arguments to advance in the
+             argument loop.
     """
     config = kwargs["config"]
     opts = kwargs["opts"]
@@ -284,6 +286,101 @@ def option_destination(**kwargs):
     # Create the new destination
     configuration.append_output_to_config(config, input_index, output_data)
     return {"advance": 1}
+
+
+def option_exclusion(**kwargs):
+    """
+    The code run when the exclusion argument is given. This will create a new exclusion in the
+    configuration for the specified entry.
+    :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration, 'opts' as
+                   a list of options created by getopt, and 'iterator' as the current iterator being used.
+    :return: An integer under the 'advance' label to indicate how many arguments to advance in the
+             argument loop.
+    """
+    config = kwargs["config"]
+    opts = kwargs["opts"]
+    iterator = kwargs["iterator"]
+    exclusion_data = opts[iterator.current][1]
+    first_data_opt = opts[iterator.current+1]
+    first_opt_type = get_argument(first_data_opt[0])
+    second_data_opt = opts[iterator.current+2]
+    second_opt_type = get_argument(second_data_opt[0])
+
+    # Make sure this is followed by two data arguments and extract its data
+    if not isinstance(first_opt_type, ArgumentData) or not isinstance(second_opt_type, ArgumentData):
+        raise BadArgumentsException("Exclusion argument should be followed by two data arguments, first for " +
+                                    "input_index and second for exclusion_type.")
+    input_index = first_data_opt[1]
+    exclusion_code = second_data_opt[1]
+
+    # Validate the data from the data arguments
+    if input_index.isnumeric():
+        input_index = int(input_index)
+    else:
+        raise BadDataException("The input index should be a valid number.")
+    invalid_exclusion_type = True
+    for exclusion_type in EXCLUSION_TYPES:
+        if exclusion_code == exclusion_type.code:
+            invalid_exclusion_type = False
+    if invalid_exclusion_type:
+        raise BadDataException("The exclusion type must be a valid exclusion type.")
+    if input_index > config.num_entries() or input_index <= 0:
+        raise BadDataException("The input index should correspond to a valid entry.")
+
+    # Create the new destination
+    config.get_entry(input_index).new_exclusion(exclusion_code, exclusion_data)
+    return {"advance": 2}
+
+
+def option_limitation(**kwargs):
+    """
+    The code run when the limitation argument is given. This will create a new limitation in the
+    configuration for the specified entry and exclusion.
+    :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration, 'opts' as
+                   a list of options created by getopt, and 'iterator' as the current iterator being used.
+    :return: An integer under the 'advance' label to indicate how many arguments to advance in the
+             argument loop.
+    """
+    config = kwargs["config"]
+    opts = kwargs["opts"]
+    iterator = kwargs["iterator"]
+    limitation_data = opts[iterator.current][1]
+    first_data_opt = opts[iterator.current+1]
+    first_opt_type = get_argument(first_data_opt[0])
+    second_data_opt = opts[iterator.current+2]
+    second_opt_type = get_argument(second_data_opt[0])
+    third_data_opt = opts[iterator.current+3]
+    third_opt_type = get_argument(third_data_opt[0])
+
+    # Make sure this is followed by two data arguments and extract its data
+    if not isinstance(first_opt_type, ArgumentData) or not isinstance(second_opt_type, ArgumentData) \
+            or not isinstance(third_opt_type, ArgumentData):
+        raise BadArgumentsException("Limitation argument should be followed by three data arguments, first for " +
+                                    "input_index, second for exclusion_index, last for limitation_type.")
+    input_index = first_data_opt[1]
+    exclusion_index = second_data_opt[1]
+    limitation_code = third_data_opt[1]
+
+    # Validate the data from the data arguments
+    if input_index.isnumeric() and exclusion_index.isnumeric():
+        input_index = int(input_index)
+        exclusion_index = int(exclusion_index)
+    else:
+        raise BadDataException("The input index and exclusion index should be valid numbers.")
+    invalid_limitation_type = True
+    for limitation_type in LIMITATION_TYPES:
+        if limitation_code == limitation_type.code:
+            invalid_limitation_type = False
+    if invalid_limitation_type:
+        raise BadDataException("The limitation type must be a valid limitation type.")
+    if input_index > config.num_entries() or input_index <= 0:
+        raise BadDataException("The input index should correspond to a valid entry.")
+    if exclusion_index > config.get_entry(input_index).num_exclusions() or exclusion_index <= 0:
+        raise BadDataException("The exclusion index should correspond to a valid exclusion.")
+
+    # Create the new destination
+    config.get_entry(input_index).get_exclusion(exclusion_index).add_limitation(limitation_code, limitation_data)
+    return {"advance": 3}
 
 
 def option_save(**kwargs):
@@ -334,6 +431,11 @@ def option_print(**kwargs):
 
 
 def option_print_ext_types(**kwargs):
+    """
+    The code run when the print exclusion types argument is given. This will display a list of any valid
+    exclusion type along with a description of each.
+    :param kwargs: A dictionary of arguments. None are needed for this function.
+    """
     for exclusion_type in EXCLUSION_TYPES:
         input_text = exclusion_type.input_text
         if len(input_text) > 2 and input_text[-1] == ' ' and input_text[-2] == ':':
@@ -342,6 +444,11 @@ def option_print_ext_types(**kwargs):
 
 
 def option_print_lim_types(**kwargs):
+    """
+    The code run when the print limitation types argument is given. This will display a list of any valid
+    limitation type along with a description of each.
+    :param kwargs: A dictionary of arguments. None are needed for this function.
+    """
     for limitation_type in LIMITATION_TYPES:
         input_text = limitation_type.input_text
         if len(input_text) > 2 and input_text[-1] == ' ' and input_text[-2] == ':':
@@ -357,7 +464,12 @@ def option_print_lim_types(**kwargs):
 
 ARGUMENT_FLAGS = [Argument("i", "input_path", "A path that will be a source for a backup.", option_input),
                   Argument("d", "destination_path", "A path that will be a destination for an input. Should be " +
-                           "followed by --ii <input_index>.", option_destination),
+                           "followed by --data <input_index>.", option_destination),
+                  Argument("e", "exclusion_data", "Data that will be used in an exclusion. Should be followed by " +
+                           "two data arguments, first for <input_index> then for <exclusion_type>.", option_exclusion),
+                  Argument("t", "limitation_data", "Data that will be used in an limitation. Should be followed by " +
+                           "three data arguments, first for <input_index>, then for <exclusion_index>, last for " +
+                           "<limitation_type>.", option_limitation),
                   Argument("s", "config_name", "A name to save this configuration as.", option_save),
                   Argument("l", "config_name", "The name of a saved configuration to load.", option_load),
                   ArgumentWrapper("c", "config_name", "Load this config at the start and save it at the end.",
@@ -366,10 +478,8 @@ ARGUMENT_FLAGS = [Argument("i", "input_path", "A path that will be a source for 
                   ArgumentEmpty("p", "Print the current configuration.", option_print),
                   ArgumentEmpty("q", "Print all valid exclusion types.", option_print_ext_types),
                   ArgumentEmpty("r", "Print all valid limitation types.", option_print_lim_types),
-                  ArgumentData("ii", "input_index", "Input index"),
-                  ArgumentData("di", "destination_index", "Destination index"),
-                  ArgumentData("ei", "exclusion_index", "Exclusion index"),
-                  ArgumentData("li", "limitation_index", "Limitation index")]
+                  ArgumentData("data", "value", "A data argument. Some arguments above must be followed by one or " +
+                               "more of these, with specific data requirements.")]
 
 
 ########################################################################################
