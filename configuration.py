@@ -453,8 +453,6 @@ def config_display_string(config, show_exclusions=False):
                         for limitation in exclusion.limitations:
                             return_str += "\t\t\t\tLimit to {}\n".format(limitation.to_string(
                                 config.get_entry(entry_number).input))
-                    else:
-                        return_str += "\n"
             else:
                 return_str += " [Contains exclusions]\n"
         else:
