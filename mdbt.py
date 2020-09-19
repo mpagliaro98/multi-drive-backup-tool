@@ -11,6 +11,8 @@ import itertools
 import collections
 import configuration
 import backup
+from exclusions import EXCLUSION_TYPES
+from limitations import LIMITATION_TYPES
 
 
 class ArgumentException(Exception):
@@ -331,6 +333,22 @@ def option_print(**kwargs):
     print(configuration.config_display_string(kwargs["config"], show_exclusions=True))
 
 
+def option_print_ext_types(**kwargs):
+    for exclusion_type in EXCLUSION_TYPES:
+        input_text = exclusion_type.input_text
+        if len(input_text) > 2 and input_text[-1] == ' ' and input_text[-2] == ':':
+            input_text = input_text[:len(input_text)-2]
+        print("{} - {}".format(exclusion_type.code, input_text))
+
+
+def option_print_lim_types(**kwargs):
+    for limitation_type in LIMITATION_TYPES:
+        input_text = limitation_type.input_text
+        if len(input_text) > 2 and input_text[-1] == ' ' and input_text[-2] == ':':
+            input_text = input_text[:len(input_text) - 2]
+        print("{} - {}".format(limitation_type.code, input_text))
+
+
 ########################################################################################
 # Arguments ############################################################################
 # All arguments used by this application are defined here. #############################
@@ -346,6 +364,8 @@ ARGUMENT_FLAGS = [Argument("i", "input_path", "A path that will be a source for 
                                   option_load, option_save),
                   ArgumentEmpty("b", "Run a backup on the current configuration.", option_backup),
                   ArgumentEmpty("p", "Print the current configuration.", option_print),
+                  ArgumentEmpty("q", "Print all valid exclusion types.", option_print_ext_types),
+                  ArgumentEmpty("r", "Print all valid limitation types.", option_print_lim_types),
                   ArgumentData("ii", "input_index", "Input index"),
                   ArgumentData("di", "destination_index", "Destination index"),
                   ArgumentData("ei", "exclusion_index", "Exclusion index"),
