@@ -11,7 +11,9 @@ import itertools
 import collections
 import configuration
 import backup
+import exclusions
 from exclusions import EXCLUSION_TYPES
+import limitations
 from limitations import LIMITATION_TYPES
 
 
@@ -383,6 +385,83 @@ def option_limitation(**kwargs):
     return {"advance": 3}
 
 
+def option_edit(**kwargs):
+    """
+    The code to run when the edit argument is given. This determines what data is being edited by how many
+    data arguments follow this argument. First, this argument takes some data that the target will change to.
+    After that, if 1 data argument is given with an integer index, the corresponding input path is changed.
+    If 2 data arguments are given, both with integer indexes, the corresponding destination path is changed.
+    If 3 data arguments are given, the first two with integer indexes and the third with a 1, the corresponding
+    exclusion's type is changed. If the third is a 2, the corresponding exclusion's data is changed.
+    If 4 data arguments are given, the first three with integer indexes and the fourth with a 1, the corresponding
+    limitation's type is changed. If the fourth is a 2, the corresponding limitation's data is changed.
+    :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration, 'opts' as
+                   a list of options created by getopt, and 'iterator' as the current iterator being used.
+    :return: An integer under the 'advance' label to indicate how many arguments to advance in the
+             argument loop.
+    """
+    config = kwargs["config"]
+    opts = kwargs["opts"]
+    iterator = kwargs["iterator"]
+    original_index = iterator.current
+    new_data = opts[original_index][1]
+
+    # Calculate the number of data arguments that follow this
+    num_data_args = 0
+    current_idx = original_index + 1
+    while current_idx < len(opts):
+        if isinstance(get_argument(opts[current_idx][0]), ArgumentData):
+            num_data_args += 1
+            current_idx += 1
+        else:
+            break
+    if num_data_args <= 0 or num_data_args > 4:
+        raise BadArgumentsException("The edit argument requires between 1 and 4 arguments.")
+
+    # Edit an input path
+    if num_data_args == 1:
+        configuration.edit_input_in_config(config, int(opts[original_index+1][1]), new_data)
+    # Edit a destination path
+    elif num_data_args == 2:
+        configuration.edit_destination_in_config(config.get_entry(int(opts[original_index+1][1])),
+                                                 int(opts[original_index+2][1]), new_data, config)
+    # Edit an exclusion
+    elif num_data_args == 3:
+        # Edit an exclusion's type
+        if int(opts[original_index+3][1]) == 1:
+            if exclusions.is_valid_exclusion_type(new_data):
+                config.get_entry(int(opts[original_index+1][1])).get_exclusion(int(opts[original_index+2][1])).code \
+                    = new_data
+            else:
+                raise BadDataException("When editing an exclusion's type, you must provide a valid exclusion type.")
+        # Edit an exclusion's data
+        elif int(opts[original_index+3][1]) == 2:
+            config.get_entry(int(opts[original_index+1][1])).get_exclusion(int(opts[original_index+2][1])).data \
+                = new_data
+        else:
+            raise BadDataException("When editing an exclusion, the last argument must be 1 or 2.")
+    # Edit a limitation
+    elif num_data_args == 4:
+        # Edit a limitation's type
+        if int(opts[original_index+4][1]) == 1:
+            if limitations.is_valid_limitation_type(new_data):
+                config.get_entry(int(opts[original_index+1][1])).get_exclusion(int(opts[original_index+2][1])) \
+                    .get_limitation(int(opts[original_index+3][1])).code = new_data
+            else:
+                raise BadDataException("When editing a limitation's type, you must provide a valid limitation type.")
+        # Edit a limitation's data
+        elif int(opts[original_index+4][1]) == 2:
+            config.get_entry(int(opts[original_index+1][1])).get_exclusion(int(opts[original_index+2][1])) \
+                .get_limitation(int(opts[original_index+3][1])).data = new_data
+        else:
+            raise BadDataException("When editing a limitation, the last argument must be 1 or 2.")
+    return {"advance": num_data_args}
+
+
+def option_delete(**kwargs):
+    pass
+
+
 def option_save(**kwargs):
     """
     The code run when the save argument is given. This will save the given configuration to a file with the
@@ -470,6 +549,14 @@ ARGUMENT_FLAGS = [Argument("i", "input_path", "A path that will be a source for 
                   Argument("t", "limitation_data", "Data that will be used in an limitation. Should be followed by " +
                            "three data arguments, first for <input_index>, then for <exclusion_index>, last for " +
                            "<limitation_type>.", option_limitation),
+                  Argument("m", "new_data", "Edit data in the configuration. You first give it the data you want to " +
+                           "change something to, then the number of following data arguments determines what is " +
+                           "being changed. One data argument with an index changes an input path. Two data arguments " +
+                           "both with indexes changes a destination path. Three data arguments, the first two with " +
+                           "indexes and the third with a 1 changes an exclusion's type, making the third a 2 changes " +
+                           "an exclusion's data. Four data arguments, the first three with indexes and the fourth " +
+                           "with a 1 changes a limitation's type, making the fourth a 2 changes a limitation's data.",
+                           option_edit),
                   Argument("s", "config_name", "A name to save this configuration as.", option_save),
                   Argument("l", "config_name", "The name of a saved configuration to load.", option_load),
                   ArgumentWrapper("c", "config_name", "Load this config at the start and save it at the end.",
