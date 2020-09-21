@@ -277,6 +277,18 @@ def get_limitation_type(limitation):
     return None
 
 
+def is_valid_limitation_type(limit_type):
+    """
+    Checks if a given string corresponds to a valid limitation type.
+    :param limit_type: A string to check.
+    :return: True if the given string equals an limitation type's code, false otherwise.
+    """
+    for limitation_type in LIMITATION_TYPES:
+        if limit_type == limitation_type.code:
+            return True
+    return False
+
+
 """
 A global list of limitation types. This list should be referenced whenever creating menus to select a type
 of limitation or create a new limitation. To add a new type of limitation, only a new element should be added

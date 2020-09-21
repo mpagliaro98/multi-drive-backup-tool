@@ -298,6 +298,18 @@ def get_exclusion_type(exclusion):
     return None
 
 
+def is_valid_exclusion_type(excl_type):
+    """
+    Checks if a given string corresponds to a valid exclusion type.
+    :param excl_type: A string to check.
+    :return: True if the given string equals an exclusion type's code, false otherwise.
+    """
+    for exclusion_type in EXCLUSION_TYPES:
+        if excl_type == exclusion_type.code:
+            return True
+    return False
+
+
 """
 The global list of exclusion types. This list should be referenced whenever creating menus to select a type
 of exclusion or create a new exclusion. To add a new type of exclusion, only a new element should be added
