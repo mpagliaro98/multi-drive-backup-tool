@@ -459,7 +459,78 @@ def option_edit(**kwargs):
 
 
 def option_delete(**kwargs):
-    pass
+    """
+    The code that runs when the delete argument is given. Using the given delete mode, either "entry",
+    "destination", "exclusion", or "limitation", it parses the following data arguments to get the index
+    of the object to delete. For entry mode, just the entry index is required. For destination mode, the
+    entry index and the destination index are required. For exclusion mode, the entry index and the
+    exclusion index are required. For limitation mode, the entry index, exclusion index, and limitation
+    index are required.
+    :param kwargs: A dictionary of arguments. This expects 'config' as a valid configuration, 'opts' as
+                   a list of options created by getopt, and 'iterator' as the current iterator being used.
+    :return: An integer under the 'advance' label to indicate how many arguments to advance in the
+             argument loop.
+    """
+    config = kwargs["config"]
+    opts = kwargs["opts"]
+    iterator = kwargs["iterator"]
+    original_index = iterator.current
+    delete_mode = opts[original_index][1]
+
+    # Calculate the number of data arguments that follow this
+    num_data_args = 0
+    current_idx = original_index + 1
+    while current_idx < len(opts):
+        if isinstance(get_argument(opts[current_idx][0]), ArgumentData):
+            num_data_args += 1
+            current_idx += 1
+        else:
+            break
+
+    # Validate the delete mode and the needed number of data arguments
+    if delete_mode == "entry" and not num_data_args == 1:
+        raise BadArgumentsException("The delete argument using entry mode requires 1 data argument.")
+    elif delete_mode == "destination" and not num_data_args == 2:
+        raise BadArgumentsException("The delete argument using destination mode requires 2 data arguments.")
+    elif delete_mode == "exclusion" and not num_data_args == 2:
+        raise BadArgumentsException("The delete argument using exclusion mode requires 2 data arguments.")
+    elif delete_mode == "limitation" and not num_data_args == 3:
+        raise BadArgumentsException("The delete argument using limitation mode requires 3 data arguments.")
+    elif not delete_mode == "entry" and not delete_mode == "destination" and not delete_mode == "exclusion" and \
+            not delete_mode == "limitation":
+        raise BadDataException(delete_mode + " is an invalid delete mode.")
+
+    # Delete an entry
+    if delete_mode == "entry":
+        if 0 < int(opts[original_index+1][1]) <= config.num_entries():
+            config.delete_entry(int(opts[original_index+1][1]))
+        else:
+            raise BadDataException("You must provide valid indexes for the entry to delete.")
+    # Delete a destination
+    elif delete_mode == "destination":
+        if 0 < int(opts[original_index+1][1]) <= config.num_entries() and 0 < int(opts[original_index+2][1]) \
+                <= config.get_entry(int(opts[original_index+1][1])).num_destinations():
+            config.get_entry(int(opts[original_index+1][1])).delete_destination(int(opts[original_index+2][1]))
+        else:
+            raise BadDataException("You must provide valid indexes for the destination to delete.")
+    # Delete an exclusion
+    elif delete_mode == "exclusion":
+        if 0 < int(opts[original_index+1][1]) <= config.num_entries() and 0 < int(opts[original_index+2][1]) \
+                <= config.get_entry(int(opts[original_index+1][1])).num_exclusions():
+            config.get_entry(int(opts[original_index+1][1])).delete_exclusion(int(opts[original_index+2][1]))
+        else:
+            raise BadDataException("You must provide valid indexes for the exclusion to delete.")
+    # Delete a limitation
+    elif delete_mode == "limitation":
+        if 0 < int(opts[original_index+1][1]) <= config.num_entries() and 0 < int(opts[original_index+2][1]) \
+                <= config.get_entry(int(opts[original_index+1][1])).num_exclusions() and 0 < \
+                int(opts[original_index+3][1]) <= config.get_entry(int(opts[original_index+1][1])).get_exclusion(
+                int(opts[original_index+2][1])).num_limitations():
+            config.get_entry(int(opts[original_index+1][1])).get_exclusion(int(opts[original_index+2][1])) \
+                .delete_limitation(int(opts[original_index+3][1]))
+        else:
+            raise BadDataException("You must provide valid indexes for the limitation to delete.")
+    return {"advance": num_data_args}
 
 
 def option_save(**kwargs):
@@ -557,6 +628,15 @@ ARGUMENT_FLAGS = [Argument("i", "input_path", "A path that will be a source for 
                            "an exclusion's data. Four data arguments, the first three with indexes and the fourth " +
                            "with a 1 changes a limitation's type, making the fourth a 2 changes a limitation's data.",
                            option_edit),
+                  Argument("x", "delete_mode", "Delete something in the configuration. You must first specify a " +
+                           "mode, basically what you want to delete, right after this argument. Options are \"" +
+                           "entry\", \"destination\", \"exclusion\", and \"limitation\". After each, you must " +
+                           "provide data arguments to give all the information of what to delete. After \"entry" +
+                           "\", use one data argument to give the index of the entry to delete. After \"destination" +
+                           "\", use two data arguments to give the entry index and destination index. After " +
+                           "\"exclusion\", use two data arguments to give the entry index and exclusion index. After " +
+                           "\"limitation\", use three data arguments to give the entry index, exclusion index, and " +
+                           "limitation index.", option_delete),
                   Argument("s", "config_name", "A name to save this configuration as.", option_save),
                   Argument("l", "config_name", "The name of a saved configuration to load.", option_load),
                   ArgumentWrapper("c", "config_name", "Load this config at the start and save it at the end.",
