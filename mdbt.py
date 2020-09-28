@@ -762,8 +762,13 @@ def main(argv):
         display_usage()
         sys.exit(2)
 
-    # Collect a list of wrapper arguments and remove those from the main argument list
+    # Extract wrapper arguments from the main list and ensure none are called more than once
     wrapper_opts = extract_opt_type(opts, ArgumentWrapper)
+    for outer_idx in range(len(wrapper_opts)):
+        for inner_idx in range(len(wrapper_opts)):
+            if outer_idx != inner_idx:
+                if wrapper_opts[outer_idx][0] == wrapper_opts[inner_idx][0]:
+                    raise BadArgumentsException("Cannot use the same type of wrapper argument twice.")
 
     # Run the begin function of every wrapper argument
     config = argument_loop(config, wrapper_opts)
