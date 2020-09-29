@@ -43,9 +43,9 @@ class Fileview(tk.Frame):
         self._tree.bind('<<TreeviewOpen>>', self.update_tree)
 
         # Arrange the tree and scroll bars within the frame
-        self._tree.grid(row=2, column=0, stick=tk.NSEW, in_=self, columnspan=10, rowspan=10)
-        self._vsb.grid(row=2, column=10, rowspan=10, sticky=tk.NS, in_=self)
-        self._hsb.grid(row=14, column=0, rowspan=2, sticky=tk.EW, in_=self)
+        self._tree.grid(row=0, column=0, stick=tk.NSEW, in_=self)
+        self._vsb.grid(row=0, column=1, sticky=tk.NS+tk.E, in_=self)
+        self._hsb.grid(row=1, column=0, sticky=tk.EW+tk.S, in_=self)
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
