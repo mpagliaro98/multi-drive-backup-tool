@@ -26,7 +26,8 @@ class Application:
         :param master: The master widget this application will be in. Should be a Tk object.
         """
         self.master = master
-        self.config = configuration.Configuration()
+        self.config = configuration.load_config("subs test")#configuration.Configuration()
+        self.current_entry_number = 1
         self.base = tk.Frame(self.master)
         self.init_menu()
         self.init_tabs()
@@ -72,7 +73,8 @@ class Application:
         Create the frame for buttons on the left side of the window which will represent configuration entries.
         """
         self.entries_frame = sf.ScrollableFrame(self.base)
-        button = tk.Button(self.entries_frame.master_create, text="New Entry")
+        button = tk.Button(self.entries_frame.master_create, text="New Entry",
+                           command=lambda: self.set_fields_to_entry(self.config.num_entries()+1))
         button.pack(ipadx=10, ipady=10)
         self.entries_frame.master.update()
         self.entries_frame.register_widget(button)
@@ -147,10 +149,62 @@ class Application:
         button to it.
         """
         self.entries_frame.clear_widgets()
-        button = tk.Button(self.entries_frame.master_create, text="New Entry")
+        button = tk.Button(self.entries_frame.master_create, text="New Entry",
+                           command=lambda: self.set_fields_to_entry(self.config.num_entries()+1))
         button.pack(ipadx=10, ipady=10)
         self.entries_frame.master.update()
         self.entries_frame.register_widget(button)
+
+    def update_config_name_label(self):
+        """
+        Changes the configuration name label to show the name of the current configuration. If the current
+        configuration is empty, it will say the current configuration isn't saved.
+        """
+        if self.config.is_empty():
+            self.config_name_label.configure(text="The current configuration has not been saved yet.")
+        else:
+            self.config_name_label.configure(text="Current Configuration: {}".format(self.config.name))
+
+    def set_fields_to_entry(self, entry_number):
+        """
+        Updates the UI fields to display info of a given configuration entry. This will show the input path,
+        every output path, and display the input path in the Fileview. If the entry number provided is out of
+        range, the fields will just be cleared.
+        :param entry_number: The number of the entry to display. If this number doesn't correspond to a valid
+                             entry, the fields will just be cleared. Starts indexing from 1.
+        """
+        # Clear the entry fields and record the entry number
+        self.clear_fields()
+        self.current_entry_number = entry_number
+
+        # Only display entry info if it's a valid entry number. Otherwise just clear the fields
+        if 0 < entry_number <= self.config.num_entries():
+            # Add the input path to the input scrollable frame
+            input_label = tk.Message(self.input_frame.master_create, text=self.config.get_entry(entry_number).input,
+                                     width=400)
+            input_label.pack()
+            self.input_frame.master.update()
+            self.input_frame.register_widget(input_label)
+
+            # Set the input tree to display the input
+            self.input_tree.travel_to_path(self.config.get_entry(entry_number).input)
+
+            # Add every output path to the output scrollable frame
+            for output in self.config.get_entry(entry_number).outputs:
+                output_label = tk.Message(self.output_frame.master_create, text=output, width=400)
+                output_label.pack()
+                self.output_frame.master.update()
+                self.output_frame.register_widget(output_label)
+
+    def clear_fields(self):
+        """
+        Clear the UI fields associated with individual entries. This will remove all content from the input and
+        output scrollable frames, as well as reset the input Fileview to its starting position. The output
+        Fileview does not get reset so that the user can quickly give several entries the same output.
+        """
+        self.input_frame.clear_widgets()
+        self.output_frame.clear_widgets()
+        self.input_tree.reset()
 
 
 def main():
