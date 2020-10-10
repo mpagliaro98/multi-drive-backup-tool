@@ -138,7 +138,46 @@ class Application:
         self.tab_inputs.columnconfigure(1, weight=1)
 
     def load_configuration(self):
-        pass
+        """
+        Functionality for loading a configuration. This will display a sub-window with buttons for each
+        valid configuration, and if one is selected, the window will update to load that configuration.
+        """
+        def load_window_response(app, config_list_idx):
+            """
+            Inner function for the load window. This will receive a response from a button pressed on the
+            load window, save the result of what was selected, and then destroy the load window.
+            :param app: The Application object this window was spawned from.
+            :param config_list_idx: The index into the config name list that this button had.
+            """
+            app.config_name = app.config_name_list[config_list_idx]
+            app.load_window.destroy()
+
+        # Create the load window
+        self.config_name = None
+        self.load_window = tk.Toplevel(self.master)
+        self.load_window.wm_title("Load Configuration")
+        self.load_window.geometry("300x300")
+        self.config_name_list = configuration.saved_config_display_string().strip().split("\n")
+        config_load_frame = sf.ScrollableFrame(self.load_window, dynamic_width=False)
+
+        # Create a button for every saved configuration
+        for name_idx in range(len(self.config_name_list)):
+            button = tk.Button(config_load_frame.master_create, text=self.config_name_list[name_idx],
+                               command=lambda i=name_idx: load_window_response(self, i))
+            button.pack(ipadx=5, ipady=5)
+            config_load_frame.master.update()
+            config_load_frame.register_widget(button)
+        config_load_frame.pack(fill=tk.BOTH, expand=True)
+        self.master.wait_window(self.load_window)
+
+        # If an option was chosen, load it in
+        if self.config_name is not None:
+            self.config = configuration.load_config(self.config_name)
+            self.update_config_name_label()
+            self.reset_entry_buttons()
+            for entry_number in range(1, self.config.num_entries()+1):
+                self.create_entry_button(entry_number)
+            self.set_fields_to_entry(1)
 
     def reset_entry_buttons(self):
         """
