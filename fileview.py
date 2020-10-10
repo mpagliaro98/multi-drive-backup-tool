@@ -107,3 +107,63 @@ class Fileview(tk.Frame):
         :return: The full path to the file or directory currently highlighted in the tree.
         """
         return self._tree.set(self._tree.focus(), "fullpath")
+
+    def reset(self):
+        """
+        Reset this Fileview to the state it was after initialization. This will first empty all nodes from the
+        Fileview, then repopulate the roots.
+        """
+        self._tree.delete(*self._tree.get_children())
+        self.populate_roots()
+
+    def travel_to_path(self, destination, previous="", current_node=None):
+        """
+        Navigate through the Fileview to a given valid file path. Directories on the tree will be opened and the
+        final location will become the highlighted focus of the tree.
+        :param destination: A valid file path to set the tree to.
+        :param previous: The previous path the tree has traveled to and opened during recursion. This should not
+                         be specified by the user. Defaults to the empty string.
+        :param current_node: The current node being focused on by the tree during recursion. This should not be
+                             specified by the user. Defaults to None.
+        """
+        # If destination is empty, we've found the desired node
+        if destination == "":
+            return
+
+        # Split the destination path into its individual segments
+        if current_node is not None:
+            self._tree.item(current_node, open=True)
+        path_segments = []
+        path_split = ("dummy", "dummy")
+        while path_split[1] != "":
+            path_split = os.path.split(destination)
+            # End of path when there isn't a drive letter out front
+            if path_split[0] == "":
+                path_segments.append(path_split[1])
+                break
+            # End of path when there is a drive letter out front
+            elif path_split[1] == "":
+                path_segments.append(path_split[0])
+                break
+            else:
+                path_segments.append(path_split[1])
+                destination = path_split[0]
+
+        # Update previous to the next path in the sequence
+        previous = os.path.join(previous, path_segments[-1])
+        del path_segments[-1]
+
+        # Loop through all children of the current node, find the one for the path currently in previous
+        for node in self._tree.get_children(item=current_node):
+            if self._tree.set(node, "fullpath") == previous:
+                # Node was found, so set it as the focus and create its children
+                current_node = node
+                self._tree.selection_set(node)
+                self._tree.focus(node)
+                self.populate_tree(self._tree.focus())
+
+                # Update remaining path to be everything after previous
+                remaining_path = ""
+                for segment in reversed(path_segments):
+                    remaining_path = os.path.join(remaining_path, segment)
+                return self.travel_to_path(remaining_path, previous, current_node)
