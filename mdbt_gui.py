@@ -46,7 +46,7 @@ class Application:
         self.menu_file = tk.Menu(self.menu, tearoff=0)
         self.menu_file.add_command(label="Save configuration")
         self.menu_file.add_command(label="Save configuration as...")
-        self.menu_file.add_command(label="Load configuration")
+        self.menu_file.add_command(label="Load configuration", command=self.load_configuration)
         self.menu_file.add_separator()
         self.menu_file.add_command(label="Exit", command=self.master.quit)
         self.menu.add_cascade(label="File", menu=self.menu_file)
@@ -120,9 +120,11 @@ class Application:
         """
         Create the scrollable frames that will hold input and output paths.
         """
-        self.input_frame = sf.ScrollableFrame(self.tab_inputs, initial_width=-1, initial_height=50, dynamic_width=False)
+        self.input_frame = sf.ScrollableFrame(self.tab_inputs, initial_width=-1,
+                                              initial_height=50, dynamic_width=False)
         self.input_frame.grid(column=0, row=1, sticky=tk.NSEW)
-        self.output_frame = sf.ScrollableFrame(self.tab_inputs, initial_width=-1, initial_height=50, dynamic_width=False)
+        self.output_frame = sf.ScrollableFrame(self.tab_inputs, initial_width=-1,
+                                               initial_height=50, dynamic_width=False)
         self.output_frame.grid(column=1, row=1, sticky=tk.NSEW)
 
     def configure_grid(self):
@@ -135,6 +137,20 @@ class Application:
         self.tab_inputs.rowconfigure(2, weight=1)
         self.tab_inputs.columnconfigure(0, weight=1)
         self.tab_inputs.columnconfigure(1, weight=1)
+
+    def load_configuration(self):
+        pass
+
+    def reset_entry_buttons(self):
+        """
+        Resets the entry button scrollable frame. This will clear the widget, then re-add the "New Entry"
+        button to it.
+        """
+        self.entries_frame.clear_widgets()
+        button = tk.Button(self.entries_frame.master_create, text="New Entry")
+        button.pack(ipadx=10, ipady=10)
+        self.entries_frame.master.update()
+        self.entries_frame.register_widget(button)
 
 
 def main():

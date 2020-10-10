@@ -30,6 +30,7 @@ class ScrollableFrame(ttk.Frame):
         """
         super().__init__(container, **kwargs)
         self.widgets = []
+        self.initial_width = initial_width
         self.max_width = initial_width
         self.dynamic_width = dynamic_width
 
@@ -92,3 +93,13 @@ class ScrollableFrame(ttk.Frame):
         self.widgets.append(widget)
         if self.dynamic_width:
             self.update_width(widget.winfo_width())
+
+    def clear_widgets(self):
+        """
+        Removes all widgets from this frame and resets its size to how it was when it was created.
+        """
+        for widget in self.widgets:
+            widget.destroy()
+        self.widgets = []
+        self.canvas.configure(width=self.initial_width)
+        self.max_width = self.initial_width
