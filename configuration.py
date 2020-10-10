@@ -193,6 +193,13 @@ class Configuration:
                     return True
         return False
 
+    def is_empty(self):
+        """
+        Checks if a configuration is empty. A configuration is empty if it has no name and no entries.
+        :return: True if it is empty, false otherwise.
+        """
+        return self._name is None and len(self._entries) == 0
+
     def equals(self, other_config):
         """
         Check if this configuration is equal to another. For them to be equal, the names need to be
