@@ -29,7 +29,7 @@ class ScrollableFrame(ttk.Frame):
         :param kwargs: Any other optional parameters to send to the super constructor.
         """
         super().__init__(container, **kwargs)
-        self.widgets = []
+        self._widgets = []
         self.initial_width = initial_width
         self.max_width = initial_width
         self.dynamic_width = dynamic_width
@@ -62,6 +62,14 @@ class ScrollableFrame(ttk.Frame):
         """
         return self.scrollable_frame
 
+    @property
+    def widgets(self):
+        """
+        The list of widgets held by this frame.
+        :return: A list of widgets.
+        """
+        return self._widgets
+
     def update_width(self, new_width):
         """
         Update the width of the canvas to a new value if that new value is larger than the existing max width.
@@ -78,7 +86,7 @@ class ScrollableFrame(ttk.Frame):
         fit the new size of the frame, except if they are Buttons.
         :param event: The resize event.
         """
-        for widget in self.widgets:
+        for widget in self._widgets:
             new_width = event.width-self.scrollbar.winfo_width()
             # Not a good solution, but button width is text-based while other widgets are pixel-based
             if not isinstance(widget, tk.Button):
@@ -90,7 +98,7 @@ class ScrollableFrame(ttk.Frame):
         This should be called after a new widget is created in this frame.
         :param widget: The widget to be added.
         """
-        self.widgets.append(widget)
+        self._widgets.append(widget)
         if self.dynamic_width:
             self.update_width(widget.winfo_width())
 
@@ -98,8 +106,16 @@ class ScrollableFrame(ttk.Frame):
         """
         Removes all widgets from this frame and resets its size to how it was when it was created.
         """
-        for widget in self.widgets:
+        for widget in self._widgets:
             widget.destroy()
-        self.widgets = []
+        self._widgets = []
         self.canvas.configure(width=self.initial_width)
         self.max_width = self.initial_width
+
+    def remove_widget(self, widget_idx):
+        """
+        Remove a widget at a given index in the widgets list.
+        :param widget_idx: The index of the widget to delete.
+        """
+        self._widgets[widget_idx].destroy()
+        del self._widgets[widget_idx]

@@ -8,6 +8,7 @@ interface for the program.
 
 import tkinter as tk
 from tkinter import ttk
+import os
 import fileview
 import scrollable_frame as sf
 import configuration
@@ -26,7 +27,7 @@ class Application:
         :param master: The master widget this application will be in. Should be a Tk object.
         """
         self.master = master
-        self.config = configuration.load_config("subs test")#configuration.Configuration()
+        self.config = configuration.Configuration()
         self.current_entry_number = 1
         self.base = tk.Frame(self.master)
         self.init_menu()
@@ -73,11 +74,7 @@ class Application:
         Create the frame for buttons on the left side of the window which will represent configuration entries.
         """
         self.entries_frame = sf.ScrollableFrame(self.base)
-        button = tk.Button(self.entries_frame.master_create, text="New Entry",
-                           command=lambda: self.set_fields_to_entry(self.config.num_entries()+1))
-        button.pack(ipadx=10, ipady=10)
-        self.entries_frame.master.update()
-        self.entries_frame.register_widget(button)
+        self.add_new_entry_button()
         self.entries_frame.grid(row=1, column=0, rowspan=2, sticky=tk.NS+tk.W)
 
     def init_fileviews(self):
@@ -149,11 +146,7 @@ class Application:
         button to it.
         """
         self.entries_frame.clear_widgets()
-        button = tk.Button(self.entries_frame.master_create, text="New Entry",
-                           command=lambda: self.set_fields_to_entry(self.config.num_entries()+1))
-        button.pack(ipadx=10, ipady=10)
-        self.entries_frame.master.update()
-        self.entries_frame.register_widget(button)
+        self.add_new_entry_button()
 
     def update_config_name_label(self):
         """
@@ -205,6 +198,37 @@ class Application:
         self.input_frame.clear_widgets()
         self.output_frame.clear_widgets()
         self.input_tree.reset()
+
+    def create_entry_button(self, entry_number):
+        """
+        Create a new button in the entry button list, which will be added to the bottom of the list but
+        just above the "New Entry" button.
+        :param entry_number: The number of the configuration entry this button points to.
+        """
+        # Remove the "New Entry" button
+        self.entries_frame.remove_widget(len(self.entries_frame.widgets)-1)
+
+        # Create a button for the given entry number
+        path_split = os.path.split(self.config.get_entry(entry_number).input)
+        button_text = path_split[0] if path_split[1] == "" else path_split[1]
+        button = tk.Button(self.entries_frame.master_create, text="Entry {}\n{}".format(entry_number, button_text),
+                           command=lambda: self.set_fields_to_entry(entry_number))
+        button.pack(ipadx=10, ipady=10)
+        self.entries_frame.master.update()
+        self.entries_frame.register_widget(button)
+
+        # Re-add the "New Entry" button
+        self.add_new_entry_button()
+
+    def add_new_entry_button(self):
+        """
+        Create the "New Entry" button at the bottom of the entry button list.
+        """
+        button = tk.Button(self.entries_frame.master_create, text="New Entry",
+                           command=lambda: self.set_fields_to_entry(self.config.num_entries()+1))
+        button.pack(ipadx=10, ipady=10)
+        self.entries_frame.master.update()
+        self.entries_frame.register_widget(button)
 
 
 def main():
