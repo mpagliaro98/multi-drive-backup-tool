@@ -17,14 +17,43 @@ import configuration
 from configuration import InvalidPathException, SubPathException, CyclicEntryException
 
 
-def create_label_scrollable_frame(text, frame):
+def create_label_scrollable_frame(text, frame, delete_enable=False, delete_function=lambda: None):
     """
     Create a label that will be put in a scrollable frame, using this program's settings for how labels
     should look.
     :param text: The text to display.
     :param frame: The scrollable frame to put this text in.
+    :param delete_enable: True if this label should be allowed to be right-clicked, displaying a menu with a
+                          delete option. False by default.
+    :param delete_function: The function that will run when the right-click delete command is executed. This
+                            will have no effect if delete_enable is False. This function does nothing by default.
     """
+    def highlight(event):
+        """
+        When called by an event, this will highlight the widget called. If it's already highlighted, this
+        will remove the highlight.
+        :param event: The event that was triggered.
+        """
+        event.widget.configure(bg='SystemButtonFace' if event.widget['bg'] == 'blue' else 'blue')
+
+    def delete_popup(event):
+        """
+        When called by an event, this will display a menu by the mouse cursor with a delete option.
+        :param event: The event that was triggered.
+        """
+        event.widget.configure(bg='blue')
+        m = tk.Menu(frame.master, tearoff=0)
+        m.add_command(label="Delete", command=delete_function)
+        try:
+            m.tk_popup(event.x_root, event.y_root)
+        finally:
+            m.grab_release()
+        event.widget.configure(bg='SystemButtonFace')
+
     input_label = tk.Message(frame.master_create, text=text)
+    if delete_enable:
+        input_label.bind("<Button-1>", highlight)
+        input_label.bind("<Button-3>", delete_popup)
     input_label.pack()
     frame.master.update()
     frame.register_widget(input_label)
@@ -267,7 +296,7 @@ class Application:
 
             # Add every output path to the output scrollable frame
             for output in self.config.get_entry(entry_number).outputs:
-                create_label_scrollable_frame(output, self.output_frame)
+                create_label_scrollable_frame(output, self.output_frame, delete_enable=True)
 
     def clear_fields(self):
         """
