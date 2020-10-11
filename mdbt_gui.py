@@ -50,11 +50,11 @@ def create_label_scrollable_frame(text, frame, delete_enable=False, delete_funct
             m.grab_release()
         event.widget.configure(bg='SystemButtonFace')
 
-    input_label = tk.Message(frame.master_create, text=text)
+    input_label = tk.Message(frame.master_create, text=text, anchor=tk.W)
     if delete_enable:
         input_label.bind("<Button-1>", highlight)
         input_label.bind("<Button-3>", delete_popup)
-    input_label.pack()
+    input_label.pack(fill=tk.BOTH)
     frame.master.update()
     frame.register_widget(input_label)
 
@@ -157,11 +157,9 @@ class Application:
         self.backup_button.grid(row=2, column=1, pady=10, ipadx=60, ipady=10)
 
         # Create the buttons below the Fileviews
-        self.input_button = tk.Button(self.tab_inputs, text="Set highlighted path to input",
-                                      command=self.set_input)
+        self.input_button = tk.Button(self.tab_inputs, text="Set highlighted path to input", command=self.set_input)
         self.input_button.grid(column=0, row=3)
-        self.output_button = tk.Button(self.tab_inputs, text="Add highlighted path as output",
-                                       command=lambda: print(self.output_tree.get_focus_path()))
+        self.output_button = tk.Button(self.tab_inputs, text="Add highlighted path as output", command=self.add_output)
         self.output_button.grid(column=1, row=3)
 
     def init_labels(self):
@@ -385,6 +383,29 @@ class Application:
             except (InvalidPathException, SubPathException, CyclicEntryException) as e:
                 messagebox.showerror("Error", str(e))
         self.update_config_name_label()
+
+    def add_output(self):
+        """
+        Functionality for the "add highlighted path as output" button. This will add the path selected in the
+        output Fileview as a new output path in the configuration's currently displayed entry.
+        """
+        focus_path = self.output_tree.get_focus_path()
+        if focus_path == "":
+            return
+        # If we are on an existing entry, attempt to add a destination to it
+        if 0 < self.current_entry_number <= self.config.num_entries():
+            try:
+                configuration.append_output_to_config(self.config, self.current_entry_number, focus_path)
+                dest_number = self.config.get_entry(self.current_entry_number).num_destinations()
+                create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).get_destination(
+                    dest_number), self.output_frame, delete_enable=True,
+                    delete_function=lambda i=self.current_entry_number, j=dest_number: self.delete_destination(i, j))
+                self.update_config_name_label()
+            except (InvalidPathException, SubPathException, CyclicEntryException) as e:
+                messagebox.showerror("Error", str(e))
+        # Otherwise, say we can only add destinations if an input was set
+        else:
+            messagebox.showerror("Error", "You must set an input path before you can add destinations.")
 
 
 def main():
