@@ -295,8 +295,28 @@ class Application:
             self.input_tree.travel_to_path(self.config.get_entry(entry_number).input)
 
             # Add every output path to the output scrollable frame
-            for output in self.config.get_entry(entry_number).outputs:
-                create_label_scrollable_frame(output, self.output_frame, delete_enable=True)
+            for output_idx in range(1, len(self.config.get_entry(entry_number).outputs)+1):
+                create_label_scrollable_frame(self.config.get_entry(entry_number).get_destination(output_idx),
+                                              self.output_frame, delete_enable=True,
+                                              delete_function=lambda i=self.current_entry_number, j=output_idx:
+                                              self.delete_destination(i, j))
+
+    def delete_destination(self, entry_number, dest_number):
+        """
+        Delete a destination from an entry in the configuration. This should be called from the right-click
+        delete menu on destination labels. This will first delete the destination, then remake all the labels
+        in the output frame in order to update their delete functions.
+        :param entry_number: The index of the entry being used, starting from 1.
+        :param dest_number: The index of the destination in that entry, starting from 1.
+        """
+        self.config.get_entry(entry_number).delete_destination(dest_number)
+        self.output_frame.clear_widgets()
+        for output_idx in range(1, len(self.config.get_entry(entry_number).outputs) + 1):
+            create_label_scrollable_frame(self.config.get_entry(entry_number).get_destination(output_idx),
+                                          self.output_frame, delete_enable=True,
+                                          delete_function=lambda i=self.current_entry_number, j=output_idx:
+                                          self.delete_destination(i, j))
+        self.update_config_name_label()
 
     def clear_fields(self):
         """
