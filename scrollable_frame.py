@@ -31,13 +31,12 @@ class ScrollableFrame(ttk.Frame):
         super().__init__(container, **kwargs)
         self._widgets = []
         self.initial_width = initial_width
-        self.max_width = initial_width
         self.dynamic_width = dynamic_width
 
         # Create the overall canvas, the scrollbar, and the frame
         self.canvas = tk.Canvas(self)
-        if self.max_width >= 0:
-            self.canvas.configure(width=self.max_width)
+        if self.initial_width >= 0:
+            self.canvas.configure(width=self.initial_width)
         if initial_height >= 0:
             self.canvas.configure(height=initial_height)
         self.scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
@@ -70,15 +69,19 @@ class ScrollableFrame(ttk.Frame):
         """
         return self._widgets
 
-    def update_width(self, new_width):
+    def update_width(self):
         """
-        Update the width of the canvas to a new value if that new value is larger than the existing max width.
-        This should only be called if dynamic_width is true.
-        :param new_width: The new width to attempt to update to.
+        Update the width of the canvas to be as wide as its largest widget. If there are no widgets, set it
+        to its initial width. This should only be called if dynamic_width is true.
         """
-        if new_width > self.max_width:
-            self.max_width = new_width
-            self.canvas.configure(width=self.max_width)
+        canvas_width = 0
+        if len(self._widgets) == 0:
+            canvas_width = self.initial_width
+        else:
+            for widget in self._widgets:
+                if widget.winfo_reqwidth() + self.scrollbar.winfo_reqwidth() + 3 > canvas_width:
+                    canvas_width = widget.winfo_reqwidth() + self.scrollbar.winfo_reqwidth() + 3
+        self.canvas.configure(width=canvas_width)
 
     def on_resize(self, event):
         """
@@ -99,8 +102,13 @@ class ScrollableFrame(ttk.Frame):
         :param widget: The widget to be added.
         """
         self._widgets.append(widget)
+        # If we aren't adding a button, increase its width to match the frame
+        if not isinstance(widget, tk.Button):
+            new_width = self.canvas.winfo_width() - self.scrollbar.winfo_width()
+            widget.configure(width=new_width)
+        # Update the frame width if dynamic width is on
         if self.dynamic_width:
-            self.update_width(widget.winfo_width())
+            self.update_width()
 
     def clear_widgets(self):
         """
@@ -110,7 +118,6 @@ class ScrollableFrame(ttk.Frame):
             widget.destroy()
         self._widgets = []
         self.canvas.configure(width=self.initial_width)
-        self.max_width = self.initial_width
 
     def remove_widget(self, widget_idx):
         """
@@ -119,3 +126,13 @@ class ScrollableFrame(ttk.Frame):
         """
         self._widgets[widget_idx].destroy()
         del self._widgets[widget_idx]
+
+    def edit_text_on_widget(self, widget_idx, new_text):
+        """
+        Change the text on a given widget. If dynamic width is on, this will also update the frame's width.
+        :param widget_idx: The index of the widget to modify, starting from 0.
+        :param new_text: The new text to put on the widget.
+        """
+        self._widgets[widget_idx].configure(text=new_text)
+        if self.dynamic_width:
+            self.update_width()
