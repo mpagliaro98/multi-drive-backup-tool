@@ -111,6 +111,7 @@ class Application:
         self.menu_file.add_command(label="Save configuration as...", command=self.save_configuration_as)
         self.menu_file.add_command(label="Load configuration", command=self.load_configuration)
         self.menu_file.add_separator()
+        self.menu_file.add_command(label="Clear configuration", command=self.clear_configuration)
         self.menu_file.add_command(label="Exit", command=self.master.quit)
         self.menu.add_cascade(label="File", menu=self.menu_file)
         self.menu_help = tk.Menu(self.menu, tearoff=0)
@@ -249,6 +250,16 @@ class Application:
             for entry_number in range(1, self.config.num_entries()+1):
                 self.create_entry_button(entry_number)
             self.set_fields_to_entry(1)
+
+    def clear_configuration(self):
+        """
+        Functionality for clearing a configuration. This will set the application's current configuration to
+        a new empty one, as well as reset all fields in the UI.
+        """
+        self.config = configuration.Configuration()
+        self.set_fields_to_entry(1)
+        self.update_config_name_label()
+        self.reset_entry_buttons()
 
     def reset_entry_buttons(self):
         """
