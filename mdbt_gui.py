@@ -46,8 +46,8 @@ class Application:
         """
         self.menu = tk.Menu(self.base)
         self.menu_file = tk.Menu(self.menu, tearoff=0)
-        self.menu_file.add_command(label="Save configuration")
-        self.menu_file.add_command(label="Save configuration as...")
+        self.menu_file.add_command(label="Save configuration", command=self.save_configuration)
+        self.menu_file.add_command(label="Save configuration as...", command=self.save_configuration_as)
         self.menu_file.add_command(label="Load configuration", command=self.load_configuration)
         self.menu_file.add_separator()
         self.menu_file.add_command(label="Exit", command=self.master.quit)
@@ -137,6 +137,20 @@ class Application:
         self.tab_inputs.columnconfigure(0, weight=1)
         self.tab_inputs.columnconfigure(1, weight=1)
 
+    def save_configuration(self):
+        """
+        Functionality for saving an existing configuration. If this configuration has yet to be saved, this
+        will run the Save As function. Otherwise, it will save and update the current configuration's file.
+        """
+        if not configuration.config_exists(self.config.name):
+            self.save_configuration_as()
+        else:
+            configuration.save_config(self.config, self.config.name)
+        self.update_config_name_label()
+
+    def save_configuration_as(self):
+        pass
+
     def load_configuration(self):
         """
         Functionality for loading a configuration. This will display a sub-window with buttons for each
@@ -190,12 +204,16 @@ class Application:
     def update_config_name_label(self):
         """
         Changes the configuration name label to show the name of the current configuration. If the current
-        configuration is empty, it will say the current configuration isn't saved.
+        configuration is empty, it will say the current configuration isn't saved. If the current configuration
+        is different from its saved version, it will display an asterisk next to its name.
         """
-        if self.config.is_empty():
+        if not configuration.config_exists(self.config.name):
             self.config_name_label.configure(text="The current configuration has not been saved yet.")
         else:
-            self.config_name_label.configure(text="Current Configuration: {}".format(self.config.name))
+            if configuration.config_was_modified(self.config):
+                self.config_name_label.configure(text="Current Configuration: {}*".format(self.config.name))
+            else:
+                self.config_name_label.configure(text="Current Configuration: {}".format(self.config.name))
 
     def set_fields_to_entry(self, entry_number):
         """
