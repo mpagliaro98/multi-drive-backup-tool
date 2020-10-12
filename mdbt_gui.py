@@ -112,11 +112,12 @@ class Application:
         self.menu_file.add_command(label="Save configuration as...", command=self.save_configuration_as)
         self.menu_file.add_command(label="Load configuration", command=self.load_configuration)
         self.menu_file.add_separator()
-        self.menu_file.add_command(label="Clear configuration", command=self.clear_configuration)
         self.menu_file.add_command(label="Exit", command=self.master.quit)
         self.menu.add_cascade(label="File", menu=self.menu_file)
         self.menu_edit = tk.Menu(self.menu, tearoff=0)
         self.menu_edit.add_command(label="Delete highlighted outputs", command=self.delete_highlighted_destinations)
+        self.menu_edit.add_separator()
+        self.menu_edit.add_command(label="Clear configuration", command=self.clear_configuration)
         self.menu.add_cascade(label="Edit", menu=self.menu_edit)
         self.menu_help = tk.Menu(self.menu, tearoff=0)
         self.menu_help.add_command(label="About")
@@ -177,9 +178,9 @@ class Application:
 
         # Add labels above the input and output frames
         self.input_label = ttk.Label(self.tab_inputs, text="BACKUP", font="Helvetica 12 bold")
-        self.input_label.grid(column=0, row=0, padx=10, pady=10, sticky=tk.NW)
+        self.input_label.grid(column=0, row=0, padx=5, pady=10, sticky=tk.NW)
         self.output_label = ttk.Label(self.tab_inputs, text="COPY TO", font="Helvetica 12 bold")
-        self.output_label.grid(column=1, row=0, padx=10, pady=10, sticky=tk.NW)
+        self.output_label.grid(column=1, row=0, padx=5, pady=10, sticky=tk.NW)
         ttk.Label(self.tab_exclusions, text="exclusions tab").grid(column=0, row=0, padx=30, pady=30)
 
     def init_input_output_frames(self):
