@@ -176,10 +176,10 @@ class Application:
         self.config_name_label.grid(row=0, columnspan=2, sticky=tk.NW)
 
         # Add labels above the input and output frames
-        ttk.Label(self.tab_inputs, text="BACKUP", font="Helvetica 12 bold").grid(
-            column=0, row=0, padx=10, pady=10, sticky=tk.NW)
-        ttk.Label(self.tab_inputs, text="COPY TO", font="Helvetica 12 bold").grid(
-            column=1, row=0, padx=10, pady=10, sticky=tk.NW)
+        self.input_label = ttk.Label(self.tab_inputs, text="BACKUP", font="Helvetica 12 bold")
+        self.input_label.grid(column=0, row=0, padx=10, pady=10, sticky=tk.NW)
+        self.output_label = ttk.Label(self.tab_inputs, text="COPY TO", font="Helvetica 12 bold")
+        self.output_label.grid(column=1, row=0, padx=10, pady=10, sticky=tk.NW)
         ttk.Label(self.tab_exclusions, text="exclusions tab").grid(column=0, row=0, padx=30, pady=30)
 
     def init_input_output_frames(self):
@@ -214,6 +214,7 @@ class Application:
         else:
             configuration.save_config(self.config, self.config.name)
         self.update_config_name_label()
+        self.update_output_label()
 
     def save_configuration_as(self):
         pass
@@ -252,6 +253,7 @@ class Application:
         if self.config_name is not None:
             self.config = configuration.load_config(self.config_name)
             self.update_config_name_label()
+            self.update_output_label()
             self.reset_entry_buttons()
             for entry_number in range(1, self.config.num_entries()+1):
                 self.create_entry_button(entry_number)
@@ -264,6 +266,7 @@ class Application:
         """
         self.config = configuration.Configuration()
         self.update_config_name_label()
+        self.update_output_label()
         self.reset_entry_buttons()
         self.set_fields_to_entry(1)
 
@@ -288,6 +291,20 @@ class Application:
                 self.config_name_label.configure(text="Current Configuration: {}*".format(self.config.name))
             else:
                 self.config_name_label.configure(text="Current Configuration: {}".format(self.config.name))
+
+    def update_output_label(self):
+        """
+        Update the "copy to" label to display how many destinations the current entry has.
+        """
+        if self.current_entry_number > self.config.num_entries():
+            self.output_label.configure(text="COPY TO")
+        elif self.config.get_entry(self.current_entry_number).num_destinations() == 0:
+            self.output_label.configure(text="COPY TO")
+        elif self.config.get_entry(self.current_entry_number).num_destinations() == 1:
+            self.output_label.configure(text="COPY TO (1 location)")
+        else:
+            self.output_label.configure(text="COPY TO ({} locations)".format(self.config.get_entry(
+                self.current_entry_number).num_destinations()))
 
     def set_fields_to_entry(self, entry_number):
         """
@@ -315,6 +332,7 @@ class Application:
                 create_label_scrollable_frame(self.config.get_entry(entry_number).get_destination(output_idx),
                                               self.output_frame, delete_enable=True,
                                               delete_function=lambda i=output_idx: self.delete_destination(i))
+            self.update_output_label()
 
     def delete_destination(self, dest_number):
         """
@@ -330,6 +348,7 @@ class Application:
                                           self.output_frame, delete_enable=True,
                                           delete_function=lambda i=output_idx: self.delete_destination(i))
         self.update_config_name_label()
+        self.update_output_label()
 
     def delete_highlighted_destinations(self):
         """
@@ -359,6 +378,7 @@ class Application:
                                           self.output_frame, delete_enable=True,
                                           delete_function=lambda i=output_idx: self.delete_destination(i))
         self.update_config_name_label()
+        self.update_output_label()
 
     def clear_fields(self):
         """
@@ -457,6 +477,7 @@ class Application:
                     dest_number), self.output_frame, delete_enable=True,
                     delete_function=lambda i=dest_number: self.delete_destination(i))
                 self.update_config_name_label()
+                self.update_output_label()
             except (InvalidPathException, SubPathException, CyclicEntryException) as e:
                 messagebox.showerror("Error", str(e))
         # Otherwise, say we can only add destinations if an input was set
