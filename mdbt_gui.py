@@ -100,6 +100,7 @@ class Application:
         self.init_buttons()
         self.configure_grid()
         self.base.pack(fill=tk.BOTH, expand=True)
+        self.set_fields_to_entry(self.current_entry_number)
 
     def init_menu(self):
         """
@@ -291,9 +292,12 @@ class Application:
         :param entry_number: The number of the entry to display. If this number doesn't correspond to a valid
                              entry, the fields will just be cleared. Starts indexing from 1.
         """
-        # Clear the entry fields and record the entry number
+        # Clear the entry fields, highlight the selected button, and record the entry number
         self.clear_fields()
+        if 0 < self.current_entry_number <= self.config.num_entries()+1:
+            self.entries_frame.widgets[self.current_entry_number-1].configure(bg="SystemButtonFace", fg="black")
         self.current_entry_number = entry_number
+        self.entries_frame.widgets[self.current_entry_number - 1].configure(bg="blue", fg="white")
 
         # Only display entry info if it's a valid entry number. Otherwise just clear the fields
         if 0 < entry_number <= self.config.num_entries():
