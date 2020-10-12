@@ -214,10 +214,45 @@ class Application:
         else:
             configuration.save_config(self.config, self.config.name)
         self.update_config_name_label()
-        self.update_output_label()
 
     def save_configuration_as(self):
-        pass
+        """
+        Functionality for saving a new configuration file. This will prompt the user to enter a name for
+        the configuration, then ask to overwrite if it already exists, and then save it.
+        """
+        def save_window_response(app):
+            """
+            Inner function for the save window. This will receive the text entered in the save window,
+            then destroy the save window.
+            :param app: The Application object that this window was spawned from.
+            """
+            if not app.save_entry.get() == "":
+                app.save_name = app.save_entry.get()
+            app.save_window.destroy()
+
+        # Create the save window and prompt for a name, don't resume main window until this is done
+        self.save_name = None
+        self.save_window = tk.Toplevel(self.master)
+        self.save_window.wm_title("Save Configuration")
+        tk.Label(self.save_window, text="Enter a name for this configuration:").pack()
+        self.save_entry = tk.Entry(self.save_window)
+        self.save_entry.pack()
+        tk.Button(self.save_window, text="Save", command=lambda: save_window_response(self)).pack()
+        self.master.wait_window(self.save_window)
+
+        # If a name was entered, attempt to save it
+        if self.save_name is not None:
+            # Ask to overwrite if it shares a name with an existing configuration
+            if configuration.config_exists(self.save_name):
+                mbox = messagebox.askyesno("Overwrite", "A configuration named " + self.save_name +
+                                           " already exists. Would you like to overwrite it?")
+                if mbox == tk.NO:
+                    return
+            self.config.name = self.save_name
+            configuration.save_config(self.config, self.save_name)
+            self.update_config_name_label()
+            messagebox.showinfo("Configuration Saved", self.save_name + ".dat was successfully saved to the " +
+                                configuration.CONFIG_DIRECTORY + " directory.")
 
     def load_configuration(self):
         """
