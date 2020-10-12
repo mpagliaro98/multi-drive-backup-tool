@@ -173,8 +173,10 @@ class Application:
         self.config_name_label.grid(row=0, columnspan=2, sticky=tk.NW)
 
         # Add labels above the input and output frames
-        ttk.Label(self.tab_inputs, text="BACKUP").grid(column=0, row=0, padx=10, pady=10, sticky=tk.NW)
-        ttk.Label(self.tab_inputs, text="COPY TO").grid(column=1, row=0, padx=10, pady=10, sticky=tk.NW)
+        ttk.Label(self.tab_inputs, text="BACKUP", font="Helvetica 12 bold").grid(
+            column=0, row=0, padx=10, pady=10, sticky=tk.NW)
+        ttk.Label(self.tab_inputs, text="COPY TO", font="Helvetica 12 bold").grid(
+            column=1, row=0, padx=10, pady=10, sticky=tk.NW)
         ttk.Label(self.tab_exclusions, text="exclusions tab").grid(column=0, row=0, padx=30, pady=30)
 
     def init_input_output_frames(self):
@@ -258,9 +260,9 @@ class Application:
         a new empty one, as well as reset all fields in the UI.
         """
         self.config = configuration.Configuration()
-        self.set_fields_to_entry(1)
         self.update_config_name_label()
         self.reset_entry_buttons()
+        self.set_fields_to_entry(1)
 
     def reset_entry_buttons(self):
         """
@@ -294,10 +296,8 @@ class Application:
         """
         # Clear the entry fields, highlight the selected button, and record the entry number
         self.clear_fields()
-        if 0 < self.current_entry_number <= self.config.num_entries()+1:
-            self.entries_frame.widgets[self.current_entry_number-1].configure(bg="SystemButtonFace", fg="black")
+        self.highlight_entry_button(self.current_entry_number, entry_number)
         self.current_entry_number = entry_number
-        self.entries_frame.widgets[self.current_entry_number - 1].configure(bg="blue", fg="white")
 
         # Only display entry info if it's a valid entry number. Otherwise just clear the fields
         if 0 < entry_number <= self.config.num_entries():
@@ -366,6 +366,17 @@ class Application:
         create_button_scrollable_frame("New Entry", self.entries_frame, command=lambda: self.set_fields_to_entry(
             self.config.num_entries()+1), ipadx=10, ipady=10)
 
+    def highlight_entry_button(self, old_entry_number, new_entry_number):
+        """
+        Highlight a button in the entries scrollable frame. This takes an old and a new number, so the button
+        corresponding to the old number will be made its normal color while the new number will be highlighted.
+        :param old_entry_number: The index of the button to remove highlighting from, starting from 1.
+        :param new_entry_number: The index of the button to highlight, starting from 1.
+        """
+        if 0 < old_entry_number <= self.config.num_entries()+1:
+            self.entries_frame.widgets[old_entry_number-1].configure(bg="SystemButtonFace", fg="black")
+        self.entries_frame.widgets[new_entry_number-1].configure(bg="blue", fg="white")
+
     def set_input(self):
         """
         Functionality for the "set highlighted path as input" button. This will take the focused path from the
@@ -380,6 +391,7 @@ class Application:
             try:
                 configuration.append_input_to_config(self.config, focus_path)
                 self.create_entry_button(self.current_entry_number)
+                self.highlight_entry_button(self.current_entry_number, self.current_entry_number)
                 create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).input, self.input_frame)
             except (InvalidPathException, CyclicEntryException) as e:
                 messagebox.showerror("Error", str(e))
