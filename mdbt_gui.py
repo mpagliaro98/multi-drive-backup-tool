@@ -115,6 +115,9 @@ class Application:
         self.menu_file.add_command(label="Clear configuration", command=self.clear_configuration)
         self.menu_file.add_command(label="Exit", command=self.master.quit)
         self.menu.add_cascade(label="File", menu=self.menu_file)
+        self.menu_edit = tk.Menu(self.menu, tearoff=0)
+        self.menu_edit.add_command(label="Delete highlighted outputs", command=self.delete_highlighted_destinations)
+        self.menu.add_cascade(label="Edit", menu=self.menu_edit)
         self.menu_help = tk.Menu(self.menu, tearoff=0)
         self.menu_help.add_command(label="About")
         self.menu_help.add_command(label="GitHub page", command=lambda: webbrowser.open(
@@ -311,24 +314,50 @@ class Application:
             for output_idx in range(1, len(self.config.get_entry(entry_number).outputs)+1):
                 create_label_scrollable_frame(self.config.get_entry(entry_number).get_destination(output_idx),
                                               self.output_frame, delete_enable=True,
-                                              delete_function=lambda i=self.current_entry_number, j=output_idx:
-                                              self.delete_destination(i, j))
+                                              delete_function=lambda i=output_idx: self.delete_destination(i))
 
-    def delete_destination(self, entry_number, dest_number):
+    def delete_destination(self, dest_number):
         """
         Delete a destination from an entry in the configuration. This should be called from the right-click
         delete menu on destination labels. This will first delete the destination, then remake all the labels
         in the output frame in order to update their delete functions.
-        :param entry_number: The index of the entry being used, starting from 1.
         :param dest_number: The index of the destination in that entry, starting from 1.
         """
-        self.config.get_entry(entry_number).delete_destination(dest_number)
+        self.config.get_entry(self.current_entry_number).delete_destination(dest_number)
         self.output_frame.clear_widgets()
-        for output_idx in range(1, len(self.config.get_entry(entry_number).outputs) + 1):
-            create_label_scrollable_frame(self.config.get_entry(entry_number).get_destination(output_idx),
+        for output_idx in range(1, len(self.config.get_entry(self.current_entry_number).outputs) + 1):
+            create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).get_destination(output_idx),
                                           self.output_frame, delete_enable=True,
-                                          delete_function=lambda i=self.current_entry_number, j=output_idx:
-                                          self.delete_destination(i, j))
+                                          delete_function=lambda i=output_idx: self.delete_destination(i))
+        self.update_config_name_label()
+
+    def delete_highlighted_destinations(self):
+        """
+        Delete any highlighted destinations from this entry. This is called from the "Delete highlighted
+        outputs" menu item under the Edit menu. If the current selected entry isn't created yet, the
+        current entry has no destinations, or no destinations are highlighted, this will do nothing.
+        """
+        # If this entry isn't created yet or it has no destinations, do nothing
+        if self.current_entry_number > self.config.num_entries():
+            return
+        elif self.config.get_entry(self.current_entry_number).num_destinations() == 0:
+            return
+
+        # Find which destinations are highlighted and delete them
+        num_deleted = 0
+        for output_idx in reversed(range(1, len(self.config.get_entry(self.current_entry_number).outputs)+1)):
+            if self.output_frame.widgets[output_idx-1]['bg'] == "blue":
+                self.config.get_entry(self.current_entry_number).delete_destination(output_idx)
+                num_deleted += 1
+        if num_deleted == 0:
+            return
+
+        # Rebuild the output frame with the remaining destinations
+        self.output_frame.clear_widgets()
+        for output_idx in range(1, len(self.config.get_entry(self.current_entry_number).outputs) + 1):
+            create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).get_destination(output_idx),
+                                          self.output_frame, delete_enable=True,
+                                          delete_function=lambda i=output_idx: self.delete_destination(i))
         self.update_config_name_label()
 
     def clear_fields(self):
@@ -426,7 +455,7 @@ class Application:
                 dest_number = self.config.get_entry(self.current_entry_number).num_destinations()
                 create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).get_destination(
                     dest_number), self.output_frame, delete_enable=True,
-                    delete_function=lambda i=self.current_entry_number, j=dest_number: self.delete_destination(i, j))
+                    delete_function=lambda i=dest_number: self.delete_destination(i))
                 self.update_config_name_label()
             except (InvalidPathException, SubPathException, CyclicEntryException) as e:
                 messagebox.showerror("Error", str(e))
