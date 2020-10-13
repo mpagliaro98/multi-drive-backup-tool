@@ -354,6 +354,7 @@ class Application:
         self.clear_fields()
         self.highlight_entry_button(self.current_entry_number, entry_number)
         self.current_entry_number = entry_number
+        self.update_output_label()
 
         # Only display entry info if it's a valid entry number. Otherwise just clear the fields
         if 0 < entry_number <= self.config.num_entries():
@@ -368,7 +369,6 @@ class Application:
                 create_label_scrollable_frame(self.config.get_entry(entry_number).get_destination(output_idx),
                                               self.output_frame, delete_enable=True,
                                               delete_function=lambda i=output_idx: self.delete_destination(i))
-            self.update_output_label()
 
     def delete_destination(self, dest_number):
         """
