@@ -42,9 +42,13 @@ class ScrollableFrame(ttk.Frame):
         self.scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas)
 
-        # Bind functions to the frame and canvas for resizing
-        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        # Bind functions to the frame and canvas for resizing and scrolling
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(
+            scrollregion=self.canvas.bbox(tk.ALL)))
         self.canvas.bind("<Configure>", self.on_resize)
+        self.canvas.bind("<Enter>", lambda e: self.canvas.bind_all(
+            "<MouseWheel>", lambda f: self.canvas.yview_scroll(int(-1*(f.delta/120)), tk.UNITS)))
+        self.canvas.bind("<Leave>", lambda e: self.canvas.unbind_all("<MouseWheel>"))
 
         # Pack all widgets
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor=tk.NW)
