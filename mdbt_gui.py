@@ -13,6 +13,7 @@ import os
 import webbrowser
 import fileview
 import scrollable_frame as sf
+import tooltip as tt
 import configuration
 from configuration import InvalidPathException, SubPathException, CyclicEntryException
 
@@ -170,6 +171,7 @@ class Application:
         self.menu.add_cascade(label="Edit", menu=self.menu_edit)
         self.menu_help = tk.Menu(self.menu, tearoff=0)
         self.menu_help.add_command(label="About")
+        self.menu_help.add_command(label="How to use")
         self.menu_help.add_command(label="GitHub page", command=lambda: webbrowser.open(
             "https://github.com/mpagliaro98/multi-drive-backup-tool"))
         self.menu.add_cascade(label="Help", menu=self.menu_help)
@@ -228,9 +230,19 @@ class Application:
         # Add labels above the input and output frames
         self.input_label = ttk.Label(self.tab_inputs, text="BACKUP", font="Helvetica 12 bold")
         self.input_label.grid(column=0, row=0, padx=5, pady=10, sticky=tk.NW)
+        tt.Tooltip(self.input_label, text="The file or folder you want to backup will be displayed in this section. " +
+                   "Navigate through the file tree below to find what you want to backup, then once it's highlighted" +
+                   ", press the \"Set highlighted path to input\" button. This will create a new entry for the thing " +
+                   "you are backing up. To edit this later, use the same process to select a new file or folder.")
         self.output_label = ttk.Label(self.tab_inputs, text="COPY TO", font="Helvetica 12 bold")
         self.output_label.grid(column=1, row=0, padx=5, pady=10, sticky=tk.NW)
         ttk.Label(self.tab_exclusions, text="exclusions tab").grid(column=0, row=0, padx=30, pady=30)
+        tt.Tooltip(self.output_label, text="The folders your backup will be made in will be displayed in this " +
+                   "section. Similar to the section to the left, select a folder in the file tree below, then press " +
+                   "the \"Add highlighted path as output\" button to make it a location a backup will be made. You " +
+                   "can add multiple unique locations for a single input. To remove a location, right click on it " +
+                   "in the scroll-box below and press \"Delete\", or highlight multiple by left-clicking them and " +
+                   "select \"Delete highlighted outputs\" in the Edit menu.")
 
     def init_input_output_frames(self):
         """
@@ -532,8 +544,12 @@ class Application:
         """
         Create the "New Entry" button at the bottom of the entry button list.
         """
-        MdbtButton("New Entry", self.entries_frame, command=lambda: self.set_fields_to_entry(
+        new_entry_button = MdbtButton("New Entry", self.entries_frame, command=lambda: self.set_fields_to_entry(
             self.config.num_entries()+1), ipadx=10, ipady=10)
+        tt.Tooltip(new_entry_button, text="Use this button to add a new entry to your backup configuration. Pressing " +
+                   "this button will display blank fields to the right, and once you specify which file/folder is " +
+                   "being backed up, the entry will be created. The entry will not be solidified until you see a " +
+                   "button on the left side of the window with the file/folder name of what you want to backup in it.")
 
     def highlight_entry_button(self, old_entry_number, new_entry_number):
         """
