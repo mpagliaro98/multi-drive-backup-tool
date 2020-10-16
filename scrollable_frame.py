@@ -140,3 +140,11 @@ class ScrollableFrame(ttk.Frame):
         self._widgets[widget_idx].configure(text=new_text)
         if self.dynamic_width:
             self.update_width()
+
+    def edit_command_on_widget(self, widget_idx, new_command):
+        """
+        Change the command on a given widget.
+        :param widget_idx: The index of the widget to modify, starting from 0.
+        :param new_command: The new command to attach to the widget.
+        """
+        self._widgets[widget_idx].configure(command=new_command)

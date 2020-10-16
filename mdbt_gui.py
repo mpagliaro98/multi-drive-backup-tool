@@ -17,62 +17,103 @@ import configuration
 from configuration import InvalidPathException, SubPathException, CyclicEntryException
 
 
-def create_label_scrollable_frame(text, frame, delete_enable=False, delete_function=lambda: None):
+def highlight(event):
     """
-    Create a label that will be put in a scrollable frame, using this program's settings for how labels
-    should look.
-    :param text: The text to display.
-    :param frame: The scrollable frame to put this text in.
-    :param delete_enable: True if this label should be allowed to be right-clicked, displaying a menu with a
-                          delete option. False by default.
-    :param delete_function: The function that will run when the right-click delete command is executed. This
-                            will have no effect if delete_enable is False. This function does nothing by default.
+    When called by an event, this will highlight the widget called. If it's already highlighted, this
+    will remove the highlight.
+    :param event: The event that was triggered.
     """
-    def highlight(event):
-        """
-        When called by an event, this will highlight the widget called. If it's already highlighted, this
-        will remove the highlight.
-        :param event: The event that was triggered.
-        """
-        event.widget.configure(bg='SystemButtonFace' if event.widget['bg'] == 'blue' else 'blue')
+    event.widget.configure(bg='SystemButtonFace' if event.widget['bg'] == 'blue' else 'blue')
 
-    def delete_popup(event):
+
+class MdbtMessage(tk.Message):
+    """
+    A class that creates a tkinter message with settings usable by this application.
+    """
+
+    def __init__(self, text, frame, delete_enable=False, delete_function=lambda: None):
+        """
+        Create a label that will be put in a scrollable frame, using this program's settings for how labels
+        should look.
+        :param text: The text to display.
+        :param frame: The scrollable frame to put this text in.
+        :param delete_enable: True if this label should be allowed to be right-clicked, displaying a menu with a
+                              delete option. False by default.
+        :param delete_function: The function that will run when the right-click delete command is executed. This
+                                will have no effect if delete_enable is False. This function does nothing by default.
+        """
+        super().__init__(frame.master_create, text=text, anchor=tk.W)
+        self.frame = frame
+        self.delete_function = delete_function
+        if delete_enable:
+            self.bind("<Button-1>", highlight)
+            self.bind("<Button-3>", self.delete_popup)
+        self.pack(fill=tk.BOTH)
+        frame.master.update()
+        frame.register_widget(self)
+
+    def delete_popup(self, event):
         """
         When called by an event, this will display a menu by the mouse cursor with a delete option.
         :param event: The event that was triggered.
         """
-        event.widget.configure(bg='blue')
-        m = tk.Menu(frame.master, tearoff=0)
-        m.add_command(label="Delete", command=delete_function)
+        highlight(event)
+        m = tk.Menu(self.frame.master, tearoff=0)
+        m.add_command(label="Delete", command=self.delete_function)
         try:
             m.tk_popup(event.x_root, event.y_root)
         finally:
             m.grab_release()
-        event.widget.configure(bg='SystemButtonFace')
-
-    input_label = tk.Message(frame.master_create, text=text, anchor=tk.W)
-    if delete_enable:
-        input_label.bind("<Button-1>", highlight)
-        input_label.bind("<Button-3>", delete_popup)
-    input_label.pack(fill=tk.BOTH)
-    frame.master.update()
-    frame.register_widget(input_label)
+        highlight(event)
 
 
-def create_button_scrollable_frame(text, frame, command=lambda: None, ipadx=0, ipady=0):
+class MdbtButton(tk.Button):
     """
-    Create a button that will be put in a scrollable frame, using this program's settings for how buttons
-    should look.
-    :param text: The text that goes in the button.
-    :param frame: The scrollable frame to add this button to.
-    :param command: Optional parameter, a function run when this button is pressed. Does nothing if not specified.
-    :param ipadx: Optional parameter, horizontal padding between the text and the button sides. Defaults to 0.
-    :param ipady: Optional parameter, vertical padding between the text and the button edges. Defaults to 0.
+    A class that creates a tkinter button with settings usable by this application.
     """
-    button = tk.Button(frame.master_create, text=text, command=command)
-    button.pack(ipadx=ipadx, ipady=ipady)
-    frame.master.update()
-    frame.register_widget(button)
+
+    def __init__(self, text, frame, command=lambda: None, ipadx=0, ipady=0, delete_enable=False,
+                 delete_function=lambda: None):
+        """
+        Create a button that will be put in a scrollable frame, using this program's settings for how buttons
+        should look.
+        :param text: The text that goes in the button.
+        :param frame: The scrollable frame to add this button to.
+        :param command: Optional parameter, a function run when this button is pressed. Does nothing if not specified.
+        :param ipadx: Optional parameter, horizontal padding between the text and the button sides. Defaults to 0.
+        :param ipady: Optional parameter, vertical padding between the text and the button edges. Defaults to 0.
+        :param delete_enable: True if this label should be allowed to be right-clicked, displaying a menu with a
+                              delete option. False by default.
+        :param delete_function: The function that will run when the right-click delete command is executed. This
+                                will have no effect if delete_enable is False. This function does nothing by default.
+        """
+        super().__init__(frame.master_create, text=text, command=command)
+        self.frame = frame
+        self.delete_function = delete_function
+        if delete_enable:
+            self.bind("<Button-3>", self.delete_popup)
+        self.pack(ipadx=ipadx, ipady=ipady)
+        frame.master.update()
+        frame.register_widget(self)
+
+    def change_delete_function(self, new_function):
+        """
+        Change what function runs when delete is called on this button.
+        :param new_function: The new function run when the right-click delete command is executed.
+        """
+        self.delete_function = new_function
+
+    def delete_popup(self, event):
+        """
+        When called by an event, this will display a menu by the mouse cursor with a delete option.
+        :param event: The event that was triggered.
+        """
+        m = tk.Menu(self.frame.master, tearoff=0)
+        m.add_command(label="Delete", command=self.delete_function)
+        try:
+            m.tk_popup(event.x_root, event.y_root)
+        finally:
+            m.grab_release()
 
 
 class Application:
@@ -115,6 +156,7 @@ class Application:
         self.menu_file.add_command(label="Exit", command=self.master.quit)
         self.menu.add_cascade(label="File", menu=self.menu_file)
         self.menu_edit = tk.Menu(self.menu, tearoff=0)
+        self.menu_edit.add_command(label="Delete current entry", command=self.delete_entry)
         self.menu_edit.add_command(label="Delete highlighted outputs", command=self.delete_highlighted_destinations)
         self.menu_edit.add_separator()
         self.menu_edit.add_command(label="Clear configuration", command=self.clear_configuration)
@@ -282,8 +324,8 @@ class Application:
 
         # Create a button for every saved configuration
         for name_idx in range(len(self.config_name_list)):
-            create_button_scrollable_frame(self.config_name_list[name_idx], config_load_frame,
-                                           command=lambda i=name_idx: load_window_response(self, i), ipadx=5, ipady=5)
+            MdbtButton(self.config_name_list[name_idx], config_load_frame,
+                       command=lambda i=name_idx: load_window_response(self, i), ipadx=5, ipady=5)
         config_load_frame.pack(fill=tk.BOTH, expand=True)
         self.load_window.grab_set()
         self.master.wait_window(self.load_window)
@@ -363,16 +405,15 @@ class Application:
         # Only display entry info if it's a valid entry number. Otherwise just clear the fields
         if 0 < entry_number <= self.config.num_entries():
             # Add the input path to the input scrollable frame
-            create_label_scrollable_frame(self.config.get_entry(entry_number).input, self.input_frame)
+            MdbtMessage(self.config.get_entry(entry_number).input, self.input_frame)
 
             # Set the input tree to display the input
             self.input_tree.travel_to_path(self.config.get_entry(entry_number).input)
 
             # Add every output path to the output scrollable frame
             for output_idx in range(1, len(self.config.get_entry(entry_number).outputs)+1):
-                create_label_scrollable_frame(self.config.get_entry(entry_number).get_destination(output_idx),
-                                              self.output_frame, delete_enable=True,
-                                              delete_function=lambda i=output_idx: self.delete_destination(i))
+                MdbtMessage(self.config.get_entry(entry_number).get_destination(output_idx), self.output_frame,
+                            delete_enable=True, delete_function=lambda i=output_idx: self.delete_destination(i))
 
     def delete_destination(self, dest_number):
         """
@@ -384,9 +425,8 @@ class Application:
         self.config.get_entry(self.current_entry_number).delete_destination(dest_number)
         self.output_frame.clear_widgets()
         for output_idx in range(1, len(self.config.get_entry(self.current_entry_number).outputs) + 1):
-            create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).get_destination(output_idx),
-                                          self.output_frame, delete_enable=True,
-                                          delete_function=lambda i=output_idx: self.delete_destination(i))
+            MdbtMessage(self.config.get_entry(self.current_entry_number).get_destination(output_idx), self.output_frame,
+                        delete_enable=True, delete_function=lambda i=output_idx: self.delete_destination(i))
         self.update_config_name_label()
         self.update_output_label()
 
@@ -414,11 +454,43 @@ class Application:
         # Rebuild the output frame with the remaining destinations
         self.output_frame.clear_widgets()
         for output_idx in range(1, len(self.config.get_entry(self.current_entry_number).outputs) + 1):
-            create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).get_destination(output_idx),
-                                          self.output_frame, delete_enable=True,
-                                          delete_function=lambda i=output_idx: self.delete_destination(i))
+            MdbtMessage(self.config.get_entry(self.current_entry_number).get_destination(output_idx), self.output_frame,
+                        delete_enable=True, delete_function=lambda i=output_idx: self.delete_destination(i))
         self.update_config_name_label()
         self.update_output_label()
+
+    def delete_entry(self, entry_number=0):
+        """
+        Delete an entry from the configuration, remove its button from the UI, and edit all the buttons after it
+        so it accurately reflects the new state of the configuration.
+        :param entry_number: The number of the entry to delete. By default it will delete the entry currently being
+                             viewed.
+        """
+        # If this is used on the new entry button, don't do anything, otherwise delete the entry
+        if entry_number == 0:
+            entry_number = self.current_entry_number
+        if entry_number > self.config.num_entries() or entry_number <= 0:
+            return
+        self.config.delete_entry(entry_number)
+
+        # Delete its entry button, then update every following entry button
+        self.entries_frame.remove_widget(entry_number-1)
+        for widget_idx in range(entry_number-1, len(self.entries_frame.widgets)-1):
+            path_split = os.path.split(self.config.get_entry(widget_idx+1).input)
+            button_text = path_split[0] if path_split[1] == "" else path_split[1]
+            self.entries_frame.edit_text_on_widget(widget_idx, "Entry {}\n{}".format(widget_idx+1, button_text))
+            self.entries_frame.edit_command_on_widget(widget_idx, lambda i=widget_idx+1: self.set_fields_to_entry(i))
+            self.entries_frame.widgets[widget_idx].change_delete_function(lambda i=widget_idx+1: self.delete_entry(i))
+        self.entries_frame.edit_command_on_widget(self.config.num_entries(),
+                                                  lambda: self.set_fields_to_entry(self.config.num_entries()+1))
+
+        # Display the proper entry and update the UI
+        if self.current_entry_number >= entry_number:
+            if self.current_entry_number > entry_number:
+                self.current_entry_number -= 1
+            self.set_fields_to_entry(self.current_entry_number)
+            self.highlight_entry_button(self.current_entry_number, self.current_entry_number)
+        self.update_config_name_label()
 
     def clear_fields(self):
         """
@@ -442,8 +514,9 @@ class Application:
         # Create a button for the given entry number
         path_split = os.path.split(self.config.get_entry(entry_number).input)
         button_text = path_split[0] if path_split[1] == "" else path_split[1]
-        create_button_scrollable_frame("Entry {}\n{}".format(entry_number, button_text), self.entries_frame,
-                                       command=lambda: self.set_fields_to_entry(entry_number), ipadx=10, ipady=10)
+        MdbtButton("Entry {}\n{}".format(entry_number, button_text), self.entries_frame,
+                   command=lambda: self.set_fields_to_entry(entry_number), ipadx=10, ipady=10, delete_enable=True,
+                   delete_function=lambda i=entry_number: self.delete_entry(i))
 
         # Re-add the "New Entry" button
         self.add_new_entry_button()
@@ -452,7 +525,7 @@ class Application:
         """
         Create the "New Entry" button at the bottom of the entry button list.
         """
-        create_button_scrollable_frame("New Entry", self.entries_frame, command=lambda: self.set_fields_to_entry(
+        MdbtButton("New Entry", self.entries_frame, command=lambda: self.set_fields_to_entry(
             self.config.num_entries()+1), ipadx=10, ipady=10)
 
     def highlight_entry_button(self, old_entry_number, new_entry_number):
@@ -481,7 +554,7 @@ class Application:
                 configuration.append_input_to_config(self.config, focus_path)
                 self.create_entry_button(self.current_entry_number)
                 self.highlight_entry_button(self.current_entry_number, self.current_entry_number)
-                create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).input, self.input_frame)
+                MdbtMessage(self.config.get_entry(self.current_entry_number).input, self.input_frame)
             except (InvalidPathException, CyclicEntryException) as e:
                 messagebox.showerror("Error", str(e))
         # Edit an existing entry
@@ -494,7 +567,7 @@ class Application:
                                                        "Entry {}\n{}".format(self.current_entry_number, button_text))
 
                 # Change the input path label
-                create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).input, self.input_frame)
+                MdbtMessage(self.config.get_entry(self.current_entry_number).input, self.input_frame)
                 self.input_frame.remove_widget(0)
             except (InvalidPathException, SubPathException, CyclicEntryException) as e:
                 messagebox.showerror("Error", str(e))
@@ -513,9 +586,9 @@ class Application:
             try:
                 configuration.append_output_to_config(self.config, self.current_entry_number, focus_path)
                 dest_number = self.config.get_entry(self.current_entry_number).num_destinations()
-                create_label_scrollable_frame(self.config.get_entry(self.current_entry_number).get_destination(
-                    dest_number), self.output_frame, delete_enable=True,
-                    delete_function=lambda i=dest_number: self.delete_destination(i))
+                MdbtMessage(self.config.get_entry(self.current_entry_number).get_destination(dest_number),
+                            self.output_frame, delete_enable=True,
+                            delete_function=lambda i=dest_number: self.delete_destination(i))
                 self.update_config_name_label()
                 self.update_output_label()
             except (InvalidPathException, SubPathException, CyclicEntryException) as e:
