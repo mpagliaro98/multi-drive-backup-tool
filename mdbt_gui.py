@@ -52,6 +52,13 @@ class MdbtMessage(tk.Message):
         frame.master.update()
         frame.register_widget(self)
 
+    def change_delete_function(self, new_function):
+        """
+        Change what function runs when delete is called on this message.
+        :param new_function: The new function run when the right-click delete command is executed.
+        """
+        self.delete_function = new_function
+
     def delete_popup(self, event):
         """
         When called by an event, this will display a menu by the mouse cursor with a delete option.
@@ -418,15 +425,15 @@ class Application:
     def delete_destination(self, dest_number):
         """
         Delete a destination from an entry in the configuration. This should be called from the right-click
-        delete menu on destination labels. This will first delete the destination, then remake all the labels
-        in the output frame in order to update their delete functions.
+        delete menu on destination labels. This will first delete the destination, then update the delete
+        functions on every label that follows.
         :param dest_number: The index of the destination in that entry, starting from 1.
         """
         self.config.get_entry(self.current_entry_number).delete_destination(dest_number)
-        self.output_frame.clear_widgets()
-        for output_idx in range(1, len(self.config.get_entry(self.current_entry_number).outputs) + 1):
-            MdbtMessage(self.config.get_entry(self.current_entry_number).get_destination(output_idx), self.output_frame,
-                        delete_enable=True, delete_function=lambda i=output_idx: self.delete_destination(i))
+        self.output_frame.remove_widget(dest_number-1)
+        for widget_idx in range(dest_number-1, len(self.output_frame.widgets)):
+            self.output_frame.widgets[widget_idx].change_delete_function(
+                lambda i=widget_idx+1: self.delete_destination(i))
         self.update_config_name_label()
         self.update_output_label()
 
