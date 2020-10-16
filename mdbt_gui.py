@@ -239,7 +239,9 @@ class Application:
         self.save_entry = tk.Entry(self.save_window)
         self.save_entry.pack()
         tk.Button(self.save_window, text="Save", command=lambda: save_window_response(self)).pack()
+        self.save_window.grab_set()
         self.master.wait_window(self.save_window)
+        self.save_window.grab_release()
 
         # If a name was entered, attempt to save it
         if self.save_name is not None:
@@ -283,7 +285,9 @@ class Application:
             create_button_scrollable_frame(self.config_name_list[name_idx], config_load_frame,
                                            command=lambda i=name_idx: load_window_response(self, i), ipadx=5, ipady=5)
         config_load_frame.pack(fill=tk.BOTH, expand=True)
+        self.load_window.grab_set()
         self.master.wait_window(self.load_window)
+        self.load_window.grab_release()
 
         # If an option was chosen, load it in
         if self.config_name is not None:
