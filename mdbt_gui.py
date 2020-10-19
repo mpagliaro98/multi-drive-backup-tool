@@ -210,7 +210,7 @@ class Application:
         Create various buttons on the window, including the backup button and the buttons below each Fileview.
         """
         # Create the backup button
-        self.backup_button = tk.Button(self.base, text="BACKUP")
+        self.backup_button = tk.Button(self.base, text="BACKUP", command=self.backup)
         self.backup_button.grid(row=2, column=1, pady=10, ipadx=60, ipady=10)
 
         # Create the buttons below the Fileviews
@@ -619,6 +619,56 @@ class Application:
         # Otherwise, say we can only add destinations if an input was set
         else:
             messagebox.showerror("Error", "You must set an input path before you can add destinations.")
+
+    def backup(self):
+        """
+        Run when the backup button is pressed. This will do several checks to ensure the current configuration
+        is valid and can be backed up. For a backup to be able to run, the current configuration must have at
+        least one entry, all entries must have at least one output, and every path in every entry must be valid.
+        """
+        if self.config.num_entries() > 0:
+            if self.config.all_entries_have_outputs():
+                if self.config.all_paths_are_valid():
+                    self.create_backup_window()
+                else:
+                    messagebox.showwarning("Cannot Run Backup", "At least one of the input or output paths in this " +
+                                           "configuration is no longer valid. Please ensure all relevant drives are " +
+                                           "plugged in, or edit any invalid paths.")
+            else:
+                messagebox.showwarning("Cannot Run Backup", "Not all inputs have a destination specified to back " +
+                                       "them up to.")
+        else:
+            messagebox.showwarning("Cannot Run Backup", "There is nothing currently selected to backup.")
+
+    def create_backup_window(self):
+        """
+        Creates and runs the backup sub-window for displaying information on the progress of the current backup.
+        """
+        # Initialize the backup window
+        self.backup_window = tk.Toplevel(self.master)
+        self.backup_window.wm_title("Run Backup")
+        self.backup_window.geometry("400x185")
+
+        # Create every item shown on the window
+        tk.Label(self.backup_window, text="Entry 1").grid(row=0, column=0, columnspan=3, padx=5, pady=5, sticky=tk.NW)
+        tk.Label(self.backup_window, text="Copying {input} to {output}").grid(row=1, column=0, columnspan=3, padx=5,
+                                                                              sticky=tk.NW)
+        tk.Label(self.backup_window, text="Finding files... / Copying filename...").grid(row=2, column=0, columnspan=3,
+                                                                                         padx=5, sticky=tk.NW)
+        ttk.Progressbar(self.backup_window, orient=tk.HORIZONTAL, length=100, mode='determinate').grid(
+            row=3, column=0, columnspan=3, pady=10, sticky=tk.NSEW)
+        tk.Label(self.backup_window, text="Copied: 0").grid(row=4, column=0, padx=5, sticky=tk.NW)
+        tk.Label(self.backup_window, text="Deleted: 0").grid(row=4, column=1, padx=5, sticky=tk.NW)
+        tk.Label(self.backup_window, text="Error: 0").grid(row=4, column=2, padx=5, sticky=tk.NW)
+        tk.Button(self.backup_window, text="Start the backup").grid(row=5, column=1, pady=10, sticky=tk.EW)
+        self.backup_window.columnconfigure(0, weight=1)
+        self.backup_window.columnconfigure(1, weight=1)
+        self.backup_window.columnconfigure(2, weight=1)
+
+        # Launch the window
+        self.backup_window.grab_set()
+        self.master.wait_window(self.backup_window)
+        self.backup_window.grab_release()
 
 
 def main():
