@@ -649,26 +649,51 @@ class Application:
         self.backup_window.wm_title("Run Backup")
         self.backup_window.geometry("400x185")
 
+        # Create lists to hold all UI elements that require updating
+        self.backup_window.status_labels = []
+        self.backup_window.progress_bars = []
+        self.backup_window.labels_new = []
+        self.backup_window.labels_deleted = []
+        self.backup_window.labels_error = []
+
         # Create every item shown on the window
-        tk.Label(self.backup_window, text="Entry 1").grid(row=0, column=0, columnspan=3, padx=5, pady=5, sticky=tk.NW)
-        tk.Label(self.backup_window, text="Copying {input} to {output}").grid(row=1, column=0, columnspan=3, padx=5,
-                                                                              sticky=tk.NW)
-        tk.Label(self.backup_window, text="Finding files... / Copying filename...").grid(row=2, column=0, columnspan=3,
-                                                                                         padx=5, sticky=tk.NW)
-        ttk.Progressbar(self.backup_window, orient=tk.HORIZONTAL, length=100, mode='determinate').grid(
-            row=3, column=0, columnspan=3, pady=10, sticky=tk.NSEW)
-        tk.Label(self.backup_window, text="Copied: 0").grid(row=4, column=0, padx=5, sticky=tk.NW)
-        tk.Label(self.backup_window, text="Deleted: 0").grid(row=4, column=1, padx=5, sticky=tk.NW)
-        tk.Label(self.backup_window, text="Error: 0").grid(row=4, column=2, padx=5, sticky=tk.NW)
-        tk.Button(self.backup_window, text="Start the backup").grid(row=5, column=1, pady=10, sticky=tk.EW)
-        self.backup_window.columnconfigure(0, weight=1)
-        self.backup_window.columnconfigure(1, weight=1)
-        self.backup_window.columnconfigure(2, weight=1)
+        backup_tabs = ttk.Notebook(self.backup_window)
+        backup_number = 0
+        tab_list = []
+        for entry in self.config.entries:
+            for output in entry.outputs:
+                tab_list.append(ttk.Frame(backup_tabs))
+                backup_tabs.add(tab_list[backup_number], text="Backup " + str(backup_number+1))
+                tk.Label(tab_list[backup_number], text="Copying {} to {}".format(entry.input, output)).grid(
+                    row=0, column=0, columnspan=3, padx=5, sticky=tk.NW)
+                self.backup_window.status_labels.append(tk.Label(tab_list[backup_number], text="Inactive"))
+                self.backup_window.status_labels[backup_number].grid(row=1, column=0, columnspan=3, padx=5,
+                                                                     sticky=tk.NW)
+                self.backup_window.progress_bars.append(ttk.Progressbar(tab_list[backup_number], orient=tk.HORIZONTAL,
+                                                                        length=100, mode='determinate'))
+                self.backup_window.progress_bars[backup_number].grid(row=2, column=0, columnspan=3, pady=10,
+                                                                     sticky=tk.NSEW)
+                self.backup_window.labels_new.append(tk.Label(tab_list[backup_number], text="Copied: 0"))
+                self.backup_window.labels_new[backup_number].grid(row=3, column=0, padx=5, sticky=tk.NW)
+                self.backup_window.labels_deleted.append(tk.Label(tab_list[backup_number], text="Deleted: 0"))
+                self.backup_window.labels_deleted[backup_number].grid(row=3, column=1, padx=5, sticky=tk.NW)
+                self.backup_window.labels_error.append(tk.Label(tab_list[backup_number], text="Error: 0"))
+                self.backup_window.labels_error[backup_number].grid(row=3, column=2, padx=5, sticky=tk.NW)
+                tab_list[backup_number].columnconfigure(0, weight=1)
+                tab_list[backup_number].columnconfigure(1, weight=1)
+                tab_list[backup_number].columnconfigure(2, weight=1)
+                backup_number += 1
+        backup_tabs.pack(expand=True, fill=tk.BOTH)
+        tk.Button(self.backup_window, text="Start the backup", command=self.start_backup).pack(pady=10)
 
         # Launch the window
+        self.backup_window.current_backup = 0
         self.backup_window.grab_set()
         self.master.wait_window(self.backup_window)
         self.backup_window.grab_release()
+
+    def start_backup(self):
+        pass
 
 
 def main():
