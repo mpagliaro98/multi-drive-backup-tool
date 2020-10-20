@@ -11,11 +11,94 @@ from tkinter import ttk
 from tkinter import messagebox
 import os
 import webbrowser
+import threading
+import asyncio
+import queue
 import fileview
 import scrollable_frame as sf
 import tooltip as tt
 import configuration
+import backup
+import util
+from observer import observer
 from configuration import InvalidPathException, SubPathException, CyclicEntryException
+
+
+class BackupThread(threading.Thread):
+    """
+    A special-purpose asyncio thread for running the backup process concurrently with something else. While the
+    thread is running, a queue is kept and constantly updated with information from the backup process about
+    number of files processed, the current status, etc. Processes using this thread can check the queue at set
+    intervals to keep things like a UI updated alongside the backup.
+    """
+
+    def __init__(self, config):
+        """
+        Create the thread before running it. This accepts specific arguments needed while it runs.
+        :param config: A configuration of files and folders to backup.
+        """
+        self.loop = asyncio.get_event_loop()
+        self.progress_queue = queue.Queue()
+        self.config = config
+        threading.Thread.__init__(self)
+
+    def run(self):
+        """
+        Launch the thread by starting the backup process. Various observer functions are also kept here to
+        update the queue.
+        """
+        @observer(backup.increment_backup_number, self)
+        def update_backup_number(backup_thread):
+            backup_thread.progress_queue.put(("backup_number", backup.BACKUP_NUMBER))
+
+        @observer(backup.increment_processed, self)
+        @observer(backup.reset_globals, self)
+        def update_processed(backup_thread):
+            backup_thread.progress_queue.put(("processed", backup.NUM_FILES_PROCESSED))
+
+        @observer(backup.increment_modified, self)
+        @observer(backup.reset_globals, self)
+        def update_modified(backup_thread):
+            backup_thread.progress_queue.put(("modified", backup.NUM_FILES_MODIFIED))
+
+        @observer(backup.increment_new, self)
+        @observer(backup.reset_globals, self)
+        def update_new(backup_thread):
+            backup_thread.progress_queue.put(("new", backup.NUM_FILES_NEW))
+
+        @observer(backup.increment_deleted, self)
+        @observer(backup.reset_globals, self)
+        def update_deleted(backup_thread):
+            backup_thread.progress_queue.put(("deleted", backup.NUM_FILES_DELETED))
+
+        @observer(backup.increment_error, self)
+        @observer(backup.reset_globals, self)
+        def update_error(backup_thread):
+            backup_thread.progress_queue.put(("error", backup.NUM_FILES_ERROR))
+
+        @observer(backup.increment_size, self)
+        @observer(backup.reset_globals, self)
+        def update_size(backup_thread):
+            backup_thread.progress_queue.put(("size", backup.TOTAL_SIZE_PROCESSED))
+
+        @observer(backup.increment_backup_progress, self)
+        @observer(backup.reset_globals, self)
+        def update_progress(backup_thread):
+            backup_thread.progress_queue.put(
+                ("progress",
+                 0 if backup.NUM_FILES_MARKED == 0 else backup.BACKUP_PROGRESS / backup.NUM_FILES_MARKED * 100))
+
+        @observer(backup.set_status, self)
+        def update_status(backup_thread):
+            backup_thread.progress_queue.put(("status", backup.CURRENT_STATUS))
+
+        self.loop.run_until_complete(self.run_backup())
+
+    async def run_backup(self):
+        """
+        Start the run_backup() asyncio task.
+        """
+        await asyncio.wait([backup.run_backup(self.config)])
 
 
 def highlight(event):
@@ -647,14 +730,16 @@ class Application:
         # Initialize the backup window
         self.backup_window = tk.Toplevel(self.master)
         self.backup_window.wm_title("Run Backup")
-        self.backup_window.geometry("400x185")
+        self.backup_window.geometry("500x185")
 
         # Create lists to hold all UI elements that require updating
-        self.backup_window.status_labels = []
-        self.backup_window.progress_bars = []
-        self.backup_window.labels_new = []
-        self.backup_window.labels_deleted = []
-        self.backup_window.labels_error = []
+        self.backup_status_labels = []
+        self.backup_progress_bars = []
+        self.backup_labels_modified = []
+        self.backup_labels_new = []
+        self.backup_labels_deleted = []
+        self.backup_labels_error = []
+        self.backup_labels_size = []
 
         # Create every item shown on the window
         backup_tabs = ttk.Notebook(self.backup_window)
@@ -665,26 +750,32 @@ class Application:
                 tab_list.append(ttk.Frame(backup_tabs))
                 backup_tabs.add(tab_list[backup_number], text="Backup " + str(backup_number+1))
                 tk.Label(tab_list[backup_number], text="Copying {} to {}".format(entry.input, output)).grid(
-                    row=0, column=0, columnspan=3, padx=5, sticky=tk.NW)
-                self.backup_window.status_labels.append(tk.Label(tab_list[backup_number], text="Inactive"))
-                self.backup_window.status_labels[backup_number].grid(row=1, column=0, columnspan=3, padx=5,
-                                                                     sticky=tk.NW)
-                self.backup_window.progress_bars.append(ttk.Progressbar(tab_list[backup_number], orient=tk.HORIZONTAL,
-                                                                        length=100, mode='determinate'))
-                self.backup_window.progress_bars[backup_number].grid(row=2, column=0, columnspan=3, pady=10,
-                                                                     sticky=tk.NSEW)
-                self.backup_window.labels_new.append(tk.Label(tab_list[backup_number], text="Copied: 0"))
-                self.backup_window.labels_new[backup_number].grid(row=3, column=0, padx=5, sticky=tk.NW)
-                self.backup_window.labels_deleted.append(tk.Label(tab_list[backup_number], text="Deleted: 0"))
-                self.backup_window.labels_deleted[backup_number].grid(row=3, column=1, padx=5, sticky=tk.NW)
-                self.backup_window.labels_error.append(tk.Label(tab_list[backup_number], text="Error: 0"))
-                self.backup_window.labels_error[backup_number].grid(row=3, column=2, padx=5, sticky=tk.NW)
+                    row=0, column=0, columnspan=5, padx=5, sticky=tk.NW)
+                self.backup_status_labels.append(tk.Label(tab_list[backup_number], text="Inactive"))
+                self.backup_status_labels[backup_number].grid(row=1, column=0, columnspan=5, padx=5, sticky=tk.NW)
+                self.backup_progress_bars.append(ttk.Progressbar(tab_list[backup_number], orient=tk.HORIZONTAL,
+                                                                 length=100, mode='determinate'))
+                self.backup_progress_bars[backup_number].grid(row=2, column=0, columnspan=5, pady=10, sticky=tk.NSEW)
+                self.backup_labels_modified.append(tk.Label(tab_list[backup_number], text="Modified: 0"))
+                self.backup_labels_modified[backup_number].grid(row=3, column=0, padx=5, sticky=tk.NW)
+                self.backup_labels_new.append(tk.Label(tab_list[backup_number], text="New: 0"))
+                self.backup_labels_new[backup_number].grid(row=3, column=1, padx=5, sticky=tk.NW)
+                self.backup_labels_deleted.append(tk.Label(tab_list[backup_number], text="Deleted: 0"))
+                self.backup_labels_deleted[backup_number].grid(row=3, column=2, padx=5, sticky=tk.NW)
+                self.backup_labels_error.append(tk.Label(tab_list[backup_number], text="Error: 0"))
+                self.backup_labels_error[backup_number].grid(row=3, column=3, padx=5, sticky=tk.NW)
+                self.backup_labels_size.append(tk.Label(tab_list[backup_number],
+                                                        text="{}".format(util.bytes_to_string(0, 2))))
+                self.backup_labels_size[backup_number].grid(row=3, column=4, padx=5, sticky=tk.NW)
                 tab_list[backup_number].columnconfigure(0, weight=1)
                 tab_list[backup_number].columnconfigure(1, weight=1)
                 tab_list[backup_number].columnconfigure(2, weight=1)
+                tab_list[backup_number].columnconfigure(3, weight=1)
+                tab_list[backup_number].columnconfigure(4, weight=1)
                 backup_number += 1
         backup_tabs.pack(expand=True, fill=tk.BOTH)
-        tk.Button(self.backup_window, text="Start the backup", command=self.start_backup).pack(pady=10)
+        self.backup_start_button = tk.Button(self.backup_window, text="Start the backup", command=self.start_backup)
+        self.backup_start_button.pack(pady=10)
 
         # Launch the window
         self.backup_window.current_backup = 0
@@ -693,7 +784,60 @@ class Application:
         self.backup_window.grab_release()
 
     def start_backup(self):
-        pass
+        """
+        Start the backup process. This will spawn a new thread that will run the backup function and call the
+        UI on a set interval to update various labels and the progress bar.
+        """
+        self.backup_refresh_time = 200
+        self.backup_thread = BackupThread(self.config)
+        self.backup_window.after(self.backup_refresh_time, self.refresh_backup_window)
+        self.backup_thread.start()
+        self.backup_start_button.configure(text="Cancel", command=lambda: None)
+
+    def refresh_backup_window(self):
+        """
+        Refresh the fields on the backup window. This takes data from the backup thread's queue and updates
+        data on the UI in the order new data was received. This will be called on a set interval.
+        """
+        # Do nothing if the thread is dead and the queue is empty
+        if not self.backup_thread.is_alive() and self.backup_thread.progress_queue.empty():
+            return
+
+        # For every item in the queue, process it based on its key
+        while not self.backup_thread.progress_queue.empty():
+            key, data = self.backup_thread.progress_queue.get()
+            if key == "backup_number":
+                # TODO change tabs when backup number changes, highlight current tab
+                self.backup_window.current_backup = data
+            elif key == "processed":
+                if data == 0:
+                    label_text = "Inactive"
+                else:
+                    label_text = "{} files found".format(data)
+                self.backup_status_labels[self.backup_window.current_backup].configure(text=label_text)
+            elif key == "modified":
+                self.backup_labels_modified[self.backup_window.current_backup].configure(
+                    text="Modified: {}".format(data))
+            elif key == "new":
+                self.backup_labels_new[self.backup_window.current_backup].configure(text="New: {}".format(data))
+            elif key == "deleted":
+                self.backup_labels_deleted[self.backup_window.current_backup].configure(
+                    text="Deleted: {}".format(data))
+            elif key == "error":
+                self.backup_labels_error[self.backup_window.current_backup].configure(
+                    text="Error: {}".format(data))
+            elif key == "size":
+                self.backup_labels_size[self.backup_window.current_backup].configure(
+                    text="{}".format(util.bytes_to_string(data, 2)))
+            elif key == "progress":
+                self.backup_progress_bars[self.backup_window.current_backup]['value'] = data
+            elif key == "status":
+                self.backup_status_labels[self.backup_window.current_backup].configure(text=data)
+            else:
+                print("INVALID KEY")
+
+        # Reset the timer so this method runs again after the set interval
+        self.backup_window.after(self.backup_refresh_time, self.refresh_backup_window)
 
 
 def main():
