@@ -1,5 +1,5 @@
 """
-logging.py
+log.py
 Author: Michael Pagliaro
 Utility functions specific to writing log files.
 """
