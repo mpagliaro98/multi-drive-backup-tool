@@ -10,7 +10,8 @@ import time
 from datetime import datetime
 import util
 import configuration
-import logging
+import log
+from observer import observable
 
 
 # Constant for the backup confirmation filename
@@ -19,16 +20,20 @@ CONFIRMATION_FILENAME = "_BACKUP-CONFIRMATION.txt"
 # The string on the end of the final backup folders
 BACKUP_FOLDER_SUFFIX = "BACKUP"
 
-# Variables to track how many files have been processed during the backup process
+# Variables to track how many files have been processed during the backup process, all are observable
+BACKUP_NUMBER = 0
 NUM_FILES_PROCESSED = 0
+NUM_FILES_MARKED = 0
 NUM_FILES_MODIFIED = 0
 NUM_FILES_NEW = 0
 NUM_FILES_ERROR = 0
 NUM_FILES_DELETED = 0
 TOTAL_SIZE_PROCESSED = 0
+BACKUP_PROGRESS = 0
+CURRENT_STATUS = ""
 
 
-@logging.logger
+@log.logger
 def run_backup(config):
     """
     The primary entry function that starts and runs the backup process. This algorithm will go through each
@@ -38,7 +43,7 @@ def run_backup(config):
     :param config: A configuration containing paths to folders to backup.
     """
     print("Initializing...", end="\r", flush=True)
-    logging.log("\n" + configuration.config_display_string(config, show_exclusions=True))
+    log.log("\n" + configuration.config_display_string(config, show_exclusions=True))
 
     # Loop through every entry in the configuration
     for input_number in range(1, config.num_entries()+1):
@@ -50,29 +55,30 @@ def run_backup(config):
             backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
 
             # Start the log messages
-            logging.log("\n" + '/'*60 +
-                        "\n///// INPUT: " + input_path +
-                        "\n///// OUTPUT: " + backup_folder +
-                        "\n" + '/'*60 + "\n")
+            log.log("\n" + '/' * 60 +
+                    "\n///// INPUT: " + input_path +
+                    "\n///// OUTPUT: " + backup_folder +
+                    "\n" + '/' * 60 + "\n")
 
             # Mark all the files needed for the backup process
             print(' ' * 40 + "\nPreparing files for backup from {} to {}...".format(input_path, backup_folder))
             reset_globals()
             start_time = time.time()
             new_files, changed_files, remove_files = mark_files(input_path, backup_folder, config, input_number)
+            set_num_marked(len(new_files) + len(changed_files) + len(remove_files))
             print("\nFile preparation complete.")
             if NUM_FILES_ERROR > 0:
-                logging.log_print("There were {} error(s) reported during file preparation.".format(NUM_FILES_ERROR))
+                log.log_print("There were {} error(s) reported during file preparation.".format(NUM_FILES_ERROR))
                 print("Please check the log file for more info on the individual errors.")
 
             # Check that doing this backup won't over-fill the disk, if it will then return
             has_space, remaining_space = check_space_requirements(new_files, changed_files, remove_files, backup_folder)
             if not has_space:
                 drive_letter, tail = os.path.splitdrive(backup_folder)
-                logging.log_print("\nCopying {} to {} may not fit on the {} drive.".format(input_path, backup_folder,
-                                                                                           drive_letter))
-                logging.log_print("Please clear up space on the drive you want to copy to and try again.")
-                logging.log_print("Try clearing at least {} on the {} drive and trying again.".format(
+                log.log_print("\nCopying {} to {} may not fit on the {} drive.".format(input_path, backup_folder,
+                                                                                       drive_letter))
+                log.log_print("Please clear up space on the drive you want to copy to and try again.")
+                log.log_print("Try clearing at least {} on the {} drive and trying again.".format(
                     util.bytes_to_string(-1 * remaining_space, 3), drive_letter))
                 return
 
@@ -81,19 +87,21 @@ def run_backup(config):
             num_errors = backup_files(new_files, changed_files, remove_files)
             end_time = time.time()
             print("\nBackup complete. ({})".format(util.time_string(end_time-start_time)))
+            set_status("Backup complete in {}".format(util.time_string(end_time-start_time)))
             if num_errors > 0:
-                logging.log_print("There were {} error(s) reported during the backup.".format(num_errors))
+                log.log_print("There were {} error(s) reported during the backup.".format(num_errors))
                 print("Please check the log file for more info on the individual errors.")
 
             # Report on any errors and finalize the backup
             final_report_str = "Backup complete: {} files processed, {} new files, {} existing files modified, " + \
                                "{} files removed ({})"
-            logging.log(final_report_str.format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED,
-                                                NUM_FILES_DELETED, util.bytes_to_string(TOTAL_SIZE_PROCESSED, 2)))
+            log.log(final_report_str.format(NUM_FILES_PROCESSED, NUM_FILES_NEW, NUM_FILES_MODIFIED,
+                                            NUM_FILES_DELETED, util.bytes_to_string(TOTAL_SIZE_PROCESSED, 2)))
             if NUM_FILES_ERROR > 0:
-                logging.log_print("There were {} error(s) reported during this backup.".format(NUM_FILES_ERROR))
+                log.log_print("There were {} error(s) reported during this backup.".format(NUM_FILES_ERROR))
                 print("Please check the log file for more info on the individual errors.")
             create_backup_text_file(backup_folder)
+            increment_backup_number()
 
 
 def mark_files(input_path, output_path, config, input_number):
@@ -115,11 +123,9 @@ def mark_files(input_path, output_path, config, input_number):
              Third is a list of files to delete. Each element of this list is a tuple of two values: first the absolute
              file path from the output, and second that file's size in bytes.
     """
-    global NUM_FILES_ERROR
-
     # Don't continue down this path if it should be excluded
     if config.get_entry(input_number).should_exclude(input_path, output_path):
-        logging.log("EXCLUDED - " + input_path)
+        log.log("EXCLUDED - " + input_path)
         return [], [], []
 
     # If this is a file, check what to do with it and increment counters as necessary
@@ -152,8 +158,8 @@ def mark_files(input_path, output_path, config, input_number):
                 shutil.copymode(input_path, output_path)
             except PermissionError:
                 # Log the exception and return so we don't process any of this directory's children
-                logging.log_exception(output_path, "CREATING DIRECTORY")
-                NUM_FILES_ERROR += 1
+                log.log_exception(output_path, "CREATING DIRECTORY")
+                increment_error()
                 return [], [], []
 
         # Initialize values that will help in efficiently gathering names of files to remove
@@ -292,13 +298,15 @@ def backup_files(new_files, changed_files, remove_files):
                 deleted_file_count = util.rmtree(delete_file_path)
                 for _ in range(deleted_file_count):
                     count += 1
+                    increment_backup_progress()
                     print("Deleting old files: {}/{}".format(count, limit) + ' '*20, end="\r", flush=True)
             else:
                 os.remove(delete_file_path)
-            logging.log("DELETED - " + delete_file_path)
+            set_status("Deleting {}".format(delete_file_path))
+            log.log("DELETED - " + delete_file_path)
         except PermissionError:
             # Log the exception and indicate that an error occurred
-            logging.log_exception(delete_file_path, "DELETING")
+            log.log_exception(delete_file_path, "DELETING")
             num_errors += 1
 
     # Reset the counter values and copy over every file in the new list
@@ -308,13 +316,15 @@ def backup_files(new_files, changed_files, remove_files):
         new_file = file_tuple[0]
         output_path = file_tuple[2]
         try:
+            set_status("Copying over {}".format(new_file))
             shutil.copy2(new_file, output_path)
-            logging.log("NEW - " + output_path)
+            log.log("NEW - " + output_path)
         except PermissionError:
             # Write the full error to the log file and record that an error occurred
-            logging.log_exception(output_path, "CREATING")
+            log.log_exception(output_path, "CREATING")
             num_errors += 1
         count += 1
+        increment_backup_progress()
         print("Copying over new files: {}/{}".format(count, limit) + ' '*20, end="\r", flush=True)
 
     # Reset the counter values and overwrite every file in the changed list
@@ -324,33 +334,134 @@ def backup_files(new_files, changed_files, remove_files):
         new_file = file_tuple[0]
         output_path = file_tuple[2]
         try:
+            set_status("Updating {}".format(new_file))
             shutil.copy2(new_file, output_path)
-            logging.log("UPDATED - " + output_path)
+            log.log("UPDATED - " + output_path)
         except PermissionError:
             # Write the full error to the log file and record that an error occurred
-            logging.log_exception(output_path, "UPDATING")
+            log.log_exception(output_path, "UPDATING")
             num_errors += 1
         count += 1
+        increment_backup_progress()
         print("Updating existing files: {}/{}".format(count, limit) + ' '*20, end="\r", flush=True)
     return num_errors
 
 
+@observable
 def reset_globals():
     """
     Reset the variables that track how many files are being processed during the file preparation stage.
     """
     global NUM_FILES_PROCESSED
+    global NUM_FILES_MARKED
     global NUM_FILES_MODIFIED
     global NUM_FILES_NEW
     global NUM_FILES_ERROR
     global NUM_FILES_DELETED
     global TOTAL_SIZE_PROCESSED
+    global BACKUP_PROGRESS
     NUM_FILES_PROCESSED = 0
+    NUM_FILES_MARKED = 0
     NUM_FILES_MODIFIED = 0
     NUM_FILES_NEW = 0
     NUM_FILES_ERROR = 0
     NUM_FILES_DELETED = 0
     TOTAL_SIZE_PROCESSED = 0
+    BACKUP_PROGRESS = 0
+
+
+@observable
+def increment_processed():
+    """
+    Increment the global variable for tracking the number of files processed.
+    """
+    global NUM_FILES_PROCESSED
+    NUM_FILES_PROCESSED += 1
+
+
+@observable
+def set_num_marked(num_marked):
+    """
+    Increment the global variable for tracking the number of files marked.
+    """
+    global NUM_FILES_MARKED
+    NUM_FILES_MARKED = num_marked
+
+
+@observable
+def increment_modified():
+    """
+    Increment the global variable for tracking the number of files modified.
+    """
+    global NUM_FILES_MODIFIED
+    NUM_FILES_MODIFIED += 1
+
+
+@observable
+def increment_new():
+    """
+    Increment the global variable for tracking the number of new files copied.
+    """
+    global NUM_FILES_NEW
+    NUM_FILES_NEW += 1
+
+
+@observable
+def increment_deleted():
+    """
+    Increment the global variable for tracking the number of files deleted.
+    """
+    global NUM_FILES_DELETED
+    NUM_FILES_DELETED += 1
+
+
+@observable
+def increment_error():
+    """
+    Increment the global variable for tracking the number of errors that occurred during the backup.
+    """
+    global NUM_FILES_ERROR
+    NUM_FILES_ERROR += 1
+
+
+@observable
+def increment_size(size):
+    """
+    Increment the global variable for tracking the total size of files processed.
+    :param size: The number of bytes to increment by.
+    """
+    global TOTAL_SIZE_PROCESSED
+    TOTAL_SIZE_PROCESSED += size
+
+
+@observable
+def increment_backup_number():
+    """
+    Increment the global variable for tracking the backup number, which tracks which backup is currently being
+    done, starting from 0.
+    """
+    global BACKUP_NUMBER
+    BACKUP_NUMBER += 1
+
+
+@observable
+def increment_backup_progress():
+    """
+    Increment the global variable for tracking the number of files that have been copied, deleted, or modified so far.
+    """
+    global BACKUP_PROGRESS
+    BACKUP_PROGRESS += 1
+
+
+@observable
+def set_status(status):
+    """
+    Set the status global variable. This will usually hold the name of what file is being worked on currently and
+    the action being taken, or the total time taken when the backup is complete.
+    :param status: The string to set the status to.
+    """
+    global CURRENT_STATUS
+    CURRENT_STATUS = status
 
 
 def mark_file_processed(file_size=0, modified=False, is_new=False, error=False, deleted=False):
@@ -364,23 +475,17 @@ def mark_file_processed(file_size=0, modified=False, is_new=False, error=False, 
     :param error: True if there was an error processing the file. False by default.
     :param deleted: True to process a deleted file. False by default. This will not touch other fields.
     """
-    global NUM_FILES_PROCESSED
-    global NUM_FILES_MODIFIED
-    global NUM_FILES_NEW
-    global NUM_FILES_ERROR
-    global NUM_FILES_DELETED
-    global TOTAL_SIZE_PROCESSED
     if not deleted:
-        NUM_FILES_PROCESSED += 1
-        TOTAL_SIZE_PROCESSED += file_size
+        increment_processed()
+        increment_size(file_size)
     if modified:
-        NUM_FILES_MODIFIED += 1
+        increment_modified()
     if is_new:
-        NUM_FILES_NEW += 1
+        increment_new()
     if error:
-        NUM_FILES_ERROR += 1
+        increment_error()
     if deleted:
-        NUM_FILES_DELETED += 1
+        increment_deleted()
 
 
 def create_backup_text_file(backup_base_folder):
