@@ -87,7 +87,7 @@ def run_backup(config):
             num_errors = backup_files(new_files, changed_files, remove_files)
             end_time = time.time()
             print("\nBackup complete. ({})".format(util.time_string(end_time-start_time)))
-            set_status("Backup complete in {}".format(util.time_string(end_time-start_time)))
+            set_status("Backup complete in {}.".format(util.time_string(end_time-start_time)))
             if num_errors > 0:
                 log.log_print("There were {} error(s) reported during the backup.".format(num_errors))
                 print("Please check the log file for more info on the individual errors.")
@@ -302,7 +302,7 @@ def backup_files(new_files, changed_files, remove_files):
                     print("Deleting old files: {}/{}".format(count, limit) + ' '*20, end="\r", flush=True)
             else:
                 os.remove(delete_file_path)
-            set_status("Deleting {}".format(delete_file_path))
+            set_status("Deleting {}".format(os.path.split(delete_file_path)[1]))
             log.log("DELETED - " + delete_file_path)
         except PermissionError:
             # Log the exception and indicate that an error occurred
@@ -316,7 +316,7 @@ def backup_files(new_files, changed_files, remove_files):
         new_file = file_tuple[0]
         output_path = file_tuple[2]
         try:
-            set_status("Copying over {}".format(new_file))
+            set_status("Copying over {}".format(os.path.split(new_file)[1]))
             shutil.copy2(new_file, output_path)
             log.log("NEW - " + output_path)
         except PermissionError:
@@ -334,7 +334,7 @@ def backup_files(new_files, changed_files, remove_files):
         new_file = file_tuple[0]
         output_path = file_tuple[2]
         try:
-            set_status("Updating {}".format(new_file))
+            set_status("Updating {}".format(os.path.split(new_file)[1]))
             shutil.copy2(new_file, output_path)
             log.log("UPDATED - " + output_path)
         except PermissionError:
