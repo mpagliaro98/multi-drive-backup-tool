@@ -788,11 +788,11 @@ class Application:
         Start the backup process. This will spawn a new thread that will run the backup function and call the
         UI on a set interval to update various labels and the progress bar.
         """
-        self.backup_refresh_time = 200
+        self.backup_start_button['state'] = 'disabled'
+        self.backup_refresh_time = 50
         self.backup_thread = BackupThread(self.config)
         self.backup_window.after(self.backup_refresh_time, self.refresh_backup_window)
         self.backup_thread.start()
-        self.backup_start_button.configure(text="Cancel", command=lambda: None)
 
     def refresh_backup_window(self):
         """
