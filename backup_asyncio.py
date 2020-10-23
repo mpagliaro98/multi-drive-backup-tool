@@ -37,6 +37,7 @@ class BackupThread(threading.Thread):
         update the queue.
         """
         @observer(backup.increment_backup_number, self)
+        @observer(backup.reset_backup_number, self)
         def update_backup_number(backup_thread):
             backup_thread.progress_queue.put(("backup_number", backup.BACKUP_NUMBER))
 

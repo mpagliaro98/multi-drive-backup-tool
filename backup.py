@@ -43,6 +43,8 @@ def run_backup(config):
     :param config: A configuration containing paths to folders to backup.
     """
     print("Initializing...", end="\r", flush=True)
+    set_status("Initializing...")
+    reset_backup_number()
     log.log("\n" + configuration.config_display_string(config, show_exclusions=True))
 
     # Loop through every entry in the configuration
@@ -432,6 +434,16 @@ def increment_size(size):
     """
     global TOTAL_SIZE_PROCESSED
     TOTAL_SIZE_PROCESSED += size
+
+
+@observable
+def reset_backup_number():
+    """
+    Reset the global variable for tracking the backup number to 0, which tracks which backup is currently being
+    done, starting from 0.
+    """
+    global BACKUP_NUMBER
+    BACKUP_NUMBER = 0
 
 
 @observable
