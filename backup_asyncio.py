@@ -82,6 +82,10 @@ class BackupThread(threading.Thread):
         def update_status(backup_thread):
             backup_thread.progress_queue.put(("status", backup.CURRENT_STATUS))
 
+        @observer(backup.set_num_marked, self)
+        def update_marked(backup_thread):
+            backup_thread.progress_queue.put(("marked", backup.NUM_FILES_MARKED))
+
         self.loop.run_until_complete(self.run_backup())
 
     async def run_backup(self):

@@ -661,13 +661,13 @@ class Application:
         self.backup_labels_size = []
 
         # Create every item shown on the window
-        backup_tabs = ttk.Notebook(self.backup_window)
+        self.backup_tabs = ttk.Notebook(self.backup_window)
         backup_number = 0
         tab_list = []
         for entry in self.config.entries:
             for output in entry.outputs:
-                tab_list.append(ttk.Frame(backup_tabs))
-                backup_tabs.add(tab_list[backup_number], text="Backup " + str(backup_number+1))
+                tab_list.append(ttk.Frame(self.backup_tabs))
+                self.backup_tabs.add(tab_list[backup_number], text="Backup " + str(backup_number+1))
                 tk.Label(tab_list[backup_number], text="Copying {} to {}".format(entry.input, output)).grid(
                     row=0, column=0, columnspan=5, padx=5, sticky=tk.NW)
                 self.backup_status_labels.append(tk.Label(tab_list[backup_number], text="Inactive"))
@@ -692,7 +692,8 @@ class Application:
                 tab_list[backup_number].columnconfigure(3, weight=1)
                 tab_list[backup_number].columnconfigure(4, weight=1)
                 backup_number += 1
-        backup_tabs.pack(expand=True, fill=tk.BOTH)
+        self.num_backups = backup_number
+        self.backup_tabs.pack(expand=True, fill=tk.BOTH)
         self.backup_start_button = tk.Button(self.backup_window, text="Start the backup", command=self.start_backup)
         self.backup_start_button.pack(pady=10)
 
@@ -718,16 +719,18 @@ class Application:
         Refresh the fields on the backup window. This takes data from the backup thread's queue and updates
         data on the UI in the order new data was received. This will be called on a set interval.
         """
-        # Do nothing if the thread is dead and the queue is empty
+        # Display a message and return if the thread is dead and the queue is empty
         if not self.backup_thread.is_alive() and self.backup_thread.progress_queue.empty():
+            messagebox.showinfo("Complete", "All backups are complete.")
             return
 
         # For every item in the queue, process it based on its key
         while not self.backup_thread.progress_queue.empty():
             key, data = self.backup_thread.progress_queue.get()
             if key == "backup_number":
-                # TODO change tabs when backup number changes, highlight current tab
                 self.backup_window.current_backup = data
+                if 0 <= self.backup_window.current_backup < self.num_backups:
+                    self.backup_tabs.select(self.backup_window.current_backup)
             elif key == "processed":
                 if data == 0:
                     label_text = "Inactive"
@@ -752,6 +755,9 @@ class Application:
                 self.backup_progress_bars[self.backup_window.current_backup]['value'] = data
             elif key == "status":
                 self.backup_status_labels[self.backup_window.current_backup].configure(text=data)
+            elif key == "marked":
+                if data == 0:
+                    self.backup_progress_bars[self.backup_window.current_backup]['value'] = 100
             else:
                 print("INVALID KEY")
 
