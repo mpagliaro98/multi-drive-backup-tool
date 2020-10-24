@@ -318,7 +318,8 @@ def backup_files(new_files, changed_files, remove_files):
         new_file = file_tuple[0]
         output_path = file_tuple[2]
         try:
-            set_status("Copying over {}".format(os.path.split(new_file)[1]))
+            set_status("Copying over {} ({})".format(os.path.split(new_file)[1],
+                                                     util.bytes_to_string(os.path.getsize(new_file), 2)))
             shutil.copy2(new_file, output_path)
             log.log("NEW - " + output_path)
         except PermissionError:
@@ -336,7 +337,8 @@ def backup_files(new_files, changed_files, remove_files):
         new_file = file_tuple[0]
         output_path = file_tuple[2]
         try:
-            set_status("Updating {}".format(os.path.split(new_file)[1]))
+            set_status("Updating {}, ({})".format(os.path.split(new_file)[1],
+                                                  util.bytes_to_string(os.path.getsize(new_file), 2)))
             shutil.copy2(new_file, output_path)
             log.log("UPDATED - " + output_path)
         except PermissionError:
