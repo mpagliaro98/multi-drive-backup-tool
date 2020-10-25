@@ -303,6 +303,20 @@ def load_config(config_name):
     return config
 
 
+def delete_config(config_name):
+    """
+    Delete a configuration file of a given name.
+    :param config_name: The name of the configuration file to delete without the file extension. If this is
+                        None, nothing will happen.
+    """
+    if config_name is None:
+        return
+    file_name = config_name + ".dat"
+    file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+
 def append_input_to_config(config, input_string):
     """
     Add the given input string, which should be a valid path to a file or directory, to the

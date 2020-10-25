@@ -335,19 +335,39 @@ class Application:
             app.config_name = app.config_name_list[config_list_idx]
             app.load_window.destroy()
 
+        def load_window_delete(app, config_list_idx):
+            """
+            Inner function for the load window. This will be called when the delete option on one of the
+            buttons is pressed, and will delete that configuration file from the system.
+            :param app: The Application object this window was spawned from.
+            :param config_list_idx: The index into the config name list that this button had.
+            """
+            configuration.delete_config(app.config_name_list[config_list_idx])
+            if app.config.name == app.config_name_list[config_list_idx]:
+                app.config.name = None
+            app.config_load_frame.remove_widget(config_list_idx)
+            app.config_name_list = configuration.saved_config_display_string().strip().split("\n")
+            for widget_idx in range(config_list_idx, len(app.config_load_frame.widgets)):
+                app.config_load_frame.edit_command_on_widget(widget_idx,
+                                                             lambda i=widget_idx: load_window_response(app, i))
+                app.config_load_frame.widgets[widget_idx].change_delete_function(
+                    lambda i=widget_idx: load_window_delete(app, i))
+            app.update_config_name_label()
+
         # Create the load window
         self.config_name = None
         self.load_window = tk.Toplevel(self.master)
         self.load_window.wm_title("Load Configuration")
         self.load_window.geometry("300x300")
         self.config_name_list = configuration.saved_config_display_string().strip().split("\n")
-        config_load_frame = sf.ScrollableFrame(self.load_window, dynamic_width=False)
+        self.config_load_frame = sf.ScrollableFrame(self.load_window, dynamic_width=False)
 
         # Create a button for every saved configuration
         for name_idx in range(len(self.config_name_list)):
-            MdbtButton(self.config_name_list[name_idx], config_load_frame,
-                       command=lambda i=name_idx: load_window_response(self, i), ipadx=5, ipady=5)
-        config_load_frame.pack(fill=tk.BOTH, expand=True)
+            MdbtButton(self.config_name_list[name_idx], self.config_load_frame,
+                       command=lambda i=name_idx: load_window_response(self, i), ipadx=5, ipady=5,
+                       delete_enable=True, delete_function=lambda i=name_idx: load_window_delete(self, i))
+        self.config_load_frame.pack(fill=tk.BOTH, expand=True)
         self.load_window.grab_set()
         self.master.wait_window(self.load_window)
         self.load_window.grab_release()
