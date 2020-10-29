@@ -669,7 +669,7 @@ class Application:
         # Initialize the backup window
         self.backup_window = tk.Toplevel(self.master)
         self.backup_window.wm_title("Run Backup")
-        self.backup_window.geometry("500x185")
+        self.backup_window.geometry("500x210")
 
         # Create lists to hold all UI elements that require updating
         self.backup_status_labels = []
@@ -688,8 +688,8 @@ class Application:
             for output in entry.outputs:
                 tab_list.append(ttk.Frame(self.backup_tabs))
                 self.backup_tabs.add(tab_list[backup_number], text="Backup " + str(backup_number+1))
-                tk.Label(tab_list[backup_number], text="Copying {} to {}".format(entry.input, output)).grid(
-                    row=0, column=0, columnspan=5, padx=5, sticky=tk.NW)
+                tk.Message(tab_list[backup_number], text="Copying {} to {}".format(entry.input, output),
+                           width=490).grid(row=0, column=0, columnspan=5, sticky=tk.NW)
                 self.backup_status_labels.append(tk.Label(tab_list[backup_number], text="Inactive"))
                 self.backup_status_labels[backup_number].grid(row=1, column=0, columnspan=5, padx=5, sticky=tk.NW)
                 self.backup_progress_bars.append(ttk.Progressbar(tab_list[backup_number], orient=tk.HORIZONTAL,
