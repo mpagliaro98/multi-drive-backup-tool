@@ -741,7 +741,8 @@ class Application:
         """
         # Display a message and return if the thread is dead and the queue is empty
         if not self.backup_thread.is_alive() and self.backup_thread.progress_queue.empty():
-            messagebox.showinfo("Complete", "All backups are complete.")
+            if not self.backup_thread.error_flag:
+                messagebox.showinfo("Complete", "All backups are complete.")
             return
 
         # For every item in the queue, process it based on its key
@@ -778,6 +779,9 @@ class Application:
             elif key == "marked":
                 if data == 0:
                     self.backup_progress_bars[self.backup_window.current_backup]['value'] = 100
+            elif key == "display_error":
+                if not data == "":
+                    messagebox.showerror("Error", data)
             else:
                 print("INVALID KEY")
 

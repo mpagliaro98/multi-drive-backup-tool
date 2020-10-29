@@ -31,6 +31,7 @@ NUM_FILES_DELETED = 0
 TOTAL_SIZE_PROCESSED = 0
 BACKUP_PROGRESS = 0
 CURRENT_STATUS = ""
+ERROR = ""
 
 
 @log.logger
@@ -78,11 +79,14 @@ def run_backup(config):
                 check_space_requirements(new_files, changed_files, remove_files, backup_folder)
             if not has_space:
                 drive_letter, tail = os.path.splitdrive(backup_folder)
-                log.log_print("\nCopying {} to {} may not fit on the {} drive.".format(input_path, backup_folder,
-                                                                                       drive_letter))
-                log.log_print("Please clear up space on the drive you want to copy to and try again.")
-                log.log_print("Try clearing at least {} on the {} drive and trying again.".format(
-                    util.bytes_to_string(-1 * remaining_space, 3), drive_letter))
+                error_str = "Copying {} to {} may not fit on the {} drive.".format(
+                    input_path, backup_folder, drive_letter)
+                error_str += "\nPlease clear up space on the drive you want to copy to and try again."
+                error_str += "\nTry clearing at least {} on the {} drive and trying again.".format(
+                    util.bytes_to_string(-1 * remaining_space, 3), drive_letter)
+                log.log_print("\n" + error_str)
+                set_error(error_str)
+                set_status("ERROR: The backup will not fit. Backup process has stopped.")
                 return
 
             # Make changes to the files found in file preparation
@@ -375,6 +379,7 @@ def reset_globals():
     global NUM_FILES_DELETED
     global TOTAL_SIZE_PROCESSED
     global BACKUP_PROGRESS
+    global ERROR
     NUM_FILES_PROCESSED = 0
     NUM_FILES_MARKED = 0
     NUM_FILES_MODIFIED = 0
@@ -383,6 +388,7 @@ def reset_globals():
     NUM_FILES_DELETED = 0
     TOTAL_SIZE_PROCESSED = 0
     BACKUP_PROGRESS = 0
+    ERROR = ""
 
 
 @observable
@@ -487,6 +493,16 @@ def set_status(status):
     """
     global CURRENT_STATUS
     CURRENT_STATUS = status
+
+
+@observable
+def set_error(error):
+    """
+    Set a major error message to be sent to the GUI. This message will display in a pop-up window.
+    :param error: The string to set the error message to.
+    """
+    global ERROR
+    ERROR = error
 
 
 def mark_file_processed(file_size=0, modified=False, is_new=False, error=False, deleted=False):

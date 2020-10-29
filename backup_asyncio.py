@@ -29,6 +29,7 @@ class BackupThread(threading.Thread):
         self.loop = asyncio.get_event_loop()
         self.progress_queue = queue.Queue()
         self.config = config
+        self.error_flag = False
         threading.Thread.__init__(self)
 
     def run(self):
@@ -85,6 +86,11 @@ class BackupThread(threading.Thread):
         @observer(backup.set_num_marked, self)
         def update_marked(backup_thread):
             backup_thread.progress_queue.put(("marked", backup.NUM_FILES_MARKED))
+
+        @observer(backup.set_error, self)
+        def update_display_error(backup_thread):
+            backup_thread.error_flag = True
+            backup_thread.progress_queue.put(("display_error", backup.ERROR))
 
         self.loop.run_until_complete(self.run_backup())
 
