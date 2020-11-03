@@ -471,6 +471,12 @@ class Application:
         self.current_entry_number = entry_number
         self.update_output_label()
 
+        # Default to disabling the exclusion and limitation buttons and clearing their frame contents
+        self.exclusion_button['state'] = tk.DISABLED
+        self.limitation_button['state'] = tk.DISABLED
+        self.exclusion_frame.clear_widgets()
+        self.limitation_frame.clear_widgets()
+
         # Only display entry info if it's a valid entry number. Otherwise just clear the fields
         if 0 < entry_number <= self.config.num_entries():
             # Add the input path to the input scrollable frame
@@ -483,6 +489,20 @@ class Application:
             for output_idx in range(1, len(self.config.get_entry(entry_number).outputs)+1):
                 MdbtMessage(self.config.get_entry(entry_number).get_destination(output_idx), self.output_frame,
                             delete_enable=True, delete_function=lambda i=output_idx: self.delete_destination(i))
+
+            # Add every exclusion in the exclusions tab
+            for exclusion_idx in range(1, len(self.config.get_entry(entry_number).exclusions)+1):
+                MdbtButton(self.config.get_entry(entry_number).get_exclusion(exclusion_idx).to_string(),
+                           self.exclusion_frame, command=lambda i=exclusion_idx: self.set_exclusion_fields(i),
+                           ipadx=10, ipady=10, delete_enable=True,
+                           delete_function=lambda i=exclusion_idx: self.delete_exclusion(i))
+
+            # Ensure the exclusion button is enabled
+            self.exclusion_button['state'] = tk.NORMAL
+
+    def set_exclusion_fields(self, excl_number):
+        # Highlight this exclusion, enable the limitation button, and populate the limitation frame
+        pass
 
     def delete_destination(self, dest_number):
         """
@@ -561,6 +581,11 @@ class Application:
             self.highlight_entry_button(self.current_entry_number, self.current_entry_number)
         self.update_config_name_label()
 
+    def delete_exclusion(self, excl_number):
+        # Delete the exclusion, remove the button, update command and delete functions on remaining buttons,
+        # clear limitation frame, disable limitation button
+        pass
+
     def clear_fields(self):
         """
         Clear the UI fields associated with individual entries. This will remove all content from the input and
@@ -628,6 +653,7 @@ class Application:
                 self.create_entry_button(self.current_entry_number)
                 self.highlight_entry_button(self.current_entry_number, self.current_entry_number)
                 MdbtMessage(self.config.get_entry(self.current_entry_number).input, self.input_frame)
+                self.exclusion_button['state'] = tk.NORMAL
             except (InvalidPathException, CyclicEntryException) as e:
                 messagebox.showerror("Error", str(e))
         # Edit an existing entry
