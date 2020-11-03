@@ -128,7 +128,7 @@ def time_string(time_seconds):
         return "{:.3f} seconds".format(time_seconds)
 
 
-def file_compare(path1, path2, byte_limit=(100 * (2 ** 20)), mtime_delta=2):
+def file_compare(path1, path2, byte_limit=(50 * (2 ** 20)), mtime_delta=2):
     """
     A modified version of filecmp.cmp() which will do much simpler checks to see if two files are equal if
     the files are over a certain size, in order to avoid doing slow byte-by-byte comparisons for files
