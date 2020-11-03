@@ -18,6 +18,8 @@ import configuration
 import util
 import backup_asyncio
 from configuration import InvalidPathException, SubPathException, CyclicEntryException
+from exclusions import EXCLUSION_TYPES
+from limitations import LIMITATION_TYPES
 
 
 def highlight(event):
@@ -148,6 +150,7 @@ class Application:
         self.init_fileviews()
         self.init_labels()
         self.init_input_output_frames()
+        self.init_exclusion_frames()
         self.init_buttons()
         self.configure_grid()
         self.base.pack(fill=tk.BOTH, expand=True)
@@ -221,6 +224,14 @@ class Application:
         self.output_button = tk.Button(self.tab_inputs, text="Add highlighted path as output", command=self.add_output)
         self.output_button.grid(column=1, row=3)
 
+        # Create the buttons below the scrollable frames in the exclusions tab
+        self.exclusion_button = tk.Button(self.tab_exclusions, text="Create a new exclusion",
+                                          command=self.create_exclusion_menu)
+        self.exclusion_button.grid(column=0, row=2)
+        self.limitation_button = tk.Button(self.tab_exclusions, text="Add a limitation to this exclusion",
+                                           command=self.create_limitation_menu)
+        self.limitation_button.grid(column=1, row=2)
+
     def init_labels(self):
         """
         Create various labels on the window, including the configuration name label and ones for inputs
@@ -238,13 +249,18 @@ class Application:
                    "you are backing up. To edit this later, use the same process to select a new file or folder.")
         self.output_label = ttk.Label(self.tab_inputs, text="COPY TO", font="Helvetica 12 bold")
         self.output_label.grid(column=1, row=0, padx=5, pady=10, sticky=tk.NW)
-        ttk.Label(self.tab_exclusions, text="exclusions tab").grid(column=0, row=0, padx=30, pady=30)
         tt.Tooltip(self.output_label, text="The folders your backup will be made in will be displayed in this " +
                    "section. Similar to the section to the left, select a folder in the file tree below, then press " +
                    "the \"Add highlighted path as output\" button to make it a location a backup will be made. You " +
                    "can add multiple unique locations for a single input. To remove a location, right click on it " +
                    "in the scroll-box below and press \"Delete\", or highlight multiple by left-clicking them and " +
                    "select \"Delete highlighted outputs\" in the Edit menu.")
+
+        # Add labels above the exclusion and limitation frames
+        self.exclusion_label = ttk.Label(self.tab_exclusions, text="EXCLUSIONS", font="Helvetica 12 bold")
+        self.exclusion_label.grid(column=0, row=0, padx=5, pady=10, sticky=tk.NW)
+        self.limitation_label = ttk.Label(self.tab_exclusions, text="LIMITATIONS", font="Helvetica 12 bold")
+        self.limitation_label.grid(column=1, row=0, padx=5, pady=10, sticky=tk.NW)
 
     def init_input_output_frames(self):
         """
@@ -257,6 +273,15 @@ class Application:
                                                initial_height=50, dynamic_width=False)
         self.output_frame.grid(column=1, row=1, sticky=tk.NSEW)
 
+    def init_exclusion_frames(self):
+        """
+        Create the scrollable frames that will hold exclusions and limitations.
+        """
+        self.exclusion_frame = sf.ScrollableFrame(self.tab_exclusions, initial_width=-1, dynamic_width=False)
+        self.exclusion_frame.grid(column=0, row=1, sticky=tk.NSEW)
+        self.limitation_frame = sf.ScrollableFrame(self.tab_exclusions, initial_width=-1, dynamic_width=False)
+        self.limitation_frame.grid(column=1, row=1, sticky=tk.NSEW)
+
     def configure_grid(self):
         """
         Configure the window's base grid to control what scales on resize. This will allow the Fileviews to
@@ -267,6 +292,9 @@ class Application:
         self.tab_inputs.rowconfigure(2, weight=1)
         self.tab_inputs.columnconfigure(0, weight=1)
         self.tab_inputs.columnconfigure(1, weight=1)
+        self.tab_exclusions.rowconfigure(1, weight=1)
+        self.tab_exclusions.columnconfigure(0, weight=1)
+        self.tab_exclusions.columnconfigure(1, weight=1)
 
     def save_configuration(self):
         """
@@ -787,6 +815,30 @@ class Application:
 
         # Reset the timer so this method runs again after the set interval
         self.backup_window.after(self.backup_refresh_time, self.refresh_backup_window)
+
+    def create_exclusion_menu(self):
+        """
+        Make a pop-up menu at the mouse's position that displays a list of exclusion types.
+        """
+        m = tk.Menu(self.master, tearoff=0)
+        for exclusion_type in EXCLUSION_TYPES:
+            m.add_command(label=exclusion_type.menu_text)
+        try:
+            m.tk_popup(self.master.winfo_pointerx(), self.master.winfo_pointery())
+        finally:
+            m.grab_release()
+
+    def create_limitation_menu(self):
+        """
+        Make a pop-up menu at the mouse's position that displays a list of limitation types.
+        """
+        m = tk.Menu(self.master, tearoff=0)
+        for limitation_type in LIMITATION_TYPES:
+            m.add_command(label=limitation_type.menu_text)
+        try:
+            m.tk_popup(self.master.winfo_pointerx(), self.master.winfo_pointery())
+        finally:
+            m.grab_release()
 
 
 def main():
