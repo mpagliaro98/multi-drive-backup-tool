@@ -143,6 +143,7 @@ class Application:
         self.master = master
         self.config = configuration.Configuration()
         self.current_entry_number = 1
+        self.current_exclusion_number = 0
         self.base = tk.Frame(self.master)
         self.init_menu()
         self.init_tabs()
@@ -497,12 +498,32 @@ class Application:
                            ipadx=10, ipady=10, delete_enable=True,
                            delete_function=lambda i=exclusion_idx: self.delete_exclusion(i))
 
-            # Ensure the exclusion button is enabled
+            # Ensure the exclusion button is enabled and set the exclusion number
             self.exclusion_button['state'] = tk.NORMAL
+            self.current_exclusion_number = 0
 
     def set_exclusion_fields(self, excl_number):
-        # Highlight this exclusion, enable the limitation button, and populate the limitation frame
-        pass
+        """
+        Updates the UI fields on the exclusions tab to display information relevant to the selected exclusion.
+        :param excl_number: The index of the exclusion newly selected, starting from 1.
+        """
+        # Highlight the proper exclusion button
+        if 0 < self.current_exclusion_number <= self.config.get_entry(self.current_entry_number).num_exclusions():
+            self.exclusion_frame.widgets[self.current_exclusion_number-1].configure(bg="SystemButtonFace", fg="black")
+        self.exclusion_frame.widgets[excl_number-1].configure(bg="blue", fg="white")
+
+        # Refresh old values
+        self.limitation_button['state'] = tk.NORMAL
+        self.current_exclusion_number = excl_number
+        self.limitation_frame.clear_widgets()
+
+        # Populate the limitation frame
+        for limitation_idx in range(1, len(self.config.get_entry(self.current_entry_number).get_exclusion(
+                self.current_exclusion_number).limitations)+1):
+            limitation = self.config.get_entry(self.current_entry_number).get_exclusion(
+                self.current_exclusion_number).get_limitation(limitation_idx)
+            MdbtButton(limitation.to_string(), self.limitation_frame, ipadx=10, ipady=10, delete_enable=True,
+                       delete_function=lambda i=limitation_idx: self.delete_limitation(i))
 
     def delete_destination(self, dest_number):
         """
@@ -582,9 +603,45 @@ class Application:
         self.update_config_name_label()
 
     def delete_exclusion(self, excl_number):
-        # Delete the exclusion, remove the button, update command and delete functions on remaining buttons,
-        # clear limitation frame, disable limitation button
-        pass
+        """
+        Delete an exclusion from the configuration, remove its button from the UI, and update all buttons after
+        it so they accurately reflect the new state of the configuration.
+        :param excl_number: The index of the exclusion to delete, starting from 1.
+        """
+        # Delete the exclusion and its button, and update the configuration label
+        self.config.get_entry(self.current_entry_number).delete_exclusion(excl_number)
+        self.exclusion_frame.remove_widget(excl_number-1)
+        self.update_config_name_label()
+
+        # Update UI elements if they'll be affected by the delete
+        if self.current_exclusion_number == excl_number:
+            self.limitation_frame.clear_widgets()
+            self.limitation_button['state'] = tk.DISABLED
+        elif self.current_exclusion_number > excl_number:
+            self.set_exclusion_fields(self.current_exclusion_number-1)
+
+        # Update the command and delete functions for all buttons after the deleted one
+        for widget_idx in range(excl_number-1, len(self.exclusion_frame.widgets)):
+            self.exclusion_frame.edit_command_on_widget(widget_idx, lambda i=widget_idx+1: self.set_exclusion_fields(i))
+            self.exclusion_frame.widgets[widget_idx].change_delete_function(
+                lambda i=widget_idx+1: self.delete_exclusion(i))
+
+    def delete_limitation(self, limit_number):
+        """
+        Delete a limitation from the configuration, remove its button from the UI, and update all buttons after
+        it so they accurately reflect the new state of the configuration.
+        :param limit_number: The index of the limitation to delete, starting from 1.
+        """
+        # Delete the limitation and its button, and update the configuration label
+        self.config.get_entry(self.current_entry_number).get_exclusion(
+            self.current_exclusion_number).delete_limitation(limit_number)
+        self.limitation_frame.remove_widget(limit_number-1)
+        self.update_config_name_label()
+
+        # Update the delete functions for all buttons after the deleted one
+        for widget_idx in range(limit_number-1, len(self.limitation_frame.widgets)):
+            self.limitation_frame.widgets[widget_idx].change_delete_function(
+                lambda i=widget_idx+1: self.delete_limitation(i))
 
     def clear_fields(self):
         """
