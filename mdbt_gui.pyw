@@ -36,42 +36,47 @@ class MdbtMessage(tk.Message):
     A class that creates a tkinter message with settings usable by this application.
     """
 
-    def __init__(self, text, frame, delete_enable=False, delete_function=lambda: None):
+    def __init__(self, text, frame, popup_members=None):
         """
         Create a label that will be put in a scrollable frame, using this program's settings for how labels
         should look.
         :param text: The text to display.
         :param frame: The scrollable frame to put this text in.
-        :param delete_enable: True if this label should be allowed to be right-clicked, displaying a menu with a
-                              delete option. False by default.
-        :param delete_function: The function that will run when the right-click delete command is executed. This
-                                will have no effect if delete_enable is False. This function does nothing by default.
+        :param popup_members: A list of tuples containing a string and a function each. Each item in the list will be
+                              made into a menu item that will appear when the button is right-clicked.
         """
         super().__init__(frame.master_create, text=text, anchor=tk.W)
+        if popup_members is None:
+            popup_members = []
         self.frame = frame
-        self.delete_function = delete_function
-        if delete_enable:
+        self.popup_members = popup_members
+        if len(self.popup_members) > 0:
             self.bind("<Button-1>", highlight)
-            self.bind("<Button-3>", self.delete_popup)
+            self.bind("<Button-3>", self.right_click_popup)
         self.pack(fill=tk.BOTH)
         frame.master.update()
         frame.register_widget(self)
 
-    def change_delete_function(self, new_function):
+    def change_popup_function(self, member_name, new_function):
         """
-        Change what function runs when delete is called on this message.
-        :param new_function: The new function run when the right-click delete command is executed.
+        Change what function runs when an item on this message's right click menu is called. The function to change
+        is specified by member_name.
+        :param member_name: The name of the member whose function to change.
+        :param new_function: The new function run when the right-click command is executed.
         """
-        self.delete_function = new_function
+        for member_idx in range(len(self.popup_members)):
+            if self.popup_members[member_idx][0] == member_name:
+                self.popup_members[member_idx] = (member_name, new_function)
 
-    def delete_popup(self, event):
+    def right_click_popup(self, event):
         """
         When called by an event, this will display a menu by the mouse cursor with a delete option.
         :param event: The event that was triggered.
         """
         highlight(event)
         m = tk.Menu(self.frame.master, tearoff=0)
-        m.add_command(label="Delete", command=self.delete_function)
+        for member in self.popup_members:
+            m.add_command(label=member[0], command=member[1])
         try:
             m.tk_popup(event.x_root, event.y_root)
         finally:
@@ -84,8 +89,7 @@ class MdbtButton(tk.Button):
     A class that creates a tkinter button with settings usable by this application.
     """
 
-    def __init__(self, text, frame, command=lambda: None, ipadx=0, ipady=0, delete_enable=False,
-                 delete_function=lambda: None):
+    def __init__(self, text, frame, command=lambda: None, ipadx=0, ipady=0, popup_members=None):
         """
         Create a button that will be put in a scrollable frame, using this program's settings for how buttons
         should look.
@@ -94,34 +98,39 @@ class MdbtButton(tk.Button):
         :param command: Optional parameter, a function run when this button is pressed. Does nothing if not specified.
         :param ipadx: Optional parameter, horizontal padding between the text and the button sides. Defaults to 0.
         :param ipady: Optional parameter, vertical padding between the text and the button edges. Defaults to 0.
-        :param delete_enable: True if this label should be allowed to be right-clicked, displaying a menu with a
-                              delete option. False by default.
-        :param delete_function: The function that will run when the right-click delete command is executed. This
-                                will have no effect if delete_enable is False. This function does nothing by default.
+        :param popup_members: A list of tuples containing a string and a function each. Each item in the list will be
+                              made into a menu item that will appear when the button is right-clicked.
         """
         super().__init__(frame.master_create, text=text, command=command)
+        if popup_members is None:
+            popup_members = []
         self.frame = frame
-        self.delete_function = delete_function
-        if delete_enable:
-            self.bind("<Button-3>", self.delete_popup)
+        self.popup_members = popup_members
+        if len(self.popup_members) > 0:
+            self.bind("<Button-3>", self.right_click_popup)
         self.pack(ipadx=ipadx, ipady=ipady)
         frame.master.update()
         frame.register_widget(self)
 
-    def change_delete_function(self, new_function):
+    def change_popup_function(self, member_name, new_function):
         """
-        Change what function runs when delete is called on this button.
-        :param new_function: The new function run when the right-click delete command is executed.
+        Change what function runs when an item on this button's right click menu is called. The function to change
+        is specified by member_name.
+        :param member_name: The name of the member whose function to change.
+        :param new_function: The new function run when the right-click command is executed.
         """
-        self.delete_function = new_function
+        for member_idx in range(len(self.popup_members)):
+            if self.popup_members[member_idx][0] == member_name:
+                self.popup_members[member_idx] = (member_name, new_function)
 
-    def delete_popup(self, event):
+    def right_click_popup(self, event):
         """
         When called by an event, this will display a menu by the mouse cursor with a delete option.
         :param event: The event that was triggered.
         """
         m = tk.Menu(self.frame.master, tearoff=0)
-        m.add_command(label="Delete", command=self.delete_function)
+        for member in self.popup_members:
+            m.add_command(label=member[0], command=member[1])
         try:
             m.tk_popup(event.x_root, event.y_root)
         finally:
@@ -379,8 +388,8 @@ class Application:
             for widget_idx in range(config_list_idx, len(app.config_load_frame.widgets)):
                 app.config_load_frame.edit_command_on_widget(widget_idx,
                                                              lambda i=widget_idx: load_window_response(app, i))
-                app.config_load_frame.widgets[widget_idx].change_delete_function(
-                    lambda i=widget_idx: load_window_delete(app, i))
+                app.config_load_frame.widgets[widget_idx].change_popup_function(
+                    "Delete", lambda i=widget_idx: load_window_delete(app, i))
             app.update_config_name_label()
 
         # Create the load window
@@ -395,7 +404,7 @@ class Application:
         for name_idx in range(len(self.config_name_list)):
             MdbtButton(self.config_name_list[name_idx], self.config_load_frame,
                        command=lambda i=name_idx: load_window_response(self, i), ipadx=5, ipady=5,
-                       delete_enable=True, delete_function=lambda i=name_idx: load_window_delete(self, i))
+                       popup_members=[("Delete", lambda i=name_idx: load_window_delete(self, i))])
         self.config_load_frame.pack(fill=tk.BOTH, expand=True)
         self.load_window.grab_set()
         self.master.wait_window(self.load_window)
@@ -489,14 +498,15 @@ class Application:
             # Add every output path to the output scrollable frame
             for output_idx in range(1, len(self.config.get_entry(entry_number).outputs)+1):
                 MdbtMessage(self.config.get_entry(entry_number).get_destination(output_idx), self.output_frame,
-                            delete_enable=True, delete_function=lambda i=output_idx: self.delete_destination(i))
+                            popup_members=[("Delete", lambda i=output_idx: self.delete_destination(i))])
 
             # Add every exclusion in the exclusions tab
             for exclusion_idx in range(1, len(self.config.get_entry(entry_number).exclusions)+1):
                 MdbtButton(self.config.get_entry(entry_number).get_exclusion(exclusion_idx).to_string(),
                            self.exclusion_frame, command=lambda i=exclusion_idx: self.set_exclusion_fields(i),
-                           ipadx=10, ipady=10, delete_enable=True,
-                           delete_function=lambda i=exclusion_idx: self.delete_exclusion(i))
+                           ipadx=10, ipady=10,
+                           popup_members=[("Edit", lambda i=exclusion_idx: self.edit_exclusion(i)),
+                                          ("Delete", lambda i=exclusion_idx: self.delete_exclusion(i))])
 
             # Ensure the exclusion button is enabled and set the exclusion number
             self.exclusion_button['state'] = tk.NORMAL
@@ -522,8 +532,9 @@ class Application:
                 self.current_exclusion_number).limitations)+1):
             limitation = self.config.get_entry(self.current_entry_number).get_exclusion(
                 self.current_exclusion_number).get_limitation(limitation_idx)
-            MdbtButton(limitation.to_string(), self.limitation_frame, ipadx=10, ipady=10, delete_enable=True,
-                       delete_function=lambda i=limitation_idx: self.delete_limitation(i))
+            MdbtButton(limitation.to_string(), self.limitation_frame, ipadx=10, ipady=10,
+                       popup_members=[("Edit", lambda i=limitation_idx: self.edit_limitation(i)),
+                                      ("Delete", lambda i=limitation_idx: self.delete_limitation(i))])
 
     def delete_destination(self, dest_number):
         """
@@ -535,8 +546,8 @@ class Application:
         self.config.get_entry(self.current_entry_number).delete_destination(dest_number)
         self.output_frame.remove_widget(dest_number-1)
         for widget_idx in range(dest_number-1, len(self.output_frame.widgets)):
-            self.output_frame.widgets[widget_idx].change_delete_function(
-                lambda i=widget_idx+1: self.delete_destination(i))
+            self.output_frame.widgets[widget_idx].change_popup_function(
+                "Delete", lambda i=widget_idx+1: self.delete_destination(i))
         self.update_config_name_label()
         self.update_output_label()
 
@@ -565,7 +576,7 @@ class Application:
         self.output_frame.clear_widgets()
         for output_idx in range(1, len(self.config.get_entry(self.current_entry_number).outputs) + 1):
             MdbtMessage(self.config.get_entry(self.current_entry_number).get_destination(output_idx), self.output_frame,
-                        delete_enable=True, delete_function=lambda i=output_idx: self.delete_destination(i))
+                        popup_members=[("Delete", lambda i=output_idx: self.delete_destination(i))])
         self.update_config_name_label()
         self.update_output_label()
 
@@ -590,7 +601,8 @@ class Application:
             button_text = path_split[0] if path_split[1] == "" else path_split[1]
             self.entries_frame.edit_text_on_widget(widget_idx, "Entry {}\n{}".format(widget_idx+1, button_text))
             self.entries_frame.edit_command_on_widget(widget_idx, lambda i=widget_idx+1: self.set_fields_to_entry(i))
-            self.entries_frame.widgets[widget_idx].change_delete_function(lambda i=widget_idx+1: self.delete_entry(i))
+            self.entries_frame.widgets[widget_idx].change_popup_function("Delete",
+                                                                         lambda i=widget_idx+1: self.delete_entry(i))
         self.entries_frame.edit_command_on_widget(self.config.num_entries(),
                                                   lambda: self.set_fields_to_entry(self.config.num_entries()+1))
 
@@ -623,8 +635,10 @@ class Application:
         # Update the command and delete functions for all buttons after the deleted one
         for widget_idx in range(excl_number-1, len(self.exclusion_frame.widgets)):
             self.exclusion_frame.edit_command_on_widget(widget_idx, lambda i=widget_idx+1: self.set_exclusion_fields(i))
-            self.exclusion_frame.widgets[widget_idx].change_delete_function(
-                lambda i=widget_idx+1: self.delete_exclusion(i))
+            self.exclusion_frame.widgets[widget_idx].change_popup_function(
+                "Delete", lambda i=widget_idx+1: self.delete_exclusion(i))
+            self.exclusion_frame.widgets[widget_idx].change_popup_function(
+                "Edit", lambda i=widget_idx+1: self.edit_exclusion(i))
 
     def delete_limitation(self, limit_number):
         """
@@ -640,8 +654,10 @@ class Application:
 
         # Update the delete functions for all buttons after the deleted one
         for widget_idx in range(limit_number-1, len(self.limitation_frame.widgets)):
-            self.limitation_frame.widgets[widget_idx].change_delete_function(
-                lambda i=widget_idx+1: self.delete_limitation(i))
+            self.limitation_frame.widgets[widget_idx].change_popup_function(
+                "Delete", lambda i=widget_idx+1: self.delete_limitation(i))
+            self.limitation_frame.widgets[widget_idx].change_popup_function(
+                "Edit", lambda i=widget_idx+1: self.edit_limitation(i))
 
     def clear_fields(self):
         """
@@ -666,8 +682,8 @@ class Application:
         path_split = os.path.split(self.config.get_entry(entry_number).input)
         button_text = path_split[0] if path_split[1] == "" else path_split[1]
         MdbtButton("Entry {}\n{}".format(entry_number, button_text), self.entries_frame,
-                   command=lambda: self.set_fields_to_entry(entry_number), ipadx=10, ipady=10, delete_enable=True,
-                   delete_function=lambda i=entry_number: self.delete_entry(i))
+                   command=lambda: self.set_fields_to_entry(entry_number), ipadx=10, ipady=10,
+                   popup_members=[("Delete", lambda i=entry_number: self.delete_entry(i))])
 
         # Re-add the "New Entry" button
         self.add_new_entry_button()
@@ -743,8 +759,8 @@ class Application:
                 configuration.append_output_to_config(self.config, self.current_entry_number, focus_path)
                 dest_number = self.config.get_entry(self.current_entry_number).num_destinations()
                 MdbtMessage(self.config.get_entry(self.current_entry_number).get_destination(dest_number),
-                            self.output_frame, delete_enable=True,
-                            delete_function=lambda i=dest_number: self.delete_destination(i))
+                            self.output_frame,
+                            popup_members=[("Delete", lambda i=dest_number: self.delete_destination(i))])
                 self.update_config_name_label()
                 self.update_output_label()
             except (InvalidPathException, SubPathException, CyclicEntryException) as e:
@@ -752,6 +768,12 @@ class Application:
         # Otherwise, say we can only add destinations if an input was set
         else:
             messagebox.showerror("Error", "You must set an input path before you can add destinations.")
+
+    def edit_exclusion(self, excl_number):
+        pass
+
+    def edit_limitation(self, limit_number):
+        pass
 
     def backup(self):
         """
