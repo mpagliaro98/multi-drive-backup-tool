@@ -9,6 +9,9 @@ import os
 from datetime import datetime
 from os.path import realpath as rpath
 import limitations
+from fileview import Fileview
+import tkinter as tk
+from tkcalendar import DateEntry
 
 
 class Exclusion:
@@ -206,7 +209,7 @@ class ExclusionType:
     path should be excluded based on a given exclusion.
     """
 
-    def __init__(self, code, menu_text, input_text, function, accepts_limitations=True):
+    def __init__(self, code, menu_text, input_text, function, ui_input, ui_edit, ui_submit, accepts_limitations=True):
         """
         Create a new exclusion type object. This initializes all the values at once.
         :param code: The unique identifier for each exclusion.
@@ -217,11 +220,24 @@ class ExclusionType:
                          an exclusion. This function's first argument should be an exclusion object, and the
                          second should be a file path as a string. It should do a check using the exclusion's
                          data to see if the file path should be excluded.
+        :param ui_input: A function that defines a GUI widget that can accept input for this limitation type. It
+                         will be given one argument, a window that it will be the child of. This should return
+                         the widget that will be put in that window.
+        :param ui_edit: A function that defines a GUI widget and how it will react when the exclusion is being
+                        edited. It will be given two arguments, first a window that it will be the child of, and
+                        second the exclusion being edited. This should return the widget that will be put in that
+                        window, preferably with its input field set to the existing exclusion's data.
+        :param ui_submit: A function that defines how to handle when an exclusion of this type is submitted through
+                          the GUI. It will be given one argument, the GUI element that holds data for a new or
+                          edited exclusion of this type. It should access that element and return its data.
         """
         self._code = code
         self._menu_text = menu_text
         self._input_text = input_text
         self._accepts_limitations = accepts_limitations
+        self._ui_input = ui_input
+        self._ui_edit = ui_edit
+        self._ui_submit = ui_submit
         self._function = function
 
     @property
@@ -267,6 +283,37 @@ class ExclusionType:
         :return: This exclusion type's function.
         """
         return self._function
+
+    @property
+    def ui_input(self):
+        """
+        A function that defines a GUI widget that can accept input for this limitation type. It will be given
+        one argument, a window that it will be the child of. This should return the widget that will be put in
+        that window.
+        :return: This exclusion type's UI input function.
+        """
+        return self._ui_input
+
+    @property
+    def ui_edit(self):
+        """
+        A function that defines a GUI widget and how it will react when the exclusion is being edited. It will
+        be given two arguments, first a window that it will be the child of, and second the exclusion being edited.
+        This should return the widget that will be put in that window, preferably with its input field set to the
+        existing exclusion's data.
+        :return: This exclusion type's UI edit function.
+        """
+        return self._ui_edit
+
+    @property
+    def ui_submit(self):
+        """
+        A function that defines how to handle when an exclusion of this type is submitted through the GUI. It will
+        be given one argument, the GUI element that holds data for a new or edited exclusion of this type. It should
+        access that element and return its data.
+        :return: This exclusion type's UI submit function.
+        """
+        return self._ui_submit
 
     def exclude_path(self, exclusion, path_to_exclude, path_destination):
         """
@@ -318,27 +365,49 @@ to this list.
 EXCLUSION_TYPES = [ExclusionType(code="startswith", menu_text="Starts with some text",
                                  input_text="Files or folders that start with this text should be excluded: ",
                                  function=lambda excl, path: os.path.splitext(
-                                     os.path.split(path)[1])[0].startswith(excl.data)),
+                                     os.path.split(path)[1])[0].startswith(excl.data),
+                                 ui_input=lambda m: tk.Entry(m),
+                                 ui_edit=lambda m, excl: tk.Entry(m, textvariable=tk.StringVar(m, value=excl.data)),
+                                 ui_submit=lambda e: e.get()),
                    ExclusionType(code="endswith", menu_text="Ends with some text",
                                  input_text="Files or folders that end with this text should be excluded: ",
                                  function=lambda excl, path: os.path.splitext(
-                                     os.path.split(path)[1])[0].endswith(excl.data)),
+                                     os.path.split(path)[1])[0].endswith(excl.data),
+                                 ui_input=lambda m: tk.Entry(m),
+                                 ui_edit=lambda m, excl: tk.Entry(m, textvariable=tk.StringVar(m, value=excl.data)),
+                                 ui_submit=lambda e: e.get()),
                    ExclusionType(code="ext", menu_text="Specific file extension",
                                  input_text="Files with this extension should be excluded (the . before the " +
                                             "extension is needed): ",
-                                 function=lambda excl, path: os.path.splitext(path)[1] == excl.data),
+                                 function=lambda excl, path: os.path.splitext(path)[1] == excl.data,
+                                 ui_input=lambda m: tk.Entry(m),
+                                 ui_edit=lambda m, excl: tk.Entry(m, textvariable=tk.StringVar(m, value=excl.data)),
+                                 ui_submit=lambda e: e.get()),
                    ExclusionType(code="directory", accepts_limitations=False, menu_text="Specific directory path",
                                  input_text="Folders with this absolute path will be excluded: ",
-                                 function=lambda excl, path: os.path.isdir(path) and rpath(path) == rpath(excl.data)),
+                                 function=lambda excl, path: os.path.isdir(path) and rpath(path) == rpath(excl.data),
+                                 ui_input=lambda m: Fileview(master=m), ui_edit=lambda m, excl: Fileview(master=m),
+                                 ui_submit=lambda e: e.get_focus_path()),
                    ExclusionType(code="file", menu_text="Specific filename",
                                  input_text="Files with this name and extension will be excluded: ",
                                  function=lambda excl, path: os.path.isfile(path) and os.path.split(
-                                     path)[1] == excl.data),
+                                     path)[1] == excl.data,
+                                 ui_input=lambda m: tk.Entry(m),
+                                 ui_edit=lambda m, excl: tk.Entry(m, textvariable=tk.StringVar(m, value=excl.data)),
+                                 ui_submit=lambda e: e.get()),
                    ExclusionType(code="before", menu_text="Files modified before a given date",
                                  input_text="Files modified before this date will be excluded (MM/DD/YYYY): ",
                                  function=lambda excl, path: os.path.isfile(path) and datetime.strptime(
-                                     excl.data, "%m/%d/%Y") > datetime.fromtimestamp(os.path.getmtime(path))),
+                                     excl.data, "%m/%d/%Y") > datetime.fromtimestamp(os.path.getmtime(path)),
+                                 ui_input=lambda m: DateEntry(m, date_pattern="mm/dd/y"),
+                                 ui_edit=lambda m, excl: DateEntry(
+                                     m, date_pattern="mm/dd/y", textvariable=tk.StringVar(m, value=excl.data)),
+                                 ui_submit=lambda e: e.get_date().strftime("%m/%d/%Y")),
                    ExclusionType(code="after", menu_text="Files modified after a given date",
                                  input_text="Files modified after this date will be excluded (MM/DD/YYYY): ",
                                  function=lambda excl, path: os.path.isfile(path) and datetime.strptime(
-                                     excl.data, "%m/%d/%Y") < datetime.fromtimestamp(os.path.getmtime(path)))]
+                                     excl.data, "%m/%d/%Y") < datetime.fromtimestamp(os.path.getmtime(path)),
+                                 ui_input=lambda m: DateEntry(m, date_pattern="mm/dd/y"),
+                                 ui_edit=lambda m, excl: DateEntry(
+                                     m, date_pattern="mm/dd/y", textvariable=tk.StringVar(m, value=excl.data)),
+                                 ui_submit=lambda e: e.get_date().strftime("%m/%d/%Y"))]
