@@ -17,6 +17,8 @@ import tooltip as tt
 import configuration
 import util
 import backup_asyncio
+import exclusions
+import limitations
 from configuration import InvalidPathException, SubPathException, CyclicEntryException
 from exclusions import EXCLUSION_TYPES
 from limitations import LIMITATION_TYPES
@@ -770,7 +772,14 @@ class Application:
             messagebox.showerror("Error", "You must set an input path before you can add destinations.")
 
     def edit_exclusion(self, excl_number):
-        pass
+        """
+        Code run when the edit exclusion command is run. This will get the exclusion to be edited, its corresponding
+        type, then launch the edit window.
+        :param excl_number: The index of the exclusion to edit.
+        """
+        exclusion = self.config.get_entry(self.current_entry_number).get_exclusion(excl_number)
+        exclusion_type = exclusions.get_exclusion_type(exclusion)
+        self.launch_exclusion_window(exclusion_type, exclusion, excl_number)
 
     def edit_limitation(self, limit_number):
         pass
@@ -927,7 +936,8 @@ class Application:
         """
         m = tk.Menu(self.master, tearoff=0)
         for exclusion_type in EXCLUSION_TYPES:
-            m.add_command(label=exclusion_type.menu_text)
+            m.add_command(label=exclusion_type.menu_text,
+                          command=lambda e=exclusion_type: self.launch_exclusion_window(e))
         try:
             m.tk_popup(self.master.winfo_pointerx(), self.master.winfo_pointery())
         finally:
@@ -944,6 +954,68 @@ class Application:
             m.tk_popup(self.master.winfo_pointerx(), self.master.winfo_pointery())
         finally:
             m.grab_release()
+
+    def launch_exclusion_window(self, exclusion_type, exclusion=None, old_index=0):
+        """
+        Launch the window for creating and editing exclusions and handle the results. Depending on the exclusion
+        type passed in, the widget that accepts user input will be different.
+        :param exclusion_type: The exclusion type to create an exclusion of, or the exclusion type corresponding
+                               to the exclusion being edited. This parameter is required.
+        :param exclusion: If an exclusion is being edited, the existing exclusion. If this parameter is given,
+                          the old_index parameter must also be given.
+        :param old_index: If an exclusion is being edited, the index that exclusion is at in the entry. If this
+                          parameter is given, the exclusion parameter must also be given.
+        """
+        def exclusion_window_response(app):
+            """
+            Handle the response from the Create/Update button. This will set the exclusion_code and exclusion_data
+            fields in the application if user data is given, then destroy the window.
+            :param app: The current application.
+            """
+            new_data = exclusion_type.ui_submit(app.exclusion_element)
+            if not new_data == "":
+                app.exclusion_code = exclusion_type.code
+                app.exclusion_data = new_data
+            app.exclusion_window.destroy()
+
+        # Set initial data and data exclusive to whether an exclusion is being created or edited
+        self.exclusion_window = tk.Toplevel(self.master)
+        self.exclusion_code = None
+        self.exclusion_data = None
+        if exclusion is None:
+            self.exclusion_window.wm_title("Create Exclusion")
+            button_text = "Create"
+            self.exclusion_element = exclusion_type.ui_input(self.exclusion_window)
+        else:
+            self.exclusion_window.wm_title("Edit Exclusion")
+            button_text = "Update"
+            self.exclusion_element = exclusion_type.ui_edit(self.exclusion_window, exclusion)
+
+        # Build the window and launch it
+        tk.Label(self.exclusion_window, text=exclusion_type.input_text).pack()
+        self.exclusion_element.pack()
+        tk.Button(self.exclusion_window, text=button_text,
+                  command=lambda: exclusion_window_response(self)).pack()
+        self.exclusion_window.grab_set()
+        self.master.wait_window(self.exclusion_window)
+        self.exclusion_window.grab_release()
+
+        # Handle the result
+        if self.exclusion_code is not None and self.exclusion_data is not None:
+            # Create a new exclusion
+            if exclusion is None:
+                new_index = self.config.get_entry(self.current_entry_number).new_exclusion(
+                    self.exclusion_code, self.exclusion_data)
+                MdbtButton(self.config.get_entry(self.current_entry_number).get_exclusion(new_index).to_string(),
+                           self.exclusion_frame, command=lambda i=new_index: self.set_exclusion_fields(i), ipadx=10,
+                           ipady=10, popup_members=[("Edit", lambda i=new_index: self.edit_exclusion(i)),
+                                                    ("Delete", lambda i=new_index: self.delete_exclusion(i))])
+            # Edit an existing exclusion
+            else:
+                self.config.get_entry(self.current_entry_number).get_exclusion(old_index).data = self.exclusion_data
+                self.exclusion_frame.edit_text_on_widget(
+                    old_index-1, self.config.get_entry(self.current_entry_number).get_exclusion(old_index).to_string())
+            self.update_config_name_label()
 
 
 def main():
