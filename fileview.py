@@ -18,10 +18,11 @@ class Fileview(tk.Frame):
     current system's directory structure as a tree and allows navigation through it.
     """
 
-    def __init__(self, **kw):
+    def __init__(self, default_focus=None, **kw):
         """
         Create the Fileview as a child object of tkinter's Frame. This will create a Treeview with
         scroll bars, and the Treeview will be initialized to start with a list of all available drives.
+        :param default_focus: If specified, the Fileview will open the direct path to this file/folder on creation.
         :param kw: Any labeled arguments to initialize the underlying Frame with.
         """
         super().__init__(**kw, width=3)
@@ -48,6 +49,10 @@ class Fileview(tk.Frame):
         self._hsb.grid(row=1, column=0, sticky=tk.EW+tk.S, in_=self)
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
+
+        # If a default focus is given, start by showing that path
+        if default_focus is not None and os.path.exists(default_focus):
+            self.travel_to_path(default_focus)
 
     def populate_tree(self, node):
         """
