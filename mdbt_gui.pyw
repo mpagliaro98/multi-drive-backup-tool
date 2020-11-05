@@ -993,7 +993,7 @@ class Application:
 
         # Build the window and launch it
         tk.Label(self.exclusion_window, text=exclusion_type.input_text).pack()
-        self.exclusion_element.pack()
+        self.exclusion_element.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
         tk.Button(self.exclusion_window, text=button_text,
                   command=lambda: exclusion_window_response(self)).pack()
         self.exclusion_window.grab_set()
