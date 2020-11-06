@@ -481,6 +481,7 @@ class Application:
         self.clear_fields()
         self.highlight_entry_button(self.current_entry_number, entry_number)
         self.current_entry_number = entry_number
+        self.input_tree.set_entry(None)
         self.update_output_label()
 
         # Default to disabling the exclusion and limitation buttons and clearing their frame contents
@@ -495,6 +496,8 @@ class Application:
             MdbtMessage(self.config.get_entry(entry_number).input, self.input_frame)
 
             # Set the input tree to display the input
+            self.input_tree.set_entry(self.config.get_entry(self.current_entry_number))
+            self.input_tree.reset()
             self.input_tree.travel_to_path(self.config.get_entry(entry_number).input)
 
             # Add every output path to the output scrollable frame
@@ -626,6 +629,8 @@ class Application:
         self.config.get_entry(self.current_entry_number).delete_exclusion(excl_number)
         self.exclusion_frame.remove_widget(excl_number-1)
         self.update_config_name_label()
+        self.input_tree.reset()
+        self.input_tree.travel_to_path(self.config.get_entry(self.current_entry_number).input)
 
         # Update UI elements if they'll be affected by the delete
         if self.current_exclusion_number == excl_number:
@@ -653,6 +658,8 @@ class Application:
             self.current_exclusion_number).delete_limitation(limit_number)
         self.limitation_frame.remove_widget(limit_number-1)
         self.update_config_name_label()
+        self.input_tree.reset()
+        self.input_tree.travel_to_path(self.config.get_entry(self.current_entry_number).input)
 
         # Update the delete functions for all buttons after the deleted one
         for widget_idx in range(limit_number-1, len(self.limitation_frame.widgets)):
@@ -1054,6 +1061,8 @@ class Application:
                         self.current_entry_number).get_exclusion(self.current_exclusion_number).get_limitation(
                         old_index).to_string())
             self.update_config_name_label()
+            self.input_tree.reset()
+            self.input_tree.travel_to_path(self.config.get_entry(self.current_entry_number).input)
 
 
 def main():

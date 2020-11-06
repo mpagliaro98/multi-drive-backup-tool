@@ -18,11 +18,13 @@ class Fileview(tk.Frame):
     current system's directory structure as a tree and allows navigation through it.
     """
 
-    def __init__(self, default_focus=None, **kw):
+    def __init__(self, default_focus=None, entry=None, **kw):
         """
         Create the Fileview as a child object of tkinter's Frame. This will create a Treeview with
         scroll bars, and the Treeview will be initialized to start with a list of all available drives.
         :param default_focus: If specified, the Fileview will open the direct path to this file/folder on creation.
+        :param entry: A configuration entry. Exclusions on this entry will be used to grey out items that fall
+                      under the entry's exclusions and limitations.
         :param kw: Any labeled arguments to initialize the underlying Frame with.
         """
         super().__init__(**kw, width=3)
@@ -33,6 +35,12 @@ class Fileview(tk.Frame):
         self._vsb = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self._tree.yview)
         self._hsb = ttk.Scrollbar(self, orient=tk.HORIZONTAL, command=self._tree.xview)
         self._tree.configure(yscrollcommand=self._vsb.set, xscrollcommand=self._hsb.set)
+        self._entry = entry
+
+        # Styling, must use workaround due to tkinter bug
+        self.style = ttk.Style()
+        self.style.map("Treeview", foreground=self.fixed_map("foreground"), background=self.fixed_map("background"))
+        self._tree.tag_configure("excluded", foreground='grey')
 
         # Initialize each column that will be displayed
         self._tree.heading("#0", text="Directory Structure", anchor='w')
@@ -77,9 +85,16 @@ class Fileview(tk.Frame):
             elif os.path.isfile(subpath):
                 path_type = "file"
 
-            # Get the filename and insert a new node into the tree
+            # Get the filename and insert a new node into the tree, grey it out if it should be excluded
             filename = os.path.split(subpath)[1]
-            node_id = self._tree.insert(node, "end", text=filename, values=[subpath, path_type])
+            if self._entry is not None and (self._tree.tag_has("excluded", node) or self.parent_is_excluded(node)):
+                node_id = self._tree.insert(node, "end", text=filename, values=[subpath, path_type], tags=('excluded',))
+            else:
+                if self._entry is not None and self._entry.should_exclude(subpath):
+                    node_id = self._tree.insert(node, "end", text=filename, values=[subpath, path_type],
+                                                tags=('excluded',))
+                else:
+                    node_id = self._tree.insert(node, "end", text=filename, values=[subpath, path_type])
 
             # Insert additional information depending on what type the path is
             if path_type == 'directory':
@@ -95,7 +110,10 @@ class Fileview(tk.Frame):
         """
         for drive_letter in util.get_drive_list():
             dir_path = os.path.realpath(drive_letter + '\\')
-            node = self._tree.insert('', 'end', text=dir_path, values=[dir_path, "directory"])
+            if self._entry is not None and self._entry.should_exclude(dir_path):
+                node = self._tree.insert('', 'end', text=dir_path, values=[dir_path, "directory"], tags=('excluded',))
+            else:
+                node = self._tree.insert('', 'end', text=dir_path, values=[dir_path, "directory"])
             self.populate_tree(node)
 
     def update_tree(self, event):
@@ -120,6 +138,13 @@ class Fileview(tk.Frame):
         """
         self._tree.delete(*self._tree.get_children())
         self.populate_roots()
+
+    def set_entry(self, new_entry):
+        """
+        Set the entry field for this Fileview.
+        :param new_entry: A configuration entry.
+        """
+        self._entry = new_entry
 
     def travel_to_path(self, destination, previous="", current_node=None):
         """
@@ -172,3 +197,28 @@ class Fileview(tk.Frame):
                 for segment in reversed(path_segments):
                     remaining_path = os.path.join(remaining_path, segment)
                 return self.travel_to_path(remaining_path, previous, current_node)
+
+    def fixed_map(self, option):
+        """
+        Returns the style map for 'option' with any styles starting with ("!disabled", "!selected", ...) filtered
+        out. This is a workaround to a bug in tkinter that causes style tags to not work on modern versions.
+        Workaround described here: https://core.tcl-lang.org/tk/tktview?name=509cafafae
+        :param option: A style option to fix.
+        :return: Fixed style map.
+        """
+        return [elm for elm in self.style.map("Treeview", query_opt=option) if elm[:2] != ("!disabled", "!selected")]
+
+    def parent_is_excluded(self, node):
+        """
+        Checks if a parent of the given node in the tree has the "excluded" tag.
+        :param node: A node from the tree.
+        :return: True if one of its parents has the "excluded" tag, false otherwise.
+        """
+        parent = self._tree.parent(node)
+        if parent != '':
+            if self._tree.tag_has("excluded", parent):
+                return True
+            else:
+                self.parent_is_excluded(parent)
+        else:
+            return False
