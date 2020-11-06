@@ -779,10 +779,18 @@ class Application:
         """
         exclusion = self.config.get_entry(self.current_entry_number).get_exclusion(excl_number)
         exclusion_type = exclusions.get_exclusion_type(exclusion)
-        self.launch_exclusion_window(exclusion_type, exclusion, excl_number)
+        self.excl_limit_window(True, exclusion_type, exclusion, excl_number)
 
     def edit_limitation(self, limit_number):
-        pass
+        """
+        Code run when the edit limitation command is run. This will get the limitation to be edited, its corresponding
+        type, then launch the edit window.
+        :param limit_number: The index of the limitation to edit.
+        """
+        limitation = self.config.get_entry(self.current_entry_number).get_exclusion(
+            self.current_exclusion_number).get_limitation(limit_number)
+        limitation_type = limitations.get_limitation_type(limitation)
+        self.excl_limit_window(False, limitation_type, limitation, limit_number)
 
     def backup(self):
         """
@@ -937,7 +945,7 @@ class Application:
         m = tk.Menu(self.master, tearoff=0)
         for exclusion_type in EXCLUSION_TYPES:
             m.add_command(label=exclusion_type.menu_text,
-                          command=lambda e=exclusion_type: self.launch_exclusion_window(e))
+                          command=lambda e=exclusion_type: self.excl_limit_window(True, e))
         try:
             m.tk_popup(self.master.winfo_pointerx(), self.master.winfo_pointery())
         finally:
@@ -949,72 +957,102 @@ class Application:
         """
         m = tk.Menu(self.master, tearoff=0)
         for limitation_type in LIMITATION_TYPES:
-            m.add_command(label=limitation_type.menu_text)
+            m.add_command(label=limitation_type.menu_text,
+                          command=lambda l=limitation_type: self.excl_limit_window(False, l))
         try:
             m.tk_popup(self.master.winfo_pointerx(), self.master.winfo_pointery())
         finally:
             m.grab_release()
 
-    def launch_exclusion_window(self, exclusion_type, exclusion=None, old_index=0):
+    def excl_limit_window(self, exclusion_mode, type_var, existing=None, old_index=0):
         """
-        Launch the window for creating and editing exclusions and handle the results. Depending on the exclusion
-        type passed in, the widget that accepts user input will be different.
-        :param exclusion_type: The exclusion type to create an exclusion of, or the exclusion type corresponding
-                               to the exclusion being edited. This parameter is required.
-        :param exclusion: If an exclusion is being edited, the existing exclusion. If this parameter is given,
-                          the old_index parameter must also be given.
-        :param old_index: If an exclusion is being edited, the index that exclusion is at in the entry. If this
-                          parameter is given, the exclusion parameter must also be given.
+        Launch the window for creating and editing exclusions/limitations and handle the results. Depending on the
+        exclusion or limitation type passed in, the widget that accepts user input will be different.
+        :param exclusion_mode: Whether this runs in exclusion mode or limitation mode. True signifies it'll run in
+                               exclusion mode and false is for limitation mode.
+        :param type_var: The exclusion/limitation type to create an exclusion of, or the exclusion/limitation type
+                         corresponding to the exclusion/limitation being edited. This parameter is required.
+        :param existing: If an exclusion/limitation is being edited, the object being edited. If this parameter
+                         is given, the old_index parameter must also be given.
+        :param old_index: If an exclusion/limitation is being edited, the index of that object, starting from 1.
+                          If this parameter is given, the existing parameter must also be given.
         """
-        def exclusion_window_response(app):
+        def excl_limit_window_response(app):
             """
-            Handle the response from the Create/Update button. This will set the exclusion_code and exclusion_data
+            Handle the response from the Create/Update button. This will set the excl_limit_code and excl_limit_data
             fields in the application if user data is given, then destroy the window.
             :param app: The current application.
             """
-            new_data = exclusion_type.ui_submit(app.exclusion_element)
+            new_data = type_var.ui_submit(app.excl_limit_element)
             if not new_data == "":
-                app.exclusion_code = exclusion_type.code
-                app.exclusion_data = new_data
-            app.exclusion_window.destroy()
+                app.excl_limit_code = type_var.code
+                app.excl_limit_data = new_data
+            app.exclusion_limitation_window.destroy()
 
-        # Set initial data and data exclusive to whether an exclusion is being created or edited
-        self.exclusion_window = tk.Toplevel(self.master)
-        self.exclusion_code = None
-        self.exclusion_data = None
-        if exclusion is None:
-            self.exclusion_window.wm_title("Create Exclusion")
+        # Set initial data and data exclusive to whether an exclusion/limitation is being created or edited
+        self.exclusion_limitation_window = tk.Toplevel(self.master)
+        self.excl_limit_code = None
+        self.excl_limit_data = None
+        if existing is None:
+            if exclusion_mode:
+                self.exclusion_limitation_window.wm_title("Create Exclusion")
+            else:
+                self.exclusion_limitation_window.wm_title("Create Limitation")
             button_text = "Create"
-            self.exclusion_element = exclusion_type.ui_input(self.exclusion_window)
+            self.excl_limit_element = type_var.ui_input(self.exclusion_limitation_window)
         else:
-            self.exclusion_window.wm_title("Edit Exclusion")
+            if exclusion_mode:
+                self.exclusion_limitation_window.wm_title("Edit Exclusion")
+            else:
+                self.exclusion_limitation_window.wm_title("Edit Limitation")
             button_text = "Update"
-            self.exclusion_element = exclusion_type.ui_edit(self.exclusion_window, exclusion)
+            self.excl_limit_element = type_var.ui_edit(self.exclusion_limitation_window, existing)
 
         # Build the window and launch it
-        tk.Label(self.exclusion_window, text=exclusion_type.input_text).pack()
-        self.exclusion_element.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        tk.Button(self.exclusion_window, text=button_text,
-                  command=lambda: exclusion_window_response(self)).pack()
-        self.exclusion_window.grab_set()
-        self.master.wait_window(self.exclusion_window)
-        self.exclusion_window.grab_release()
+        tk.Label(self.exclusion_limitation_window, text=type_var.input_text).pack()
+        self.excl_limit_element.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        tk.Button(self.exclusion_limitation_window, text=button_text,
+                  command=lambda: excl_limit_window_response(self)).pack()
+        self.exclusion_limitation_window.grab_set()
+        self.master.wait_window(self.exclusion_limitation_window)
+        self.exclusion_limitation_window.grab_release()
 
         # Handle the result
-        if self.exclusion_code is not None and self.exclusion_data is not None:
-            # Create a new exclusion
-            if exclusion is None:
-                new_index = self.config.get_entry(self.current_entry_number).new_exclusion(
-                    self.exclusion_code, self.exclusion_data)
-                MdbtButton(self.config.get_entry(self.current_entry_number).get_exclusion(new_index).to_string(),
-                           self.exclusion_frame, command=lambda i=new_index: self.set_exclusion_fields(i), ipadx=10,
-                           ipady=10, popup_members=[("Edit", lambda i=new_index: self.edit_exclusion(i)),
-                                                    ("Delete", lambda i=new_index: self.delete_exclusion(i))])
-            # Edit an existing exclusion
+        if self.excl_limit_code is not None and self.excl_limit_data is not None:
+            if existing is None:
+                # Create a new exclusion
+                if exclusion_mode:
+                    new_index = self.config.get_entry(self.current_entry_number).new_exclusion(
+                        self.excl_limit_code, self.excl_limit_data)
+                    MdbtButton(self.config.get_entry(self.current_entry_number).get_exclusion(new_index).to_string(),
+                               self.exclusion_frame, command=lambda i=new_index: self.set_exclusion_fields(i), ipadx=10,
+                               ipady=10, popup_members=[("Edit", lambda i=new_index: self.edit_exclusion(i)),
+                                                        ("Delete", lambda i=new_index: self.delete_exclusion(i))])
+                # Create a new limitation
+                else:
+                    self.config.get_entry(self.current_entry_number).get_exclusion(
+                        self.current_exclusion_number).add_limitation(self.excl_limit_code, self.excl_limit_data)
+                    new_index = self.config.get_entry(self.current_entry_number).get_exclusion(
+                        self.current_exclusion_number).num_limitations()
+                    limitation = self.config.get_entry(self.current_entry_number).get_exclusion(
+                        self.current_exclusion_number).get_limitation(new_index)
+                    MdbtButton(limitation.to_string(), self.limitation_frame, ipadx=10, ipady=10,
+                               popup_members=[("Edit", lambda i=new_index: self.edit_limitation(i)),
+                                              ("Delete", lambda i=new_index: self.delete_limitation(i))])
             else:
-                self.config.get_entry(self.current_entry_number).get_exclusion(old_index).data = self.exclusion_data
-                self.exclusion_frame.edit_text_on_widget(
-                    old_index-1, self.config.get_entry(self.current_entry_number).get_exclusion(old_index).to_string())
+                # Edit an existing exclusion
+                if exclusion_mode:
+                    self.config.get_entry(self.current_entry_number).get_exclusion(
+                        old_index).data = self.excl_limit_data
+                    self.exclusion_frame.edit_text_on_widget(old_index-1, self.config.get_entry(
+                        self.current_entry_number).get_exclusion(old_index).to_string())
+                # Edit an existing limitation
+                else:
+                    self.config.get_entry(self.current_entry_number).get_exclusion(
+                        self.current_exclusion_number).get_limitation(old_index).data = self.excl_limit_data
+                    self.limitation_frame.edit_text_on_widget(old_index-1, self.config.get_entry(
+                        self.current_entry_number).get_exclusion(self.current_exclusion_number).get_limitation(
+                        old_index).to_string())
             self.update_config_name_label()
 
 
