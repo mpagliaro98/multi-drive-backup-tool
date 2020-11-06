@@ -287,7 +287,7 @@ class ExclusionType:
     @property
     def ui_input(self):
         """
-        A function that defines a GUI widget that can accept input for this limitation type. It will be given
+        A function that defines a GUI widget that can accept input for this exclusion type. It will be given
         one argument, a window that it will be the child of. This should return the widget that will be put in
         that window.
         :return: This exclusion type's UI input function.
