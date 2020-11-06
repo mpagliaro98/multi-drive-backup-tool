@@ -51,8 +51,8 @@ class Fileview(tk.Frame):
         self.columnconfigure(0, weight=1)
 
         # If a default focus is given, start by showing that path
-        if default_focus is not None and os.path.exists(default_focus):
-            self.travel_to_path(default_focus)
+        if default_focus is not None and os.path.exists(os.path.realpath(default_focus)):
+            self.travel_to_path(os.path.realpath(default_focus))
 
     def populate_tree(self, node):
         """
