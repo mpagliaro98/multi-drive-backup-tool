@@ -8,6 +8,8 @@ in this file, and changes to those only need to be made in this file to affect t
 import os
 import util
 import abc
+import tkinter as tk
+from fileview import Fileview
 
 
 class Limitation:
@@ -112,8 +114,8 @@ class LimitationType(metaclass=abc.ABCMeta):
     and a function that takes a limitation and a path and returns true or false if that path satisfies that limitation.
     """
 
-    def __init__(self, code, prefix_string, suffix_string, menu_text, input_text, function,
-                 always_applicable=False, data_is_path=False):
+    def __init__(self, code, prefix_string, suffix_string, menu_text, input_text, function, ui_input, ui_edit,
+                 ui_submit, always_applicable=False, data_is_path=False):
         """
         Create the new limitation type object. All fields are initialized from the start.
         :param code: A unique string identifier for this type.
@@ -126,6 +128,16 @@ class LimitationType(metaclass=abc.ABCMeta):
         :param function: A function that takes a limitation object and a string file path. This will return true
                          if the file path satisfies the limitation based on the given limitation's data, and
                          false otherwise.
+        :param ui_input: A function that defines a GUI widget that can accept input for this limitation type. It
+                         will be given one argument, a window that it will be the child of. This should return the
+                         widget that will be put in that window.
+        :param ui_edit: A function that defines a GUI widget and how it will react when the limitation is being
+                        edited. It will be given two arguments, first a window that it will be the child of, and
+                        second the limitation being edited. This should return the widget that will be put in that
+                        window, preferably with its input field set to the existing limitation's data.
+        :param ui_submit: A function that defines how to handle when a limitation of this type is submitted through
+                          the GUI. It will be given one argument, the GUI element that holds data for a new or
+                          edited limitation of this type. It should access that element and return its data.
         :param always_applicable: A boolean that indicates if this limitation is always applicable to exclusions.
                                   A limitation type that is always applicable is allowed to be attached to an
                                   exclusion even if that exclusion type's accepts_limitations is false. This is
@@ -142,6 +154,9 @@ class LimitationType(metaclass=abc.ABCMeta):
         self._function = function
         self._always_applicable = always_applicable
         self._data_is_path = data_is_path
+        self._ui_input = ui_input
+        self._ui_edit = ui_edit
+        self._ui_submit = ui_submit
 
     @property
     def code(self):
@@ -210,6 +225,37 @@ class LimitationType(metaclass=abc.ABCMeta):
         :return: True if this limitation type's data should be a file path, false otherwise.
         """
         return self._data_is_path
+
+    @property
+    def ui_input(self):
+        """
+        A function that defines a GUI widget that can accept input for this limitation type. It will be given
+        one argument, a window that it will be the child of. This should return the widget that will be put in
+        that window.
+        :return: This limitation type's UI input function.
+        """
+        return self._ui_input
+
+    @property
+    def ui_edit(self):
+        """
+        A function that defines a GUI widget and how it will react when the limitation is being edited. It will
+        be given two arguments, first a window that it will be the child of, and second the limitation being edited.
+        This should return the widget that will be put in that window, preferably with its input field set to the
+        existing limitation's data.
+        :return: This limitation type's UI edit function.
+        """
+        return self._ui_edit
+
+    @property
+    def ui_submit(self):
+        """
+        A function that defines how to handle when a limitation of this type is submitted through the GUI. It will
+        be given one argument, the GUI element that holds data for a new or edited limitation of this type. It should
+        access that element and return its data.
+        :return: This limitation type's UI submit function.
+        """
+        return self._ui_submit
 
     @abc.abstractmethod
     def check_function(self, limitation, path_to_exclude, path_destination):
@@ -299,14 +345,23 @@ LIMITATION_TYPES = \
                          menu_text="This exclusion should only affect a given directory and no sub-directories",
                          input_text="Enter the absolute path of a directory to limit this exclusion to: ",
                          data_is_path=True,
-                         function=lambda limit, path: util.path_is_in_directory(path, os.path.realpath(limit.data))),
+                         function=lambda limit, path: util.path_is_in_directory(path, os.path.realpath(limit.data)),
+                         ui_input=lambda m: Fileview(master=m),
+                         ui_edit=lambda m, limit: Fileview(master=m, default_focus=limit.data),
+                         ui_submit=lambda e: e.get_focus_path()),
      LimitationTypeInput(code="sub", prefix_string="directory", suffix_string="and all sub-directories",
                          menu_text="This exclusion should affect a given directory and all of its sub-directories",
                          input_text="Enter the absolute path of a directory to limit this exclusion to: ",
                          data_is_path=True,
-                         function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep)),
+                         function=lambda limit, path: path.startswith(os.path.realpath(limit.data) + os.sep),
+                         ui_input=lambda m: Fileview(master=m),
+                         ui_edit=lambda m, limit: Fileview(master=m, default_focus=limit.data),
+                         ui_submit=lambda e: e.get_focus_path()),
      LimitationTypeOutput(code="drive", prefix_string="the", suffix_string="drive during backups",
                           menu_text="This exclusion should only apply to a specific drive during a backup",
                           input_text="Enter the drive letter and a colon of the drive to limit this to: ",
                           always_applicable=True,
-                          function=lambda limit, path: os.path.splitdrive(path)[0] == limit.data)]
+                          function=lambda limit, path: os.path.splitdrive(path)[0] == limit.data,
+                          ui_input=lambda m: tk.Entry(m),
+                          ui_edit=lambda m, limit: tk.Entry(m, textvariable=tk.StringVar(m, value=limit.data)),
+                          ui_submit=lambda e: e.get())]
