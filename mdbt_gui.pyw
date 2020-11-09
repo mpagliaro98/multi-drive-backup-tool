@@ -183,6 +183,10 @@ class Application:
         self.menu_edit = tk.Menu(self.menu, tearoff=0)
         self.menu_edit.add_command(label="Delete current entry", command=self.delete_entry)
         self.menu_edit.add_command(label="Delete highlighted outputs", command=self.delete_highlighted_destinations)
+        self.menu_edit.add_command(label="Delete all exclusions on the current entry",
+                                   command=self.delete_entry_exclusions)
+        self.menu_edit.add_command(label="Delete all limitations on the current exclusion",
+                                   command=self.delete_exclusion_limitations)
         self.menu_edit.add_separator()
         self.menu_edit.add_command(label="Clear configuration", command=self.clear_configuration)
         self.menu.add_cascade(label="Edit", menu=self.menu_edit)
@@ -675,6 +679,28 @@ class Application:
                 "Delete", lambda i=widget_idx+1: self.delete_limitation(i))
             self.limitation_frame.widgets[widget_idx].change_popup_function(
                 "Edit", lambda i=widget_idx+1: self.edit_limitation(i))
+
+    def delete_entry_exclusions(self):
+        """
+        If a valid entry is selected, delete all exclusions and limitations from it.
+        """
+        if 0 < self.current_entry_number <= self.config.num_entries():
+            del self.config.get_entry(self.current_entry_number).exclusions
+            self.exclusion_frame.clear_widgets()
+            self.limitation_frame.clear_widgets()
+            self.update_config_name_label()
+            self.limitation_button['state'] = tk.DISABLED
+
+    def delete_exclusion_limitations(self):
+        """
+        If a valid exclusion is selected, delete all limitations from it.
+        """
+        if 0 < self.current_entry_number <= self.config.num_entries():
+            if 0 < self.current_exclusion_number <= self.config.get_entry(self.current_entry_number).num_exclusions():
+                del self.config.get_entry(self.current_entry_number).get_exclusion(
+                    self.current_exclusion_number).limitations
+                self.limitation_frame.clear_widgets()
+                self.update_config_name_label()
 
     def clear_fields(self):
         """
