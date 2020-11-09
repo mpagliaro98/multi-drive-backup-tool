@@ -271,8 +271,16 @@ class Application:
         # Add labels above the exclusion and limitation frames
         self.exclusion_label = ttk.Label(self.tab_exclusions, text="EXCLUSIONS", font="Helvetica 12 bold")
         self.exclusion_label.grid(column=0, row=0, padx=5, pady=10, sticky=tk.NW)
+        tt.Tooltip(self.exclusion_label, text="Exclude particular files and folders from your backup using various " +
+                   "rules defined below. Click the exclusion button below, choose one of the options for what kinds " +
+                   "of files to exclude, then fill in data on the resulting window. Exclusions are limited to their " +
+                   "respective entries they were created under. Files that have been excluded will appear greyed-out " +
+                   "in the file tree under the \"BACKUP\" text on the inputs tab.")
         self.limitation_label = ttk.Label(self.tab_exclusions, text="LIMITATIONS", font="Helvetica 12 bold")
         self.limitation_label.grid(column=1, row=0, padx=5, pady=10, sticky=tk.NW)
+        tt.Tooltip(self.limitation_label, text="Limitations can be applied to exclusions to limit their effects to a " +
+                   "smaller subset of files. Once an exclusion is created, click on it to highlight it, then use the " +
+                   "limitation button below to create one in the same way exclusions are created.")
 
     def init_input_output_frames(self):
         """
