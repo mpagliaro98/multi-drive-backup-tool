@@ -304,22 +304,25 @@ def backup_files(new_files, changed_files, remove_files):
     # Prepare values that will track the progress of each section of the backup
     num_errors = 0
     count = 0
-    limit = len(remove_files)
+    limit = NUM_FILES_DELETED
 
     # Delete every file in the remove list
     for file_tuple in remove_files:
         delete_file_path = file_tuple[0]
         # Use the correct delete function based on if it's a file or folder
         try:
+            set_status("Deleting {}".format(os.path.split(delete_file_path)[1]))
             if os.path.isdir(delete_file_path):
                 deleted_file_count = util.rmtree(delete_file_path)
                 for _ in range(deleted_file_count):
                     count += 1
-                    increment_backup_progress()
                     print("Deleting old files: {}/{}".format(count, limit) + ' '*20, end="\r", flush=True)
+                increment_backup_progress()
             else:
                 os.remove(delete_file_path)
-            set_status("Deleting {}".format(os.path.split(delete_file_path)[1]))
+                increment_backup_progress()
+                count += 1
+                print("Deleting old files: {}/{}".format(count, limit) + ' '*20, end="\r", flush=True)
             log.log("DELETED - " + delete_file_path)
         except PermissionError:
             # Log the exception and indicate that an error occurred
