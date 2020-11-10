@@ -92,10 +92,10 @@ class BackupThread(threading.Thread):
             backup_thread.error_flag = True
             backup_thread.progress_queue.put(("display_error", backup.ERROR))
 
-        self.loop.run_until_complete(self.run_backup())
+        asyncio.run(asyncio.wait([self.run_backup()]))
 
     async def run_backup(self):
         """
         Start the run_backup() asyncio task.
         """
-        await asyncio.wait([backup.run_backup(self.config)])
+        backup.run_backup(self.config)
