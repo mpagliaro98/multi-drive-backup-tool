@@ -46,9 +46,6 @@ class ScrollableFrame(ttk.Frame):
         self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(
             scrollregion=self.canvas.bbox(tk.ALL)))
         self.canvas.bind("<Configure>", self.on_resize)
-        self.canvas.bind("<Enter>", lambda e: self.canvas.bind_all(
-            "<MouseWheel>", lambda f: self.canvas.yview_scroll(int(-1*(f.delta/120)), tk.UNITS)))
-        self.canvas.bind("<Leave>", lambda e: self.canvas.unbind_all("<MouseWheel>"))
 
         # Pack all widgets
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor=tk.NW)
@@ -93,11 +90,32 @@ class ScrollableFrame(ttk.Frame):
         fit the new size of the frame, except if they are Buttons.
         :param event: The resize event.
         """
+        self.check_scroll_binding()
         for widget in self._widgets:
             new_width = event.width-self.scrollbar.winfo_width()
             # Not a good solution, but button width is text-based while other widgets are pixel-based
             if not isinstance(widget, tk.Button):
                 widget.configure(width=new_width)
+
+    def check_scroll_binding(self, offset=0):
+        """
+        Determine if mouse wheel scrolling should be enabled or disabled for this frame, and enable/disable it as
+        needed. Mouse wheel scrolling will be disabled if the scrollbar is disabled, so if the height of the
+        widgets in the frame is smaller than the outer canvas.
+        :param offset: An offset size amount to be added to the height of the widgets in the frame. This is useful
+                       when a widget is removed, since the call to winfo_reqheight() won't reflect the new
+                       height immediately.
+        """
+        if self.canvas.winfo_height() - 3 > self.scrollable_frame.winfo_reqheight() + offset:
+            self.canvas.unbind("<Enter>")
+            self.canvas.unbind("<Leave>")
+            self.canvas.unbind_all("<MouseWheel>")
+            self.scrollbar.configure(command=lambda a1, a2, a3=0: None)
+        else:
+            self.scrollbar.configure(command=self.canvas.yview)
+            self.canvas.bind("<Enter>", lambda e: self.canvas.bind_all(
+                "<MouseWheel>", lambda f: self.canvas.yview_scroll(int(-1 * (f.delta / 120)), tk.UNITS)))
+            self.canvas.bind("<Leave>", lambda e: self.canvas.unbind_all("<MouseWheel>"))
 
     def register_widget(self, widget):
         """
@@ -106,6 +124,7 @@ class ScrollableFrame(ttk.Frame):
         :param widget: The widget to be added.
         """
         self._widgets.append(widget)
+        self.check_scroll_binding()
         # If we aren't adding a button, increase its width to match the frame
         if not isinstance(widget, tk.Button):
             new_width = self.canvas.winfo_width() - self.scrollbar.winfo_width()
@@ -122,12 +141,14 @@ class ScrollableFrame(ttk.Frame):
             widget.destroy()
         self._widgets = []
         self.canvas.configure(width=self.initial_width)
+        self.check_scroll_binding(-1 * self.scrollable_frame.winfo_reqheight())
 
     def remove_widget(self, widget_idx):
         """
         Remove a widget at a given index in the widgets list.
         :param widget_idx: The index of the widget to delete.
         """
+        self.check_scroll_binding(-1 * self._widgets[widget_idx].winfo_height())
         self._widgets[widget_idx].destroy()
         del self._widgets[widget_idx]
 
@@ -140,6 +161,7 @@ class ScrollableFrame(ttk.Frame):
         self._widgets[widget_idx].configure(text=new_text)
         if self.dynamic_width:
             self.update_width()
+        self.check_scroll_binding()
 
     def edit_command_on_widget(self, widget_idx, new_command):
         """
