@@ -96,8 +96,15 @@ def run_backup(config):
 
             # Backup is complete, report the time taken, space difference, and if any errors occurred
             complete_str = "Backup complete in {}. ".format(util.time_string(end_time-start_time))
-            complete_str += "(No changes)" if space_difference == 0 else "({}{})".format(
-                util.sign_string(space_difference), util.bytes_to_string(abs(space_difference), precision=2))
+            if space_difference == 0:
+                if len(remove_files) + len(changed_files) + len(new_files) > 0:
+                    complete_str += "({}{})".format(util.sign_string(space_difference), util.bytes_to_string(
+                        abs(space_difference), precision=2))
+                else:
+                    complete_str += "(No changes)"
+            else:
+                complete_str += "({}{})".format(util.sign_string(space_difference), util.bytes_to_string(
+                    abs(space_difference), precision=2))
             print("\n" + complete_str)
             set_status(complete_str)
             if num_errors > 0:
