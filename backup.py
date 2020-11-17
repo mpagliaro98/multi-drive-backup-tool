@@ -53,9 +53,15 @@ def run_backup(config):
         input_path = config.get_entry(input_number).input
         outputs = config.get_entry(input_number).outputs
         for output_path in outputs:
+            # True if backing up only one file, false if backing up a directory
+            file_mode = os.path.isfile(input_path)
+
             # Get the name of the folder to make the backup in
             folder_name = os.path.split(input_path)[1]
-            backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
+            if file_mode:
+                backup_folder = output_path
+            else:
+                backup_folder = os.path.join(output_path, folder_name + " " + BACKUP_FOLDER_SUFFIX)
 
             # Start the log messages
             log.log("\n" + '/' * 60 +
@@ -67,9 +73,17 @@ def run_backup(config):
             print(' ' * 40 + "\nPreparing files for backup from {} to {}...".format(input_path, backup_folder))
             reset_globals()
             start_time = time.time()
-            new_files, changed_files, remove_files = mark_files(input_path, backup_folder, config, input_number)
+            if file_mode:
+                # If backing up one file, create the backed-up filename here
+                filename_no_ext, filename_ext = os.path.splitext(folder_name)
+                output_filename = os.path.join(output_path, filename_no_ext + " " + BACKUP_FOLDER_SUFFIX + filename_ext)
+                new_files, changed_files, remove_files = mark_files(input_path, output_filename, config, input_number)
+            else:
+                new_files, changed_files, remove_files = mark_files(input_path, backup_folder, config, input_number)
             set_num_marked(len(new_files) + len(changed_files) + len(remove_files))
-            print("\nFile preparation complete.")
+            if not file_mode:
+                print()
+            print("File preparation complete.")
             if NUM_FILES_ERROR > 0:
                 log.log_print("There were {} error(s) reported during file preparation.".format(NUM_FILES_ERROR))
                 print("Please check the log file for more info on the individual errors.")
@@ -121,7 +135,8 @@ def run_backup(config):
             if NUM_FILES_ERROR > 0:
                 log.log_print("There were {} error(s) reported during this backup.".format(NUM_FILES_ERROR))
                 print("Please check the log file for more info on the individual errors.")
-            create_backup_text_file(backup_folder)
+            if not os.path.isfile(input_path):
+                create_backup_text_file(backup_folder)
             increment_backup_number()
 
 
