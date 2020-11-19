@@ -8,6 +8,7 @@ https://blog.tecladocode.com/tkinter-scrollable-frames/ by Jose Salvatierra.
 
 import tkinter as tk
 from tkinter import ttk
+import tkinter.font as tkfont
 
 
 class ScrollableFrame(ttk.Frame):
@@ -163,6 +164,9 @@ class ScrollableFrame(ttk.Frame):
         self._widgets[widget_idx].destroy()
         del self._widgets[widget_idx]
         self.check_scroll_binding(-1 * destroyed_height)
+        self.button_size_after_edit()
+        if self.dynamic_width:
+            self.update_width()
         self.check_button_sizes()
 
     def edit_text_on_widget(self, widget_idx, new_text):
@@ -172,10 +176,29 @@ class ScrollableFrame(ttk.Frame):
         :param new_text: The new text to put on the widget.
         """
         self._widgets[widget_idx].configure(text=new_text)
+        self.button_size_after_edit()
         if self.dynamic_width:
             self.update_width()
         self.check_scroll_binding()
         self.check_button_sizes()
+
+    def button_size_after_edit(self):
+        """
+        Properly resize all buttons in the frame after the text on one is changed. This is needed because when
+        text is changed on a button that also contains an image, the button width does not change. This method
+        uses the size of the default tkinter font and updates all buttons in the event that the new text got
+        shorter, so that previously large buttons can scale back down.
+        """
+        font = tkfont.nametofont("TkDefaultFont")
+        for widget in self._widgets:
+            if isinstance(widget, tk.Button):
+                text = widget['text']
+                text_lines = text.split("\n")
+                text_len = 0
+                for line in text_lines:
+                    if font.measure(line) > text_len:
+                        text_len = font.measure(line)
+                widget.configure(width=text_len)
 
     def edit_command_on_widget(self, widget_idx, new_command):
         """
