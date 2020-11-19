@@ -12,6 +12,7 @@ import limitations
 from fileview import Fileview
 import tkinter as tk
 from tkcalendar import DateEntry
+import dateutil.parser as parser
 
 
 class Exclusion:
@@ -402,7 +403,8 @@ EXCLUSION_TYPES = [ExclusionType(code="startswith", menu_text="Starts with some 
                                      excl.data, "%m/%d/%Y") > datetime.fromtimestamp(os.path.getmtime(path)),
                                  ui_input=lambda m: DateEntry(m, date_pattern="mm/dd/y"),
                                  ui_edit=lambda m, excl: DateEntry(
-                                     m, date_pattern="mm/dd/y", textvariable=tk.StringVar(m, value=excl.data)),
+                                     m, date_pattern="mm/dd/y", year=parser.parse(excl.data).year,
+                                     month=parser.parse(excl.data).month, day=parser.parse(excl.data).day),
                                  ui_submit=lambda e: e.get_date().strftime("%m/%d/%Y")),
                    ExclusionType(code="after", menu_text="Files modified after a given date",
                                  input_text="Files modified after this date will be excluded (MM/DD/YYYY): ",
@@ -410,5 +412,6 @@ EXCLUSION_TYPES = [ExclusionType(code="startswith", menu_text="Starts with some 
                                      excl.data, "%m/%d/%Y") < datetime.fromtimestamp(os.path.getmtime(path)),
                                  ui_input=lambda m: DateEntry(m, date_pattern="mm/dd/y"),
                                  ui_edit=lambda m, excl: DateEntry(
-                                     m, date_pattern="mm/dd/y", textvariable=tk.StringVar(m, value=excl.data)),
+                                     m, date_pattern="mm/dd/y", year=parser.parse(excl.data).year,
+                                     month=parser.parse(excl.data).month, day=parser.parse(excl.data).day),
                                  ui_submit=lambda e: e.get_date().strftime("%m/%d/%Y"))]
