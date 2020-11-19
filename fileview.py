@@ -158,6 +158,7 @@ class Fileview(tk.Frame):
         """
         # If destination is empty, we've found the desired node
         if destination == "":
+            self._tree.see(current_node)
             return
 
         # Split the destination path into its individual segments
