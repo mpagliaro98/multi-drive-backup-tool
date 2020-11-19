@@ -9,6 +9,7 @@ import sys
 import getopt
 import itertools
 import collections
+import shutil
 import configuration
 import backup
 import exclusions
@@ -606,6 +607,14 @@ def option_print_lim_types(**kwargs):
         print("{} - {}".format(limitation_type.code, input_text))
 
 
+def option_help(**kwargs):
+    """
+    The code run when the help argument is given. This simply displays the usage text.
+    :param kwargs: A dictionary of arguments. None are needed for this function.
+    """
+    display_usage()
+
+
 ########################################################################################
 # Arguments ############################################################################
 # All arguments used by this application are defined here. #############################
@@ -620,8 +629,8 @@ ARGUMENT_FLAGS = [Argument("i", "input_path", "A path that will be a source for 
                   Argument("t", "limitation_data", "Data that will be used in an limitation. Should be followed by " +
                            "three data arguments, first for <input_index>, then for <exclusion_index>, last for " +
                            "<limitation_type>.", option_limitation),
-                  Argument("m", "new_data", "Edit data in the configuration. You first give it the data you want to " +
-                           "change something to, then the number of following data arguments determines what is " +
+                  Argument("m", "new_data", "Modify data in the configuration. You first give it the data you want " +
+                           "to change something to, then the number of following data arguments determines what is " +
                            "being changed. One data argument with an index changes an input path. Two data arguments " +
                            "both with indexes changes a destination path. Three data arguments, the first two with " +
                            "indexes and the third with a 1 changes an exclusion's type, making the third a 2 changes " +
@@ -645,6 +654,7 @@ ARGUMENT_FLAGS = [Argument("i", "input_path", "A path that will be a source for 
                   ArgumentEmpty("p", "Print the current configuration.", option_print),
                   ArgumentEmpty("q", "Print all valid exclusion types.", option_print_ext_types),
                   ArgumentEmpty("r", "Print all valid limitation types.", option_print_lim_types),
+                  ArgumentEmpty("h", "Display this help text.", option_help),
                   ArgumentData("data", "value", "A data argument. Some arguments above must be followed by one or " +
                                "more of these, with specific data requirements.")]
 
@@ -660,10 +670,23 @@ def display_usage():
     Displays the usage text of this application.
     """
     print("Usage: mdbt.py [combination of flags below]")
+    console_width, _ = shutil.get_terminal_size((80, 20))
     for arg in ARGUMENT_FLAGS:
         prefix = "--" if len(arg.flag) > 1 else "-"
-        print(' ' * 4 + ("{}{}: {}".format(prefix, arg.flag, arg.usage) if arg.data is None
-                         else "{}{} <{}>: {}".format(prefix, arg.flag, arg.data, arg.usage)))
+        print(' ' * 4 + ("{}{}:".format(prefix, arg.flag) if arg.data is None
+              else "{}{} <{}>:".format(prefix, arg.flag, arg.data)))
+        usage_words = arg.usage.split(' ')
+        chars_used = int(console_width / 6)
+        print(' ' * chars_used, end='')
+        for word in usage_words:
+            if chars_used + len(word) + 2 > console_width:
+                chars_used = int(console_width / 6)
+                print('\n' + ' ' * chars_used, end='')
+            chars_used += len(word) + 1
+            print(word + ' ', end='')
+        print()
+    print("\nExample of a command requiring multiple data arguments (exclusion command):")
+    print("  python mdbt.py -e \"abc\" --data 1 --data \"startswith\"")
 
 
 def get_argument(flag):
