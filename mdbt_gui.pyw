@@ -103,7 +103,8 @@ class MdbtButton(tk.Button):
         :param popup_members: A list of tuples containing a string and a function each. Each item in the list will be
                               made into a menu item that will appear when the button is right-clicked.
         """
-        super().__init__(frame.master_create, text=text, command=command)
+        self.hack_image = tk.PhotoImage(width=1, height=1)
+        super().__init__(frame.master_create, text=text, image=self.hack_image, compound=tk.CENTER, command=command)
         if popup_members is None:
             popup_members = []
         self.frame = frame

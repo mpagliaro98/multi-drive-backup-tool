@@ -93,9 +93,10 @@ class ScrollableFrame(ttk.Frame):
         self.check_scroll_binding()
         for widget in self._widgets:
             new_width = event.width-self.scrollbar.winfo_width()
-            # Not a good solution, but button width is text-based while other widgets are pixel-based
+            # Exclude buttons so we can update their size using a different method
             if not isinstance(widget, tk.Button):
                 widget.configure(width=new_width)
+        self.check_button_sizes()
 
     def check_scroll_binding(self, offset=0):
         """
@@ -132,6 +133,16 @@ class ScrollableFrame(ttk.Frame):
         # Update the frame width if dynamic width is on
         if self.dynamic_width:
             self.update_width()
+        self.check_button_sizes()
+
+    def check_button_sizes(self):
+        """
+        Update the sizes of each button in the frame. This new size should match the maximum size the button
+        can be while being entirely viewable in the frame.
+        """
+        for widget in self._widgets:
+            if isinstance(widget, tk.Button):
+                widget.configure(width=self.canvas.winfo_width()-self.scrollbar.winfo_reqwidth()-15)
 
     def clear_widgets(self):
         """
@@ -151,6 +162,7 @@ class ScrollableFrame(ttk.Frame):
         self.check_scroll_binding(-1 * self._widgets[widget_idx].winfo_height())
         self._widgets[widget_idx].destroy()
         del self._widgets[widget_idx]
+        self.check_button_sizes()
 
     def edit_text_on_widget(self, widget_idx, new_text):
         """
@@ -162,6 +174,7 @@ class ScrollableFrame(ttk.Frame):
         if self.dynamic_width:
             self.update_width()
         self.check_scroll_binding()
+        self.check_button_sizes()
 
     def edit_command_on_widget(self, widget_idx, new_command):
         """
