@@ -47,7 +47,7 @@ class MdbtMessage(tk.Message):
         :param popup_members: A list of tuples containing a string and a function each. Each item in the list will be
                               made into a menu item that will appear when the button is right-clicked.
         """
-        super().__init__(frame.master_create, text=text, anchor=tk.W)
+        super().__init__(frame.master_create, text=text, width=frame.frame_width(), anchor=tk.W)
         if popup_members is None:
             popup_members = []
         self.frame = frame

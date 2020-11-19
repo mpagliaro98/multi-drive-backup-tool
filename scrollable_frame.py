@@ -125,7 +125,6 @@ class ScrollableFrame(ttk.Frame):
         :param widget: The widget to be added.
         """
         self._widgets.append(widget)
-        self.check_scroll_binding()
         # If we aren't adding a button, increase its width to match the frame
         if not isinstance(widget, tk.Button):
             new_width = self.canvas.winfo_width() - self.scrollbar.winfo_width()
@@ -133,6 +132,7 @@ class ScrollableFrame(ttk.Frame):
         # Update the frame width if dynamic width is on
         if self.dynamic_width:
             self.update_width()
+        self.check_scroll_binding()
         self.check_button_sizes()
 
     def check_button_sizes(self):
@@ -159,9 +159,10 @@ class ScrollableFrame(ttk.Frame):
         Remove a widget at a given index in the widgets list.
         :param widget_idx: The index of the widget to delete.
         """
-        self.check_scroll_binding(-1 * self._widgets[widget_idx].winfo_height())
+        destroyed_height = self._widgets[widget_idx].winfo_height()
         self._widgets[widget_idx].destroy()
         del self._widgets[widget_idx]
+        self.check_scroll_binding(-1 * destroyed_height)
         self.check_button_sizes()
 
     def edit_text_on_widget(self, widget_idx, new_text):
@@ -183,3 +184,10 @@ class ScrollableFrame(ttk.Frame):
         :param new_command: The new command to attach to the widget.
         """
         self._widgets[widget_idx].configure(command=new_command)
+
+    def frame_width(self):
+        """
+        Get the approximate width of the area widgets can be placed in.
+        :return: The width of the frame's placement area.
+        """
+        return self.canvas.winfo_width() - self.scrollbar.winfo_reqwidth()
