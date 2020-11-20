@@ -8,6 +8,7 @@ import os
 import shutil
 import time
 from datetime import datetime
+import concurrent.futures
 import util
 import configuration
 import log
@@ -79,7 +80,8 @@ def run_backup(config):
                 output_filename = os.path.join(output_path, filename_no_ext + " " + BACKUP_FOLDER_SUFFIX + filename_ext)
                 new_files, changed_files, remove_files = mark_files(input_path, output_filename, config, input_number)
             else:
-                new_files, changed_files, remove_files = mark_files(input_path, backup_folder, config, input_number)
+                new_files, changed_files, remove_files = mark_files(input_path, backup_folder, config, input_number,
+                                                                    spawn_threads=True)
             set_num_marked(len(new_files) + len(changed_files) + len(remove_files))
             if not file_mode:
                 print()
@@ -140,7 +142,7 @@ def run_backup(config):
             increment_backup_number()
 
 
-def mark_files(input_path, output_path, config, input_number):
+def mark_files(input_path, output_path, config, input_number, spawn_threads=False):
     """
     This is the file preparation stage of the backup process. The directory to be backed up is walked through, and
     all new files, changed files, and files that should be deleted are compiled into their respective lists,
@@ -150,6 +152,8 @@ def mark_files(input_path, output_path, config, input_number):
     :param output_path: The file or directory in the drive to backup to.
     :param config: The current configuration.
     :param input_number: The index of the entry currently being worked with, starting from 1.
+    :param spawn_threads: If true, a thread will be spawned for every file/directory in the current one, and
+                          all child sub-directories of each will be searched concurrently. False by default.
     :return: A tuple of three lists is returned.
              First is a list of new files. Each element of this list is a tuple of three values: first the absolute
              file path, second that file's size in bytes, and third the absolute file path from the output.
@@ -203,6 +207,7 @@ def mark_files(input_path, output_path, config, input_number):
         output_dir_files = os.listdir(output_path)
         output_dir_idx = 0
         len_output_dir = len(output_dir_files)
+        param_list = []
 
         # Start by sorting the file lists so we can index them and compare them side by side
         input_dir_files.sort()
@@ -240,11 +245,25 @@ def mark_files(input_path, output_path, config, input_number):
                                 remove_files.append((output_filename, os.path.getsize(output_filename)))
                             output_dir_idx += 1
 
-                # Recurse and add the returned lists and values to our current counters
-                temp_new, temp_changed, temp_remove = mark_files(new_input, new_output, config, input_number)
-                new_files.extend(temp_new)
-                changed_files.extend(temp_changed)
-                remove_files.extend(temp_remove)
+                # If spawn_threads is true, add the parameters that would be used to a list
+                if spawn_threads:
+                    param_list.append([new_input, new_output, config, input_number])
+                # Otherwise, recurse and add the returned lists and values to our current counters
+                else:
+                    temp_new, temp_changed, temp_remove = mark_files(new_input, new_output, config, input_number)
+                    new_files.extend(temp_new)
+                    changed_files.extend(temp_changed)
+                    remove_files.extend(temp_remove)
+
+            # In spawn_threads mode, execute each list of parameters on a separate thread and combine the results
+            if spawn_threads:
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    futures = [executor.submit(mark_files, *params) for params in param_list]
+                results = [f.result() for f in futures]
+                for (temp_new, temp_changed, temp_remove) in results:
+                    new_files.extend(temp_new)
+                    changed_files.extend(temp_changed)
+                    remove_files.extend(temp_remove)
 
             # If there's still more files in the output that weren't looped over, add them all to the remove list
             if output_dir_idx < len_output_dir:
