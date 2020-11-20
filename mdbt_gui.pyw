@@ -192,7 +192,7 @@ class Application:
         self.menu_edit.add_command(label="Clear configuration", command=self.clear_configuration)
         self.menu.add_cascade(label="Edit", menu=self.menu_edit)
         self.menu_help = tk.Menu(self.menu, tearoff=0)
-        self.menu_help.add_command(label="About")
+        self.menu_help.add_command(label="About", command=self.about_popup)
         self.menu_help.add_command(label="How to use")
         self.menu_help.add_command(label="GitHub page", command=lambda: webbrowser.open(
             "https://github.com/mpagliaro98/multi-drive-backup-tool"))
@@ -1098,6 +1098,32 @@ class Application:
             self.update_config_name_label()
             self.input_tree.reset()
             self.input_tree.travel_to_path(self.config.get_entry(self.current_entry_number).input)
+
+    def about_popup(self):
+        """
+        Display a popup window containing information about the application.
+        """
+        about_window = tk.Toplevel(self.master)
+        about_window.wm_title("About")
+        about_window.geometry("350x250")
+
+        # Create the text in the window
+        about_text = "Multi-Drive Backup Tool (GUI Distribution)\n" \
+                     "v1.0.0\n\n" \
+                     "Author: Michael Pagliaro\n" \
+                     "Additional thanks:\n" \
+                     "Unknown author (code adapted into the Fileview)\n" \
+                     "Jose Salvatierra (code adapted into the Scrollable Frame)\n" \
+                     "vegaseat, Victor Zaccardo, Alberto Vassena (Tooltip code)\n\n" \
+                     "This software is not intended as a commercial product and should not be sold for profit. " \
+                     "This was made as a personal educational project. The project's code is fully open-source, " \
+                     "for more detailed licensing information see LICENSE.md on the project's Github page."
+        tk.Message(about_window, text=about_text, justify=tk.CENTER, anchor=tk.N).pack(fill=tk.BOTH, expand=True)
+
+        # Launch the window
+        about_window.grab_set()
+        self.master.wait_window(about_window)
+        about_window.grab_release()
 
 
 def main():
