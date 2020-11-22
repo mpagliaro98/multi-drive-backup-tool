@@ -193,7 +193,8 @@ class Application:
         self.menu.add_cascade(label="Edit", menu=self.menu_edit)
         self.menu_help = tk.Menu(self.menu, tearoff=0)
         self.menu_help.add_command(label="About", command=self.about_popup)
-        self.menu_help.add_command(label="How to use")
+        self.menu_help.add_command(label="How to use", command=lambda: webbrowser.open(
+            "https://github.com/mpagliaro98/multi-drive-backup-tool/blob/master/USAGE_GUI.md"))
         self.menu_help.add_command(label="GitHub page", command=lambda: webbrowser.open(
             "https://github.com/mpagliaro98/multi-drive-backup-tool"))
         self.menu_help.add_command(label="Updates page", command=lambda: webbrowser.open(
