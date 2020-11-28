@@ -14,6 +14,9 @@ import copy
 # Static global variable for the name of the directory configs are saved to
 CONFIG_DIRECTORY = "configs"
 
+# Limit to the number of entries allowed in a configuration
+MAX_ENTRIES = 25
+
 
 class InvalidPathException(Exception):
     """
@@ -79,7 +82,8 @@ class Configuration:
         creates a new Entry object and adds it to the list.
         :param input_path: The path to a folder or file to backup.
         """
-        self._entries.append(entry.Entry(input_path))
+        if self.num_entries() < MAX_ENTRIES:
+            self._entries.append(entry.Entry(input_path))
 
     def get_all_entry_inputs(self):
         """

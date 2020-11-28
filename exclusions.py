@@ -15,6 +15,10 @@ from tkcalendar import DateEntry
 import dateutil.parser as parser
 
 
+# Limit to the number of limitations allowed in an exclusion
+MAX_LIMITATIONS = 100
+
+
 class Exclusion:
     """
     A class representing an exclusion that is held within an entry. Every exclusion has a code and some
@@ -112,7 +116,8 @@ class Exclusion:
         :param limitation_code: The code of the limitation type this limitation uses.
         :param limitation_data: The limitation data.
         """
-        self._limitations.append(limitations.Limitation(limitation_code, limitation_data))
+        if self.num_limitations() < MAX_LIMITATIONS:
+            self._limitations.append(limitations.Limitation(limitation_code, limitation_data))
 
     def has_limitations(self):
         """

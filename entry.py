@@ -7,6 +7,13 @@ A file containing all information about configuration entries.
 import exclusions
 
 
+# Limit to the number of outputs allowed in an entry
+MAX_OUTPUTS = 50
+
+# Limit to the number of exclusions allowed in an entry
+MAX_EXCLUSIONS = 100
+
+
 class Entry:
     """
     The class representing a configuration entry. Each entry contains an input path, a list of output
@@ -74,7 +81,8 @@ class Entry:
         Append a new destination path to the entry.
         :param output_path: The path to the folder where this entry should be backed up to.
         """
-        self._outputs.append(output_path)
+        if self.num_destinations() < MAX_OUTPUTS:
+            self._outputs.append(output_path)
 
     def new_exclusion(self, exclusion_code, exclusion_data):
         """
@@ -83,7 +91,8 @@ class Entry:
         :param exclusion_data: The data to exclude based on the type.
         :return: The number of the index of this added exclusion, starting at 1.
         """
-        self._exclusions.append(exclusions.Exclusion(exclusion_code, exclusion_data))
+        if self.num_exclusions() < MAX_EXCLUSIONS:
+            self._exclusions.append(exclusions.Exclusion(exclusion_code, exclusion_data))
         return len(self._exclusions)
 
     def get_destination(self, destination_number):
