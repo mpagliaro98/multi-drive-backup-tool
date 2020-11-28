@@ -397,6 +397,13 @@ EXCLUSION_TYPES = [ExclusionType(code="startswith", menu_text="Starts with some 
                                  ui_input=lambda m: tk.Entry(m),
                                  ui_edit=lambda m, excl: tk.Entry(m, textvariable=tk.StringVar(m, value=excl.data)),
                                  ui_submit=lambda e: e.get()),
+                   ExclusionType(code="dir_name", menu_text="Specific directory name",
+                                 input_text="Directories with this name will be excluded: ",
+                                 function=lambda excl, path: os.path.isdir(path) and os.path.split(
+                                     path)[1] == excl.data,
+                                 ui_input=lambda m: tk.Entry(m),
+                                 ui_edit=lambda m, excl: tk.Entry(m, textvariable=tk.StringVar(m, value=excl.data)),
+                                 ui_submit=lambda e: e.get()),
                    ExclusionType(code="before", menu_text="Files modified before a given date",
                                  input_text="Files modified before this date will be excluded (MM/DD/YYYY): ",
                                  function=lambda excl, path: os.path.isfile(path) and datetime.strptime(
