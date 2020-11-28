@@ -255,7 +255,8 @@ def config_was_modified(config):
 def save_config(config, config_name):
     """
     Write a given configuration object to a file. This will overwrite a configuration file
-    if the name given already exists.
+    if the name given already exists. If the name given cannot create a valid filename, this
+    will raise a FileNotFoundError.
     :param config: A configuration object.
     :param config_name: The name to give the configuration file.
     """

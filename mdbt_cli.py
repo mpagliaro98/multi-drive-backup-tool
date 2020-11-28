@@ -434,8 +434,13 @@ def menu_option_save(config):
     if configuration.config_exists(config_name):
         overwrite = input("Would you like to overwrite this existing configuration? (y/n): ")
     if overwrite.lower() == "y":
+        old_config_name = config.name
         config.name = config_name
-        configuration.save_config(config, config_name)
+        try:
+            configuration.save_config(config, config_name)
+        except FileNotFoundError:
+            print("\nERROR: The name \"" + config_name + "\" is not a valid configuration name.")
+            config.name = old_config_name
 
 
 def menu_option_load(config, config_list):

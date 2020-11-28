@@ -545,8 +545,13 @@ def option_save(**kwargs):
     opts = kwargs["opts"]
     iterator = kwargs["iterator"]
     config_name = opts[iterator.current][1]
+    old_config_name = config.name
     config.name = config_name
-    configuration.save_config(config, config_name)
+    try:
+        configuration.save_config(config, config_name)
+    except FileNotFoundError:
+        print("\nERROR: The name \"" + config_name + "\" is not a valid configuration name.")
+        config.name = old_config_name
 
 
 def option_load(**kwargs):

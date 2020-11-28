@@ -370,8 +370,14 @@ class Application:
                                            " already exists. Would you like to overwrite it?")
                 if mbox == tk.NO:
                     return
+            old_config_name = self.config.name
             self.config.name = self.save_name
-            configuration.save_config(self.config, self.save_name)
+            try:
+                configuration.save_config(self.config, self.save_name)
+            except FileNotFoundError:
+                messagebox.showerror("Error", "The name \"" + self.save_name + "\" is not a valid configuration name.")
+                self.config.name = old_config_name
+                return
             self.update_config_name_label()
             messagebox.showinfo("Configuration Saved", self.save_name + ".dat was successfully saved to the " +
                                 configuration.CONFIG_DIRECTORY + " directory.")
