@@ -11,6 +11,7 @@ import itertools
 import collections
 import shutil
 import configuration
+from entry import MAX_OUTPUTS, MAX_EXCLUSIONS
 import backup
 import exclusions
 from exclusions import EXCLUSION_TYPES
@@ -254,7 +255,10 @@ def option_input(**kwargs):
     opts = kwargs["opts"]
     iterator = kwargs["iterator"]
     input_data = opts[iterator.current][1]
-    configuration.append_input_to_config(config, input_data)
+    if config.num_entries() >= configuration.MAX_ENTRIES:
+        print("The maximum number of entries has been reached, you are unable to create more.")
+    else:
+        configuration.append_input_to_config(config, input_data)
 
 
 def option_destination(**kwargs):
@@ -287,7 +291,11 @@ def option_destination(**kwargs):
         raise BadDataException("The input index should correspond to a valid entry.")
 
     # Create the new destination
-    configuration.append_output_to_config(config, input_index, output_data)
+    if config.get_entry(input_index).num_destinations() >= MAX_OUTPUTS:
+        print("The maximum number of destinations has been reached for entry {}, you are unable to create more."
+              .format(input_index))
+    else:
+        configuration.append_output_to_config(config, input_index, output_data)
     return {"advance": 1}
 
 
@@ -331,7 +339,11 @@ def option_exclusion(**kwargs):
         raise BadDataException("The input index should correspond to a valid entry.")
 
     # Create the new destination
-    config.get_entry(input_index).new_exclusion(exclusion_code, exclusion_data)
+    if config.get_entry(input_index).num_exclusions() >= MAX_EXCLUSIONS:
+        print("The maximum number of exclusions has been reached for entry {}, you are unable to create more."
+              .format(input_index))
+    else:
+        config.get_entry(input_index).new_exclusion(exclusion_code, exclusion_data)
     return {"advance": 2}
 
 
@@ -382,7 +394,11 @@ def option_limitation(**kwargs):
         raise BadDataException("The exclusion index should correspond to a valid exclusion.")
 
     # Create the new destination
-    config.get_entry(input_index).get_exclusion(exclusion_index).add_limitation(limitation_code, limitation_data)
+    if config.get_entry(input_index).get_exclusion(exclusion_index).num_limitations() >= exclusions.MAX_LIMITATIONS:
+        print("The maximum number of limitations has been reached for entry {} exclusion {}, you are unable to "
+              "create more.".format(input_index, exclusion_index))
+    else:
+        config.get_entry(input_index).get_exclusion(exclusion_index).add_limitation(limitation_code, limitation_data)
     return {"advance": 3}
 
 

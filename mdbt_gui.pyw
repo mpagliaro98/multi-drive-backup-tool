@@ -20,6 +20,7 @@ import backup_asyncio
 import exclusions
 import limitations
 from configuration import InvalidPathException, SubPathException, CyclicEntryException
+from entry import MAX_OUTPUTS, MAX_EXCLUSIONS
 from exclusions import EXCLUSION_TYPES
 from limitations import LIMITATION_TYPES
 
@@ -491,6 +492,41 @@ class Application:
             self.output_label.configure(text="COPY TO ({} locations)".format(self.config.get_entry(
                 self.current_entry_number).num_destinations()))
 
+    def update_output_button(self):
+        """
+        Turn the output button on or off depending on if the maximum number of outputs has been reached for this
+        entry.
+        """
+        if 0 < self.current_entry_number <= self.config.num_entries() and \
+                self.config.get_entry(self.current_entry_number).num_destinations() >= MAX_OUTPUTS:
+            self.output_button['state'] = tk.DISABLED
+        else:
+            self.output_button['state'] = tk.NORMAL
+
+    def update_exclusion_button(self):
+        """
+        Turn the exclusion button on or off depending on if the maximum number of exclusions has been reached for this
+        entry.
+        """
+        if 0 < self.current_entry_number <= self.config.num_entries() and \
+                self.config.get_entry(self.current_entry_number).num_exclusions() >= MAX_EXCLUSIONS:
+            self.exclusion_button['state'] = tk.DISABLED
+        else:
+            self.exclusion_button['state'] = tk.NORMAL
+
+    def update_limitation_button(self):
+        """
+        Turn the limitation button on or off depending on if the maximum number of limitations has been reached for this
+        entry.
+        """
+        if 0 < self.current_entry_number <= self.config.num_entries() and \
+            0 < self.current_exclusion_number <= self.config.get_entry(self.current_entry_number).num_exclusions() and \
+                self.config.get_entry(self.current_entry_number).get_exclusion(
+                    self.current_exclusion_number).num_limitations() >= exclusions.MAX_LIMITATIONS:
+            self.limitation_button['state'] = tk.DISABLED
+        else:
+            self.limitation_button['state'] = tk.NORMAL
+
     def set_fields_to_entry(self, entry_number):
         """
         Updates the UI fields to display info of a given configuration entry. This will show the input path,
@@ -505,6 +541,7 @@ class Application:
         self.current_entry_number = entry_number
         self.input_tree.set_entry(None)
         self.update_output_label()
+        self.update_output_button()
 
         # Default to disabling the exclusion and limitation buttons and clearing their frame contents
         self.exclusion_button['state'] = tk.DISABLED
@@ -536,7 +573,7 @@ class Application:
                                           ("Delete", lambda i=exclusion_idx: self.delete_exclusion(i))])
 
             # Ensure the exclusion button is enabled and set the exclusion number
-            self.exclusion_button['state'] = tk.NORMAL
+            self.update_exclusion_button()
             self.current_exclusion_number = 0
 
     def set_exclusion_fields(self, excl_number):
@@ -550,9 +587,9 @@ class Application:
         self.exclusion_frame.widgets[excl_number-1].configure(bg="blue", fg="white")
 
         # Refresh old values
-        self.limitation_button['state'] = tk.NORMAL
         self.current_exclusion_number = excl_number
         self.limitation_frame.clear_widgets()
+        self.update_limitation_button()
 
         # Populate the limitation frame
         for limitation_idx in range(1, len(self.config.get_entry(self.current_entry_number).get_exclusion(
@@ -577,6 +614,7 @@ class Application:
                 "Delete", lambda i=widget_idx+1: self.delete_destination(i))
         self.update_config_name_label()
         self.update_output_label()
+        self.update_output_button()
 
     def delete_highlighted_destinations(self):
         """
@@ -606,6 +644,7 @@ class Application:
                         popup_members=[("Delete", lambda i=output_idx: self.delete_destination(i))])
         self.update_config_name_label()
         self.update_output_label()
+        self.update_output_button()
 
     def delete_entry(self, entry_number=0):
         """
@@ -623,6 +662,8 @@ class Application:
 
         # Delete its entry button, then update every following entry button
         self.entries_frame.remove_widget(entry_number-1)
+        if self.config.num_entries() == configuration.MAX_ENTRIES-1:
+            self.add_new_entry_button()
         for widget_idx in range(entry_number-1, len(self.entries_frame.widgets)-1):
             path_split = os.path.split(self.config.get_entry(widget_idx+1).input)
             button_text = path_split[0] if path_split[1] == "" else path_split[1]
@@ -651,6 +692,8 @@ class Application:
         self.config.get_entry(self.current_entry_number).delete_exclusion(excl_number)
         self.exclusion_frame.remove_widget(excl_number-1)
         self.update_config_name_label()
+        self.update_exclusion_button()
+        self.update_limitation_button()
         self.input_tree.reset()
         self.input_tree.travel_to_path(self.config.get_entry(self.current_entry_number).input)
 
@@ -680,6 +723,7 @@ class Application:
             self.current_exclusion_number).delete_limitation(limit_number)
         self.limitation_frame.remove_widget(limit_number-1)
         self.update_config_name_label()
+        self.update_limitation_button()
         self.input_tree.reset()
         self.input_tree.travel_to_path(self.config.get_entry(self.current_entry_number).input)
 
@@ -699,6 +743,7 @@ class Application:
             self.exclusion_frame.clear_widgets()
             self.limitation_frame.clear_widgets()
             self.update_config_name_label()
+            self.update_exclusion_button()
             self.limitation_button['state'] = tk.DISABLED
 
     def delete_exclusion_limitations(self):
@@ -711,6 +756,7 @@ class Application:
                     self.current_exclusion_number).limitations
                 self.limitation_frame.clear_widgets()
                 self.update_config_name_label()
+                self.update_limitation_button()
 
     def clear_fields(self):
         """
@@ -743,14 +789,17 @@ class Application:
 
     def add_new_entry_button(self):
         """
-        Create the "New Entry" button at the bottom of the entry button list.
+        Create the "New Entry" button at the bottom of the entry button list as long as the entry limit has not
+        been reached.
         """
-        new_entry_button = MdbtButton("New Entry", self.entries_frame, command=lambda: self.set_fields_to_entry(
-            self.config.num_entries()+1), ipadx=10, ipady=10)
-        tt.Tooltip(new_entry_button, text="Use this button to add a new entry to your backup configuration. Pressing " +
-                   "this button will display blank fields to the right, and once you specify which file/folder is " +
-                   "being backed up, the entry will be created. The entry will not be solidified until you see a " +
-                   "button on the left side of the window with the file/folder name of what you want to backup in it.")
+        if self.config.num_entries() < configuration.MAX_ENTRIES:
+            new_entry_button = MdbtButton("New Entry", self.entries_frame, command=lambda: self.set_fields_to_entry(
+                self.config.num_entries()+1), ipadx=10, ipady=10)
+            tt.Tooltip(new_entry_button, text="Use this button to add a new entry to your backup configuration. " +
+                       "Pressing this button will display blank fields to the right, and once you specify which " +
+                       "file/folder is being backed up, the entry will be created. The entry will not be solidified " +
+                       "until you see a button on the left side of the window with the file/folder name of what you " +
+                       "want to backup in it.")
 
     def highlight_entry_button(self, old_entry_number, new_entry_number):
         """
@@ -816,6 +865,7 @@ class Application:
                             popup_members=[("Delete", lambda i=dest_number: self.delete_destination(i))])
                 self.update_config_name_label()
                 self.update_output_label()
+                self.update_output_button()
             except (InvalidPathException, SubPathException, CyclicEntryException) as e:
                 messagebox.showerror("Error", str(e))
         # Otherwise, say we can only add destinations if an input was set
@@ -1079,6 +1129,7 @@ class Application:
                                self.exclusion_frame, command=lambda i=new_index: self.set_exclusion_fields(i), ipadx=10,
                                ipady=10, popup_members=[("Edit", lambda i=new_index: self.edit_exclusion(i)),
                                                         ("Delete", lambda i=new_index: self.delete_exclusion(i))])
+                    self.update_exclusion_button()
                 # Create a new limitation
                 else:
                     self.config.get_entry(self.current_entry_number).get_exclusion(
@@ -1090,6 +1141,7 @@ class Application:
                     MdbtButton(limitation.to_string(), self.limitation_frame, ipadx=10, ipady=10,
                                popup_members=[("Edit", lambda i=new_index: self.edit_limitation(i)),
                                               ("Delete", lambda i=new_index: self.delete_limitation(i))])
+                    self.update_limitation_button()
             else:
                 # Edit an existing exclusion
                 if exclusion_mode:

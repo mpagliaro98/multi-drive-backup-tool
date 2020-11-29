@@ -6,8 +6,9 @@ with menus and options on the command line.
 """
 
 import configuration
+from entry import MAX_OUTPUTS, MAX_EXCLUSIONS
 from configuration import InvalidPathException, SubPathException, CyclicEntryException
-from exclusions import EXCLUSION_TYPES
+from exclusions import EXCLUSION_TYPES, MAX_LIMITATIONS
 from limitations import LIMITATION_TYPES
 import util
 import backup
@@ -66,6 +67,9 @@ def menu_option_input(config):
     This will accept user input until a valid file or folder path is input.
     :param config: The current backup configuration.
     """
+    if config.num_entries() >= configuration.MAX_ENTRIES:
+        print("The maximum number of entries has been reached, you are unable to create more.")
+        return
     result = False
     while not result:
         # Accept user input for path to directory or file
@@ -96,6 +100,17 @@ def menu_option_destination(config):
     # Input loop: Enter paths to send this folder to
     print("Enter the absolute paths of each destination, separated by the Enter key (enter \"end\" to stop)")
     while True:
+        if entry_number == 0:
+            for entry_number_loop in range(1, config.num_entries() + 1):
+                if config.get_entry(entry_number_loop).num_destinations() >= MAX_OUTPUTS:
+                    print("The maximum number of destinations has been reached for entry "
+                          "{}, you are unable to create more.".format(entry_number_loop))
+                    return
+        else:
+            if config.get_entry(entry_number).num_destinations() >= MAX_OUTPUTS:
+                print("The maximum number of destinations has been reached for entry {}, you are unable to create more."
+                      .format(entry_number))
+                return
         destination_input = input()
         if destination_input == "end":
             break
@@ -130,6 +145,12 @@ def menu_option_exclude(config):
 
     # Once chosen, display options to add different types of exclusions
     while True:
+        # Return if the maximum number of exclusions has been reached
+        if config.get_entry(entry_number).num_exclusions() >= MAX_EXCLUSIONS:
+            print("The maximum number of exclusions has been reached for entry {}, you are unable to create more."
+                  .format(entry_number))
+            return
+
         print()
         print(entry.to_string(exclusion_mode=True))
         exclusion_codes = [item.code for item in EXCLUSION_TYPES]
@@ -162,6 +183,12 @@ def sub_option_limitations(entry):
 
     # Once chosen, display options to add different types of limitations
     while True:
+        # Return if the maximum number of limitations has been reached
+        if exclusion.num_limitations() >= MAX_LIMITATIONS:
+            print("The maximum number of limitations has been reached for exclusion {}, you are unable to create more."
+                  .format(excl_number))
+            return
+
         print()
         print(exclusion.to_string(include_limitations=True, entry_input=entry.input))
         limitation_codes = [item.code for item in LIMITATION_TYPES]
