@@ -103,6 +103,9 @@ def run_backup(config):
                 log.log_print("\n" + error_str)
                 set_error(error_str)
                 set_status("ERROR: The backup will not fit. Backup process has stopped.")
+                if not file_mode:
+                    if util.dir_empty(backup_folder):
+                        util.rmtree(backup_folder)
                 return
 
             # Make changes to the files found in file preparation

@@ -92,6 +92,19 @@ def directory_size_with_exclusions(path, config, input_number):
         return total_size, total_files
 
 
+def dir_empty(path):
+    """
+    Check if a directory is empty by looking for any files within it. If at least one file exists within the
+    directory structure, it is not empty, otherwise it is empty.
+    :param path: A directory to search.
+    :return: True if no files exist within the directory, false otherwise.
+    """
+    for root, dirs, files in os.walk(path):
+        if len(files) > 0:
+            return False
+    return True
+
+
 def time_string(time_seconds):
     """
     Creates a formatted string to express a length of time. Given a value in seconds, the value will
