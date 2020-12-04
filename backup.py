@@ -9,6 +9,7 @@ import shutil
 import time
 from datetime import datetime
 import concurrent.futures
+from threading import Lock
 import util
 import configuration
 import log
@@ -20,6 +21,12 @@ CONFIRMATION_FILENAME = "_BACKUP-CONFIRMATION.txt"
 
 # The string on the end of the final backup folders
 BACKUP_FOLDER_SUFFIX = "BACKUP"
+
+# Variables for threads
+ACTIVE_THREADS = 0
+MAX_THREADS = os.cpu_count()
+THREAD_COUNT_LOCK = Lock()
+THREAD_START_DEPTH = -1
 
 # Variables to track how many files have been processed during the backup process, all are observable
 BACKUP_NUMBER = 0
@@ -80,8 +87,7 @@ def run_backup(config):
                 output_filename = os.path.join(output_path, filename_no_ext + " " + BACKUP_FOLDER_SUFFIX + filename_ext)
                 new_files, changed_files, remove_files = mark_files(input_path, output_filename, config, input_number)
             else:
-                new_files, changed_files, remove_files = mark_files(input_path, backup_folder, config, input_number,
-                                                                    spawn_threads=True)
+                new_files, changed_files, remove_files = mark_files(input_path, backup_folder, config, input_number)
             set_num_marked(len(new_files) + len(changed_files) + len(remove_files))
             if not file_mode:
                 print()
@@ -145,7 +151,7 @@ def run_backup(config):
             increment_backup_number()
 
 
-def mark_files(input_path, output_path, config, input_number, spawn_threads=False):
+def mark_files(input_path, output_path, config, input_number, depth=0):
     """
     This is the file preparation stage of the backup process. The directory to be backed up is walked through, and
     all new files, changed files, and files that should be deleted are compiled into their respective lists,
@@ -155,8 +161,7 @@ def mark_files(input_path, output_path, config, input_number, spawn_threads=Fals
     :param output_path: The file or directory in the drive to backup to.
     :param config: The current configuration.
     :param input_number: The index of the entry currently being worked with, starting from 1.
-    :param spawn_threads: If true, a thread will be spawned for every file/directory in the current one, and
-                          all child sub-directories of each will be searched concurrently. False by default.
+    :param depth: The depth of the recursive search. Will be 0 if not specified.
     :return: A tuple of three lists is returned.
              First is a list of new files. Each element of this list is a tuple of three values: first the absolute
              file path, second that file's size in bytes, and third the absolute file path from the output.
@@ -166,6 +171,7 @@ def mark_files(input_path, output_path, config, input_number, spawn_threads=Fals
              Third is a list of files to delete. Each element of this list is a tuple of two values: first the absolute
              file path from the output, and second that file's size in bytes.
     """
+    global THREAD_START_DEPTH
     # Don't continue down this path if it should be excluded
     if config.get_entry(input_number).should_exclude(input_path, output_path):
         log.log("EXCLUDED - " + input_path)
@@ -248,25 +254,45 @@ def mark_files(input_path, output_path, config, input_number, spawn_threads=Fals
                                 remove_files.append((output_filename, os.path.getsize(output_filename)))
                             output_dir_idx += 1
 
-                # If spawn_threads is true, add the parameters that would be used to a list
-                if spawn_threads:
-                    param_list.append([new_input, new_output, config, input_number])
-                # Otherwise, recurse and add the returned lists and values to our current counters
+                # If this is a directory, save parameters to spawn a thread later
+                if os.path.isdir(new_input):
+                    param_list.append([new_input, new_output, config, input_number, depth+1])
+                # Otherwise, recurse and process this file here
                 else:
-                    temp_new, temp_changed, temp_remove = mark_files(new_input, new_output, config, input_number)
+                    temp_new, temp_changed, temp_remove = mark_files(new_input, new_output, config, input_number,
+                                                                     depth+1)
                     new_files.extend(temp_new)
                     changed_files.extend(temp_changed)
                     remove_files.extend(temp_remove)
 
             # In spawn_threads mode, execute each list of parameters on a separate thread and combine the results
-            if spawn_threads:
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    futures = [executor.submit(mark_files, *params) for params in param_list]
-                results = [f.result() for f in futures]
-                for (temp_new, temp_changed, temp_remove) in results:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = []
+                # Don't spawn a new thread if only one set of parameters is in the list
+                if len(param_list) == 1:
+                    temp_new, temp_changed, temp_remove = mark_files(*param_list[0])
                     new_files.extend(temp_new)
                     changed_files.extend(temp_changed)
                     remove_files.extend(temp_remove)
+                else:
+                    for params in param_list:
+                        # Only spawn new threads around the same depth in the file heirarchy
+                        if ACTIVE_THREADS < MAX_THREADS and (depth <= THREAD_START_DEPTH+1 or THREAD_START_DEPTH == -1):
+                            if THREAD_START_DEPTH == -1:
+                                THREAD_START_DEPTH = depth
+                            edit_thread_count(1)
+                            futures.append(executor.submit(mark_files, *params))
+                        else:
+                            temp_new, temp_changed, temp_remove = mark_files(*params)
+                            new_files.extend(temp_new)
+                            changed_files.extend(temp_changed)
+                            remove_files.extend(temp_remove)
+            results = [f.result() for f in futures]
+            edit_thread_count(-1 * len(results))
+            for (temp_new, temp_changed, temp_remove) in results:
+                new_files.extend(temp_new)
+                changed_files.extend(temp_changed)
+                remove_files.extend(temp_remove)
 
             # If there's still more files in the output that weren't looped over, add them all to the remove list
             if output_dir_idx < len_output_dir:
@@ -413,6 +439,19 @@ def backup_files(new_files, changed_files, remove_files):
     return num_errors
 
 
+def edit_thread_count(offset):
+    """
+    Thread-safe function for modifying the active thread count by a given offset.
+    :param offset: Value to add to the active thread counter.
+    """
+    global ACTIVE_THREADS
+    THREAD_COUNT_LOCK.acquire()
+    try:
+        ACTIVE_THREADS += offset
+    finally:
+        THREAD_COUNT_LOCK.release()
+
+
 @observable
 def reset_globals():
     """
@@ -427,6 +466,8 @@ def reset_globals():
     global TOTAL_SIZE_PROCESSED
     global BACKUP_PROGRESS
     global ERROR
+    global ACTIVE_THREADS
+    global THREAD_START_DEPTH
     NUM_FILES_PROCESSED = 0
     NUM_FILES_MARKED = 0
     NUM_FILES_MODIFIED = 0
@@ -436,6 +477,8 @@ def reset_globals():
     TOTAL_SIZE_PROCESSED = 0
     BACKUP_PROGRESS = 0
     ERROR = ""
+    ACTIVE_THREADS = 0
+    THREAD_START_DEPTH = -1
 
 
 @observable
