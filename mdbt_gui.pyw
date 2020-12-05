@@ -190,6 +190,8 @@ class Application:
         self.menu_edit.add_command(label="Delete all limitations on the current exclusion",
                                    command=self.delete_exclusion_limitations)
         self.menu_edit.add_separator()
+        self.menu_edit.add_command(label="Refresh fileviews", command=self.refresh_fileviews)
+        self.menu_edit.add_separator()
         self.menu_edit.add_command(label="Clear configuration", command=self.clear_configuration)
         self.menu.add_cascade(label="Edit", menu=self.menu_edit)
         self.menu_help = tk.Menu(self.menu, tearoff=0)
@@ -694,8 +696,7 @@ class Application:
         self.update_config_name_label()
         self.update_exclusion_button()
         self.update_limitation_button()
-        self.input_tree.reset()
-        self.input_tree.travel_to_path(self.config.get_entry(self.current_entry_number).input)
+        self.refresh_fileviews()
 
         # Update UI elements if they'll be affected by the delete
         if self.current_exclusion_number == excl_number:
@@ -724,8 +725,7 @@ class Application:
         self.limitation_frame.remove_widget(limit_number-1)
         self.update_config_name_label()
         self.update_limitation_button()
-        self.input_tree.reset()
-        self.input_tree.travel_to_path(self.config.get_entry(self.current_entry_number).input)
+        self.refresh_fileviews()
 
         # Update the delete functions for all buttons after the deleted one
         for widget_idx in range(limit_number-1, len(self.limitation_frame.widgets)):
@@ -744,6 +744,7 @@ class Application:
             self.limitation_frame.clear_widgets()
             self.update_config_name_label()
             self.update_exclusion_button()
+            self.refresh_fileviews()
             self.limitation_button['state'] = tk.DISABLED
 
     def delete_exclusion_limitations(self):
@@ -757,6 +758,7 @@ class Application:
                 self.limitation_frame.clear_widgets()
                 self.update_config_name_label()
                 self.update_limitation_button()
+                self.refresh_fileviews()
 
     def clear_fields(self):
         """
@@ -1157,8 +1159,7 @@ class Application:
                         self.current_entry_number).get_exclusion(self.current_exclusion_number).get_limitation(
                         old_index).to_string())
             self.update_config_name_label()
-            self.input_tree.reset()
-            self.input_tree.travel_to_path(self.config.get_entry(self.current_entry_number).input)
+            self.refresh_fileviews()
 
     def about_popup(self):
         """
@@ -1185,6 +1186,21 @@ class Application:
         about_window.grab_set()
         self.master.wait_window(about_window)
         about_window.grab_release()
+
+    def refresh_fileviews(self):
+        """
+        Refresh the input and output fileviews.
+        """
+        input_path = self.input_tree.get_focus_path()
+        output_path = self.output_tree.get_focus_path()
+        if 0 < self.current_entry_number <= self.config.num_entries():
+            self.input_tree.set_entry(self.config.get_entry(self.current_entry_number))
+        self.input_tree.reset()
+        self.output_tree.reset()
+        if input_path != "":
+            self.input_tree.travel_to_path(input_path)
+        if output_path != "":
+            self.output_tree.travel_to_path(output_path)
 
 
 def main():
