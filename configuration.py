@@ -15,7 +15,7 @@ import copy
 CONFIG_DIRECTORY = "configs"
 
 # Limit to the number of entries allowed in a configuration
-MAX_ENTRIES = 25
+MAX_ENTRIES = 50
 
 
 class InvalidPathException(Exception):
