@@ -11,6 +11,9 @@ import filecmp
 import stat
 
 
+APP_VERSION = "1.0.1"
+
+
 def get_drive_list():
     """
     Searches the local machine and gets a list of the drive letters for each available
@@ -256,3 +259,13 @@ def sign_string(value):
     :return: The sign of that value as a string.
     """
     return "+" if value > 0 else "-" if value < 0 else "+/-"
+
+
+def working_directory():
+    """
+    Get the working directory that this application can write to.
+    :return: The absolute path to a directory.
+    """
+    appdata_path = os.getenv('LOCALAPPDATA')
+    full_path = os.path.join(appdata_path, "mpagliaro98", "Multi-Drive Backup Tool")
+    return full_path

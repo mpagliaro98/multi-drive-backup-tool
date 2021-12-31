@@ -1171,7 +1171,7 @@ class Application:
 
         # Create the text in the window
         about_text = "Multi-Drive Backup Tool (GUI Distribution)\n" \
-                     "v1.0.0\n\n" \
+                     "v" + util.APP_VERSION + "\n\n" \
                      "Author: Michael Pagliaro\n" \
                      "Additional thanks:\n" \
                      "Unknown author (code adapted into the Fileview)\n" \

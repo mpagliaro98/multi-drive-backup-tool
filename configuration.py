@@ -235,7 +235,7 @@ def config_exists(config_name):
     if config_name is None:
         return False
     file_name = config_name + ".dat"
-    file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
+    file_path = os.path.join(util.working_directory(), CONFIG_DIRECTORY, file_name)
     return os.path.exists(file_path)
 
 
@@ -265,9 +265,9 @@ def save_config(config, config_name):
     :param config_name: The name to give the configuration file.
     """
     file_name = config_name + ".dat"
-    file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
-    if not os.path.exists(os.path.join(os.getcwd(), CONFIG_DIRECTORY)):
-        os.mkdir(os.path.join(os.getcwd(), CONFIG_DIRECTORY))
+    file_path = os.path.join(util.working_directory(), CONFIG_DIRECTORY, file_name)
+    if not os.path.exists(os.path.join(util.working_directory(), CONFIG_DIRECTORY)):
+        os.makedirs(os.path.join(util.working_directory(), CONFIG_DIRECTORY), exist_ok=True)
     if os.path.exists(file_path):
         os.remove(file_path)
     config_file = open(file_path, "wb")
@@ -282,10 +282,10 @@ def saved_config_display_string():
     of each valid configuration.
     :return: A string containing the names of all saved configurations.
     """
-    if not os.path.exists(os.path.join(os.getcwd(), CONFIG_DIRECTORY)):
+    if not os.path.exists(os.path.join(util.working_directory(), CONFIG_DIRECTORY)):
         return ""
     list_str = ""
-    for filename in os.listdir(os.path.join(os.getcwd(), CONFIG_DIRECTORY)):
+    for filename in os.listdir(os.path.join(util.working_directory(), CONFIG_DIRECTORY)):
         if filename.endswith(".dat"):
             list_str += os.path.splitext(filename)[0] + "\n"
     return list_str
@@ -301,7 +301,7 @@ def load_config(config_name):
     if config_name is None:
         return None
     file_name = config_name + ".dat"
-    file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
+    file_path = os.path.join(util.working_directory(), CONFIG_DIRECTORY, file_name)
     config_file = open(file_path, "rb")
     config = pickle.load(config_file)
     config_file.close()
@@ -317,7 +317,7 @@ def delete_config(config_name):
     if config_name is None:
         return
     file_name = config_name + ".dat"
-    file_path = os.path.join(os.getcwd(), CONFIG_DIRECTORY, file_name)
+    file_path = os.path.join(util.working_directory(), CONFIG_DIRECTORY, file_name)
     if os.path.exists(file_path):
         os.remove(file_path)
 
