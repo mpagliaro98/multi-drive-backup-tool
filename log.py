@@ -66,7 +66,7 @@ def log(log_str=""):
     :param log_str: The string to append to the log file.
     """
     global LOG_FILE
-    LOG_FILE.write(log_str + "\n")
+    LOG_FILE.write(str(log_str.encode('utf8')) + "\n")
 
 
 def log_print(log_str=""):
@@ -78,7 +78,7 @@ def log_print(log_str=""):
     :return:
     """
     global LOG_FILE
-    LOG_FILE.write(log_str + "\n")
+    LOG_FILE.write(str(log_str.encode('utf8')) + "\n")
     print(log_str)
 
 
