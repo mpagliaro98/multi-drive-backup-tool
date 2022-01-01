@@ -26,6 +26,10 @@ For detailed usage instructions for each version, see their corresponding usage 
 * CLI version - [USAGE_CLI.md](https://github.com/mpagliaro98/multi-drive-backup-tool/blob/master/USAGE_CLI.md)
 * Command Line Argument version - [USAGE_CMD.md](https://github.com/mpagliaro98/multi-drive-backup-tool/blob/master/USAGE_CMD.md)
 
+## Building the Executable Yourself
+
+This program is packaged as a standalone .exe file and distributed in an installer in the Releases section. To create this yourself, you must have pyinstaller (download from pip) and Inno Setup on your system. Then download this entire repository anywhere on your system. You will also need [zipjs.bat](https://github.com/npocmaka/batch.scripts/blob/master/hybrids/jscript/zipjs.bat), hosted by npocmaka on Github, and place that file inside the deploy/ directory. All you have to do from there is run build.bat from the command line and supply it one command line argument, being the version number you want to give the application. The script will create the three distributions found on each release in the Releases section and put them in a Releases folder in the base of the downloaded repository. If you run into problems with Inno Setup, edit the path to ISCC.exe in build.bat to where it is located on your system.
+
 ## License
 
 MIT License
